@@ -10,6 +10,7 @@ dónde está cada cosa.
 sia-tp4/
 ├── CLAUDE.md
 ├── README.md
+├── requirements.txt
 ├── datos/
 │   ├── creadores.csv
 │   └── hopfield/
@@ -83,6 +84,7 @@ python3 -m pytest -q tests/ej1
 - Python 3.11 o superior.
 - `numpy`, `pandas`, `matplotlib` para el script.
 - `pytest` para los tests.
+- Las versiones usadas están en `requirements.txt`.
 - No se usa scikit-learn ni otra librería de machine learning.
 
 ## Estado
