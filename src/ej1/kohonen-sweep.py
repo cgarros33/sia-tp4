@@ -45,6 +45,7 @@ PARAMETROS_VALIDOS = (
 )
 CRITERIOS_VALIDOS = ("minimo", "codo")
 OPCIONES_FIGURAS = ("a", "b", "c")
+OPCIONES_FIGURAS_POR_DEFECTO = ("a", "b")
 
 
 def _cargar_kohonen():
@@ -204,7 +205,7 @@ def validar_config_barrido(config: dict) -> None:
     figuras = config.get("figuras", {})
     if not isinstance(figuras, dict):
         raise ValueError("La sección [figuras] debe ser una tabla.")
-    opciones = figuras.get("opciones", list(OPCIONES_FIGURAS))
+    opciones = figuras.get("opciones", list(OPCIONES_FIGURAS_POR_DEFECTO))
     if (
         not isinstance(opciones, list)
         or not opciones
@@ -1019,6 +1020,10 @@ def ejecutar_barrido(
         ruta_salida / "config_barrido.toml",
     )
 
+    opciones = config_barrido.get("figuras", {}).get(
+        "opciones",
+        list(OPCIONES_FIGURAS_POR_DEFECTO),
+    )
     lineas_registro = [
         "Registro del barrido — TP4, ejercicio 1.2 (Red de Kohonen)",
         f"Orden: {orden}",
@@ -1035,16 +1040,14 @@ def ejecutar_barrido(
         "  resumen_pasos.csv",
         "  paso_*.csv",
         "  acoplamientos/",
-        "  figuras/opcion_a/",
-        "  figuras/opcion_b/",
-        "  figuras/opcion_c/",
     ]
+    for opcion in opciones:
+        lineas_registro.append(f"  figuras/opcion_{opcion}/")
     (ruta_salida / "registro.txt").write_text(
         "\n".join(lineas_registro) + "\n",
         encoding="utf-8",
     )
 
-    opciones = config_barrido.get("figuras", {}).get("opciones", ["a", "b", "c"])
     _guardar_figuras(
         resultados_pasos,
         resumen_pasos,

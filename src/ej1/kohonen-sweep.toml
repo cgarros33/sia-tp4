@@ -33,8 +33,8 @@ pares = [["eta_inicial", "decaimiento_eta"],
 adoptar_solo_si_mejora = true
 
 [figuras]
-# Se generan las tres opciones para comparar y elegir la de la presentación.
-opciones = ["a", "b", "c"]
+# Se generan A y B; la opción C queda desactivada por legibilidad.
+opciones = ["a", "b"]
 
 [salida]
 directorio = "resultados/ej1/kohonen_sweep"

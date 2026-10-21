@@ -302,7 +302,7 @@ def test_salidas_reducidas(
     barrido: ModuleType,
     tmp_path: Path,
 ) -> None:
-    """El barrido reducido debe generar CSV y las tres opciones de figuras."""
+    """El barrido reducido debe generar CSV y las opciones de figuras configuradas."""
     config = kohonen.cargar_config(RUTA_CONFIG_KOHONEN)
     salida = tmp_path / "salida"
 
@@ -324,12 +324,37 @@ def test_salidas_reducidas(
         assert list(carpeta.glob("*.png"))
 
 
+def test_opciones_por_defecto_sin_c(
+    kohonen: ModuleType,
+    barrido: ModuleType,
+    tmp_path: Path,
+) -> None:
+    """Sin sección de figuras se generan A y B, pero no C."""
+    config = kohonen.cargar_config(RUTA_CONFIG_KOHONEN)
+    config_barrido = config_barrido_minimo()
+    del config_barrido["figuras"]
+    salida = tmp_path / "salida"
+
+    barrido.ejecutar_barrido(
+        config,
+        datos_pequenos(),
+        config_barrido,
+        entrenador_falso,
+        salida,
+    )
+
+    assert (salida / "figuras" / "opcion_a").is_dir()
+    assert (salida / "figuras" / "opcion_b").is_dir()
+    assert not (salida / "figuras" / "opcion_c").exists()
+
+
 def test_config_barrido_valida(barrido: ModuleType) -> None:
     """La configuración completa debe cargar y validar."""
     config_barrido = barrido.cargar_config_barrido(RUTA_CONFIG_SWEEP)
 
     assert config_barrido["barrido"]["orden"][0] == "grilla"
     assert config_barrido["valores"]["distancia"] == ["euclidiana", "exponencial"]
+    assert config_barrido["figuras"]["opciones"] == ["a", "b"]
 
     with pytest.raises(ValueError):
         barrido.validar_config_barrido(
