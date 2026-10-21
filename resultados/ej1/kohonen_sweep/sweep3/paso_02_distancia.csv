@@ -1,0 +1,7 @@
+parametro,valor,semilla,qe,te,unidades_muertas,ocupacion
+distancia,euclidiana,0,3.50553623,0.20000000,0,1.00000000
+distancia,euclidiana,1,3.51690556,0.20000000,0,1.00000000
+distancia,euclidiana,2,3.47967378,0.14000000,0,1.00000000
+distancia,exponencial,0,3.53867527,0.16000000,0,1.00000000
+distancia,exponencial,1,3.52512905,0.02000000,0,1.00000000
+distancia,exponencial,2,3.48420214,0.00000000,0,1.00000000

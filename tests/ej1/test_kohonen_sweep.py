@@ -233,6 +233,13 @@ def test_barra_progreso(barrido: ModuleType) -> None:
     assert barrido._barra_progreso(100.0, 10) == "[##########]"
 
 
+def test_radios_invalidos_se_filtran(barrido: ModuleType) -> None:
+    """Con k=3, el radio 0.3 queda por debajo de R_f=1 y se descarta."""
+    validos = barrido._valores_radio_validos([0.3, 0.4, 0.5], 3, 1.0)
+
+    assert validos == [0.4, 0.5]
+
+
 def test_ejecutar_barrido_no_adopta_acoplamiento_peor(
     kohonen: ModuleType,
     barrido: ModuleType,

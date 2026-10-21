@@ -1,0 +1,15 @@
+Registro del barrido — TP4, ejercicio 1.2 (Red de Kohonen)
+Orden: ['topologia', 'distancia', 'inicializacion', 'radio_inicial_relativo', 'decaimiento_radio', 'eta_inicial', 'decaimiento_eta', 'iteraciones']
+Semillas: [0, 1, 2]
+Pares de acoplamiento: [['eta_inicial', 'decaimiento_eta'], ['radio_inicial_relativo', 'decaimiento_radio']]
+Configuración final: {'grilla': 4, 'topologia': 'rectangular', 'distancia': 'euclidiana', 'inicializacion': 'uniforme', 'radio_inicial_relativo': 1.0, 'radio_final': 1.0, 'decaimiento_radio': 'inversa', 'eta_inicial': 0.9, 'eta_final': 0.001, 'decaimiento_eta': 'lineal', 'iteraciones': 10000}
+QE final: 3.17311879
+
+Archivos generados:
+  config_barrido.toml
+  config_optima.toml
+  resumen_pasos.csv
+  paso_*.csv
+  acoplamientos/
+  figuras/opcion_a/
+  figuras/opcion_b/

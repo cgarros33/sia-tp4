@@ -11,11 +11,9 @@
 - Los resultados de 1.1 se guardan en `resultados/ej1/`.
 - Ejercicio 1.2: Red de Kohonen.
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
-- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados en
-  `resultados/ej1/kohonen_sweep/`. `sweep2` quedó con QE nula y ocupación baja,
-  así que no se usa para la corrida final. La grilla fija ya está implementada:
-  falta correr los barridos completos para `k = 3, 4, 5` (`sweep3/`, `sweep4/`
-  y `sweep5/`).
+- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados, y `sweep3`,
+  `sweep4` y `sweep5` ejecutados con grilla fija. Queda por planificar y correr
+  la fase final para el mejor `config_optima.toml` de cada tamaño.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -175,6 +173,9 @@ cada `k`, el orden es:
 | `iteraciones` | `5000, 10000, 15000, 25000` | `10000` |
 
 - `radio_final = 1.0` y `eta_final = 0.001` quedan fijos por la teoría.
+- Para `k = 3`, el candidato `radio_inicial_relativo = 0.3` produce
+  `R0 = 0.9 < R_f = 1.0`, así que se omite en esa corrida. La lista usada queda
+  registrada en el `config_barrido.toml` de `sweep3/`.
 - Las listas de valores viven en `src/ej1/kohonen-sweep.toml`, no en el código.
   Si un óptimo queda en el borde de una lista, se amplía la lista y se vuelve a
   correr ese paso sin tocar el código.
@@ -373,6 +374,39 @@ Revisión técnica de sweep2:
 - Por eso `sweep2/` queda archivado y el próximo enfoque fija la grilla en
   `k = 3, 4, 5` y corre un barrido completo para cada tamaño.
 
+### Resultados de barridos con grilla fija
+
+Se corrieron los tres barridos completos en una sola invocación. Salidas:
+`resultados/ej1/kohonen_sweep/sweep3/`, `sweep4/` y `sweep5/`. Tiempo total:
+92,97 s.
+
+| k | Neuronas | Configuración final | QE media | QE desvío | TE | Muertas | Ocupación |
+|---:|---:|---|---:|---:|---:|---:|---:|
+| 3 | 9 | rectangular, euclidiana, uniforme, radio 1.5, inversa, eta 0.3, iteraciones 5000 | 3,478953 | 0,007685 | 0,160000 | 0 / 9 | 1,0000 |
+| 4 | 16 | rectangular, euclidiana, uniforme, radio 1.0, inversa, eta 0.9, iteraciones 10000 | 3,173119 | 0,013589 | 0,046667 | 1 / 16 | 0,9375 |
+| 5 | 25 | rectangular, euclidiana, uniforme, radio 0.3, lineal, eta 0.7, exponencial, iteraciones 15000 | 2,807907 | 0,063630 | 0,033333 | 6,33 / 25 | 0,7467 |
+
+Detalle de acoplamientos:
+
+- `k=3`: `eta_inicial` y `decaimiento_eta` no se adoptaron. El acoplamiento
+  `radio_inicial_relativo=1.5` con `decaimiento_radio=inversa` sí se adoptó:
+  QE 3,478953 contra 3,486754 secuencial.
+- `k=4`: `eta_inicial` y `decaimiento_eta` no se adoptaron. El acoplamiento
+  `radio_inicial_relativo=1.0` con `decaimiento_radio=inversa` sí se adoptó:
+  QE 3,173119 contra 3,180673 secuencial.
+- `k=5`: se adoptaron ambos acoplamientos:
+  `eta_inicial=0.7` con `decaimiento_eta=exponencial` (2,830909 contra
+  2,832545) y luego `radio_inicial_relativo=0.3` con
+  `decaimiento_radio=lineal` (2,807907 contra 2,830909).
+
+Observaciones técnicas:
+
+- Para `k=3` se omitió `radio_inicial_relativo=0.3` porque `R0=0.9 < R_f=1.0`.
+  El `config_barrido.toml` de `sweep3/` registra la lista filtrada.
+- Los tres mapas usan todas o casi todas sus neuronas; no reaparece el caso
+  degenerado de QE 0.
+- Las figuras generadas son A y B; no se generó `opcion_c/`.
+
 ### Pendientes de 1.2
 
 - Fase B: completada.
@@ -383,7 +417,7 @@ Revisión técnica de sweep2:
 - Fase E.6: barrido sweep2 ejecutado, revisado y archivado en `sweep2/`;
   completada.
 - Paso 2: implementación de grilla fija y eliminación del codo; completada.
-- Paso 3: pendiente de correr los barridos completos para `k = 3, 4, 5`.
+- Paso 3: completado; `sweep3/`, `sweep4/` y `sweep5/` ejecutados.
 - Paso 4: pendiente de actualizar el plan de la corrida final por tamaño.
 - Fase F: pendiente de correr las configuraciones finales por tamaño.
 

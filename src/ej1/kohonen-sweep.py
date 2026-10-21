@@ -1046,6 +1046,15 @@ def ejecutar_barrido(
     return config_actual, resumen_pasos
 
 
+def _valores_radio_validos(
+    valores: Sequence[object],
+    grilla: int,
+    radio_final: float,
+) -> list[object]:
+    """Descarta radios iniciales que quedarían por debajo de R_f para un k."""
+    return [valor for valor in valores if float(valor) * grilla >= radio_final - 1e-12]
+
+
 def ejecutar_barridos(
     config: dict,
     datos: np.ndarray,
@@ -1078,6 +1087,25 @@ def ejecutar_barridos(
         config_k["modelo"]["grilla"] = int(grilla)
         config_barrido_k = deepcopy(config_barrido)
         config_barrido_k["barrido"]["grillas_fijas"] = [int(grilla)]
+        valores_k = deepcopy(config_barrido_k.get("valores", {}))
+        radios = valores_k.get("radio_inicial_relativo")
+        if isinstance(radios, list):
+            validos = _valores_radio_validos(
+                radios,
+                int(grilla),
+                float(config_k["modelo"]["radio_final"]),
+            )
+            omitidos = [radio for radio in radios if radio not in validos]
+            if omitidos:
+                print(
+                    (
+                        f"  Aviso k={grilla}: se omite "
+                        f"radio_inicial_relativo={omitidos} porque R0 < R_f."
+                    ),
+                    flush=True,
+                )
+            valores_k["radio_inicial_relativo"] = validos
+        config_barrido_k["valores"] = valores_k
         config_barrido_k.setdefault("salida", {})
         config_barrido_k["salida"]["directorio"] = (
             f"{directorio_base_texto}/sweep{grilla}"
