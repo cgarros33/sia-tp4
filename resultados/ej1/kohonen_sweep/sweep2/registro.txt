@@ -1,0 +1,23 @@
+Registro del barrido — TP4, ejercicio 1.2 (Red de Kohonen)
+Orden: ['grilla', 'topologia', 'distancia', 'inicializacion', 'radio_inicial_relativo', 'decaimiento_radio', 'eta_inicial', 'decaimiento_eta', 'iteraciones']
+Semillas: [0, 1, 2]
+Criterio de grilla: codo
+Tolerancia del codo: 0.05
+Pares de acoplamiento: [['eta_inicial', 'decaimiento_eta'], ['radio_inicial_relativo', 'decaimiento_radio']]
+Configuración final: {'grilla': 14, 'topologia': 'hexagonal', 'distancia': 'euclidiana', 'inicializacion': 'uniforme', 'radio_inicial_relativo': 0.3, 'radio_final': 1.0, 'decaimiento_radio': 'inversa', 'eta_inicial': 0.9, 'eta_final': 0.001, 'decaimiento_eta': 'lineal', 'iteraciones': 80000}
+QE final: 0.00000000
+
+Archivos generados:
+  config_barrido.toml
+  config_optima.toml
+  resumen_pasos.csv
+  paso_*.csv
+  acoplamientos/
+  figuras/opcion_a/
+  figuras/opcion_b/
+
+Revisión técnica:
+  QE final 0.0 con grilla 14 (196 neuronas) para 50 muestras.
+  Ocupación media 0.2551; 146 neuronas muertas.
+  Configuración provisoria; no usar para la corrida final sin revisar el
+  tamaño de grilla y el criterio de selección.

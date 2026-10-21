@@ -11,9 +11,10 @@
 - Los resultados de 1.1 se guardan en `resultados/ej1/`.
 - Ejercicio 1.2: Red de Kohonen.
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
-- Etapa actual: 1.2 implementado; barrido completo con resultados provisorios.
-  Queda pendiente revisar los valores que quedaron en el borde de sus rangos y
-  correr la configuración final (fase F).
+- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados en
+  `resultados/ej1/kohonen_sweep/`. `sweep2` quedó con QE nula y ocupación baja,
+  así que no se usa para la corrida final. El próximo paso fija la grilla en
+  `k = 3, 4, 5` y corre un barrido completo para cada tamaño.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -220,8 +221,9 @@ Orden del barrido secuencial:
 - No se genera la opción D (heatmap global), porque cada paso secuencial tiene
   una configuración base distinta y las corridas no son directamente
   comparables en una única matriz.
-- Los CSV quedan en la raíz de `kohonen_sweep/`. Las dos carpetas de figuras
-  permiten comparar y elegir cuál va a la presentación.
+- Los CSV quedan en la carpeta de cada corrida (`sweep1/`, `sweep2/` o la raíz
+  de una corrida nueva). Las dos carpetas de figuras permiten comparar y elegir
+  cuál va a la presentación.
 
 ### Resultados finales
 
@@ -243,7 +245,7 @@ Orden del barrido secuencial:
 ### Salidas
 
 - Primer barrido archivado: `resultados/ej1/kohonen_sweep/sweep1/`.
-- Próximo barrido: raíz de `resultados/ej1/kohonen_sweep/`.
+- Segundo barrido archivado: `resultados/ej1/kohonen_sweep/sweep2/`.
 - Corrida final: `resultados/ej1/kohonen/`.
 - Corridas neutras manuales: `resultados/ej1/kohonen_base/`.
 - El barrido guarda `config_barrido.toml`, `config_optima.toml`, `registro.txt`,
@@ -310,21 +312,73 @@ así que no se modificó la configuración secuencial.
   `decaimiento_radio` y `decaimiento_eta` son categóricas y exhaustivas; no
   requieren extensión.
 - Se decidió ampliar `grilla` a `[6, 7, 8, 9, 10, 11, 12, 13, 14]` y agregar
-  `0.3` y `0.4` a `radio_inicial_relativo`. El próximo barrido escribe en la
-  raíz de `resultados/ej1/kohonen_sweep/`; `sweep1/` queda como archivo.
+  `0.3` y `0.4` a `radio_inicial_relativo`. Ese barrido se ejecutó en la raíz de
+  `resultados/ej1/kohonen_sweep/` y luego se archivó en `sweep2/`; `sweep1/`
+  queda como archivo anterior.
 - `eta_inicial` e `iteraciones` se dejan como están por ahora; el próximo
   barrido vuelve a decidirlos.
 - `config_optima.toml` de `sweep1/` queda como configuración provisoria del
   primer barrido y no se usa todavía para la corrida final.
+
+### Resultados del barrido (sweep2)
+
+- Se ejecutó el barrido completo con 3 semillas, grilla `6..14`, radio
+  `0.3..1.5`, barra de progreso y figuras A/B.
+- Salida: `resultados/ej1/kohonen_sweep/sweep2/`.
+- Tiempo total: 593,59 s.
+
+| Paso | Parámetro | Valor elegido | QE media | QE desvío |
+|---:|---|---|---:|---:|
+| 1 | `grilla` | `14` | 0,406708 | 0,099716 |
+| 2 | `topologia` | `hexagonal` | 0,253904 | 0,039228 |
+| 3 | `distancia` | `euclidiana` | 0,253904 | 0,039228 |
+| 4 | `inicializacion` | `uniforme` | 0,247179 | 0,072811 |
+| 5 | `radio_inicial_relativo` | `0.3` | 0,113008 | 0,101977 |
+| 6 | `decaimiento_radio` | `inversa` | 0,013054 | 0,022610 |
+| 7 | `eta_inicial` | `0.9` | 0,000000 | 0,000000 |
+| 8 | `decaimiento_eta` | `lineal` | 0,000000 | 0,000000 |
+| 9 | `iteraciones` | `80000` | 0,000000 | 0,000000 |
+
+Acoplamientos fuertes:
+
+| Par | Mejor valor | QE media | QE base | ¿Adoptado? |
+|---|---|---:|---:|---|
+| `eta_inicial` x `decaimiento_eta` | `0.9` x `lineal` | 0,000000 | 0,000000 | No |
+| `radio_inicial_relativo` x `decaimiento_radio` | `0.3` x `inversa` | 0,000000 | 0,000000 | No |
+
+Revisión técnica de sweep2:
+
+- La configuración final tiene `grilla = 14`, es decir, 196 neuronas para 50
+  creadores.
+- La ocupación media es 0,2551: se usan 50 neuronas y quedan 146 muertas.
+- La QE media final es 0. La combinación de 196 neuronas, `uniforme`,
+  `eta_inicial = 0.9` e `inversa` termina con una neurona dedicada a cada
+  muestra; no es un mapa útil para analizar regiones.
+- El codo del 5% volvió a elegir el máximo de la lista: el mínimo es 0,406708,
+  el límite es 0,427043 y `k = 13` tiene QE 0,640873, por encima del límite.
+- `radio_inicial_relativo = 0.3` es el mínimo de la lista, `eta_inicial = 0.9`
+  es el máximo e `iteraciones = 80000` es el máximo.
+- Comparación con `sweep1`: QE 0,376768; 54,33 unidades muertas de 100;
+  ocupación 0,4567. `sweep1` también era disperso, pero no degenerado.
+- `config_optima.toml` de `sweep2/` es provisorio y no se usa para la corrida
+  final.
+- Conclusión metodológica: un `k` grande no es un objetivo válido. Reduce la QE
+  porque asigna una neurona casi exacta a cada muestra, deja la mayoría de las
+  neuronas muertas y no produce una categorización útil.
+- Por eso `sweep2/` queda archivado y el próximo enfoque fija la grilla en
+  `k = 3, 4, 5` y corre un barrido completo para cada tamaño.
 
 ### Pendientes de 1.2
 
 - Fase B: completada.
 - Fase C: completada.
 - Fase D: completada.
-- Fase E.1: resultados del primer barrido archivados en `sweep1/`; completada.
-- Fases E.2 a E.6: pendientes (nuevo rango de grilla y radio, subrayado del
-  valor elegido, barra de progreso, opción C desactivada y nuevo barrido).
+- Fase E.1: completada.
+- Fases E.2 a E.5: completadas.
+- Fase E.6: barrido sweep2 ejecutado, revisado y archivado en `sweep2/`;
+  completada.
+- Próximo paso: fijar la grilla en `k = 3, 4, 5`, correr un barrido completo
+  para cada tamaño y luego planificar la corrida final por tamaño.
 - Fase F: pendiente de correr la configuración final.
 
 ## Salidas y estructura
