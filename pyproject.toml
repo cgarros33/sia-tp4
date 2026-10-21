@@ -1,0 +1,13 @@
+[tool.ruff]
+# Misma versión mínima que el resto del proyecto.
+target-version = "py311"
+line-length = 88
+# No revisar datos de referencia ni resultados generados.
+extend-exclude = ["datos", "resultados"]
+
+[tool.ruff.lint]
+# Reglas por defecto de ruff: errores de sintaxis, imports y nombres indefinidos.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

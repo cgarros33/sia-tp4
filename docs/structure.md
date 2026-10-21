@@ -10,7 +10,12 @@ dónde está cada cosa.
 sia-tp4/
 ├── CLAUDE.md
 ├── README.md
+├── check-cicd.py
 ├── requirements.txt
+├── pyproject.toml
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── datos/
 │   ├── creadores.csv
 │   └── hopfield/
@@ -46,6 +51,9 @@ sia-tp4/
 - `tests/ejN/` contiene los tests de cada ejercicio. Se ejecutan con `pytest`.
 - `resultados/ejN/` contiene las salidas generadas por los scripts: tablas,
   figuras y resúmenes. Se pueden regenerar; no son datos de entrada.
+- `check-cicd.py` ejecuta localmente los mismos chequeos que el CI.
+- `pyproject.toml` configura `pytest` y `ruff`.
+- `.github/workflows/` contiene los workflows de GitHub Actions.
 - `docs/` contiene documentación del proyecto:
   - `docs/plan/`: planes de trabajo aprobados.
   - `docs/decisiones.md`: registro simple de decisiones y estado actual.
@@ -73,7 +81,27 @@ python src/ej1/eda-pca.py --varianza 0.99
 `--varianza` es una fracción entre 0 y 1. Por ejemplo, `0.95` significa
 conservar al menos el 95% de la varianza total. El valor por defecto es `0.95`.
 
-### Tests
+### Tests y lint
+
+La forma más simple de correr todo como en el CI:
+
+```bash
+python3 check-cicd.py
+```
+
+El script crea o reutiliza `.venv`, instala o actualiza `requirements.txt` si
+hace falta y ejecuta `pip check`, `ruff check .`, `ruff format --check .` y
+`pytest -q`.
+
+Los comandos individuales son:
+
+```bash
+python3 -m pytest -q
+ruff check .
+ruff format --check .
+```
+
+Para correr solo los tests del ejercicio 1.1:
 
 ```bash
 python3 -m pytest -q tests/ej1
@@ -84,8 +112,26 @@ python3 -m pytest -q tests/ej1
 - Python 3.11 o superior.
 - `numpy`, `pandas`, `matplotlib` para el script.
 - `pytest` para los tests.
+- `ruff` para lint y formato.
 - Las versiones usadas están en `requirements.txt`.
 - No se usa scikit-learn ni otra librería de machine learning.
+
+### Integración continua
+
+El workflow `.github/workflows/ci.yml` corre en cada push y pull request:
+
+1. Instala `requirements.txt`.
+2. Ejecuta `python -m pip check`.
+3. Ejecuta `ruff check .`.
+4. Ejecuta `ruff format --check .`.
+5. Ejecuta `python -m pytest -q`.
+
+`python3 check-cicd.py` replica estos pasos en local, creando o actualizando
+`.venv` si hace falta.
+
+Para exigir que el chequeo pase antes de mergear, activar la protección de la
+rama principal en GitHub: **Settings → Branches → Require status checks to pass
+before merging** y seleccionar `Calidad`.
 
 ## Estado
 

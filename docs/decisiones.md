@@ -82,6 +82,19 @@
 - Las figuras y tablas de EDA son independientes del umbral. Las de PCA se
   guardan por umbral para no pisar corridas anteriores.
 
+## Calidad
+
+- `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
+  hace falta y corre todos los chequeos. Es la forma recomendada de verificar
+  que el CI va a pasar.
+- `python3 -m pytest -q`: 8 tests en verde.
+- `ruff check .`: sin errores.
+- `ruff format --check .`: sin cambios pendientes.
+- La configuración de pytest y ruff está en `pyproject.toml`.
+- `ruff` está incluido en `requirements.txt`.
+- El workflow `.github/workflows/ci.yml` corre lint, formato y tests en cada
+  push y pull request.
+
 ## Pendientes
 
 - Decidir el umbral definitivo comparando 90%, 95% y 99%.

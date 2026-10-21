@@ -17,7 +17,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 2. **Test data never drives decisions.** Hyperparameters, iterations, thresholds, and normalization come only from a validation split derived from training data. Test data is read only for the final evaluation.
 3. **Every run is reproducible.** Explicit seed in the config, saved with the results. Every presented result is **mean ± std over ≥ 3 seeds**. A chart that cannot be regenerated from saved results does not go in the presentation.
 4. **Matrix operations.** Vectorize training and inference over arrays shaped `(n_samples, n_features)`; avoid per-sample Python loops except where the algorithm is inherently online.
-5. **No model change is merged until the full test suite passes.**
+5. **No model change is merged until the full test suite and ruff checks pass.**
 6. **Training scripts write; analysis scripts only read.** Analysis never trains a model.
 7. **Normalization is fitted only on the training split** of each partition/fold; never on validation or test.
 8. **Git:** section 0 overrides everything. No commit or push without explicit permission; never AI co-authorship.
@@ -95,3 +95,11 @@ The CLAUDE.md file is in English for token efficiency. Code and comments are to 
 
 ## 8. Project Structure
 See [docs/structure.md](docs/structure.md) for the repository layout, conventions, and run commands.
+
+## 9. Code Quality and CI
+- Local CI check: `python3 check-cicd.py`.
+- Lint/format: `ruff check . && ruff format --check .`.
+- Tests: `python3 -m pytest -q`.
+- A task is not complete until the local CI check passes.
+- GitHub Actions runs the same checks on every push and pull request; the workflow is `.github/workflows/ci.yml`.
+- Ruff and pytest configuration lives in `pyproject.toml`.

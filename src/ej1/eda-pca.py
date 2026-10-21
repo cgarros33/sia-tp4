@@ -222,9 +222,7 @@ def detectar_redundancias(
         "argentina_audience_pct",
         "estimated_argentina_reach",
     }.issubset(datos.columns):
-        esperado = (
-            datos["average_reach"] * datos["argentina_audience_pct"] / 100.0
-        )
+        esperado = datos["average_reach"] * datos["argentina_audience_pct"] / 100.0
         diferencia = (datos["estimated_argentina_reach"] - esperado).abs().max()
         if diferencia <= 1.0:
             agregar(
@@ -236,9 +234,7 @@ def detectar_redundancias(
             )
             excluidas.append("estimated_argentina_reach")
 
-    if set(COLUMNAS_ENGAGEMENT + ["total_engagement_per_1000"]).issubset(
-        datos.columns
-    ):
+    if set(COLUMNAS_ENGAGEMENT + ["total_engagement_per_1000"]).issubset(datos.columns):
         suma = datos[COLUMNAS_ENGAGEMENT].sum(axis=1)
         diferencia = (datos["total_engagement_per_1000"] - suma).abs().max()
         if diferencia <= 1e-9:
@@ -288,9 +284,7 @@ def columnas_para_pca(datos: pd.DataFrame) -> list[str]:
     return [columna for columna in numericas if columna not in excluidas]
 
 
-def resumen_descriptivo(
-    datos: pd.DataFrame, columnas: list[str]
-) -> pd.DataFrame:
+def resumen_descriptivo(datos: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
     """Calcula estadísticos descriptivos y cantidad de outliers por variable."""
     valores = datos[columnas]
     q1 = valores.quantile(0.25)
@@ -317,9 +311,7 @@ def resumen_descriptivo(
     )
 
 
-def tabla_outliers(
-    datos: pd.DataFrame, columnas: list[str]
-) -> pd.DataFrame:
+def tabla_outliers(datos: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
     """Lista los creadores fuera del rango [Q1 - 1.5 IQR, Q3 + 1.5 IQR]."""
     filas: list[dict[str, str | int]] = []
 
@@ -350,9 +342,7 @@ def tabla_outliers(
     return pd.DataFrame(filas)
 
 
-def matriz_correlaciones(
-    datos: pd.DataFrame, columnas: list[str]
-) -> pd.DataFrame:
+def matriz_correlaciones(datos: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
     """Calcula la matriz de correlación de Pearson."""
     return datos[columnas].corr(method="pearson")
 
@@ -370,9 +360,7 @@ def pares_correlacionados(
                 {
                     "variable_1": variable_1,
                     "variable_2": variable_2,
-                    "correlacion": float(
-                        correlaciones.loc[variable_1, variable_2]
-                    ),
+                    "correlacion": float(correlaciones.loc[variable_1, variable_2]),
                 }
             )
 
@@ -382,9 +370,7 @@ def pares_correlacionados(
     return tabla.drop(columns="_abs").reset_index(drop=True)
 
 
-def correlaciones_objetivo(
-    datos: pd.DataFrame, columnas: list[str]
-) -> pd.DataFrame:
+def correlaciones_objetivo(datos: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
     """Correlaciona cada variable con alcance, engagement y precio."""
     objetivos = [
         columna
@@ -448,9 +434,7 @@ def seleccionar_q(autovalores: np.ndarray, umbral: float) -> int:
     return min(q, positivos.size)
 
 
-def orientar_cargas(
-    autovectores: np.ndarray, columnas: list[str]
-) -> np.ndarray:
+def orientar_cargas(autovectores: np.ndarray, columnas: list[str]) -> np.ndarray:
     """Fija el signo de cada componente para que los gráficos sean estables."""
     cargas = autovectores.copy()
 
@@ -481,9 +465,7 @@ def ajustar_pca(
     autovalores, autovectores = descomponer_matriz(covarianza)
 
     tolerancia = (
-        max(covarianza.shape)
-        * np.finfo(float).eps
-        * float(np.max(np.abs(autovalores)))
+        max(covarianza.shape) * np.finfo(float).eps * float(np.max(np.abs(autovalores)))
     )
     mascara = autovalores > tolerancia
     autovalores_pos = autovalores[mascara]
@@ -528,9 +510,7 @@ def validar_pca(resultado: ResultadoPCA) -> dict[str, float]:
         )
     )
     varianza_scores = resultado.scores.var(axis=0, ddof=1)
-    error_varianza = float(
-        np.max(np.abs(varianza_scores - resultado.autovalores_pos))
-    )
+    error_varianza = float(np.max(np.abs(varianza_scores - resultado.autovalores_pos)))
 
     return {
         "residuo_autovalores": residuo,
@@ -565,10 +545,7 @@ def tabla_autovalores(resultado: ResultadoPCA) -> pd.DataFrame:
 
 def tabla_cargas(resultado: ResultadoPCA) -> pd.DataFrame:
     """Tabla de cargas de todas las componentes con varianza no nula."""
-    nombres = [
-        f"PC{indice + 1}"
-        for indice in range(resultado.autovalores_pos.size)
-    ]
+    nombres = [f"PC{indice + 1}" for indice in range(resultado.autovalores_pos.size)]
     cargas = pd.DataFrame(
         resultado.autovectores_pos,
         index=resultado.columnas,
@@ -582,10 +559,7 @@ def tabla_cargas(resultado: ResultadoPCA) -> pd.DataFrame:
 
 def tabla_scores(datos: pd.DataFrame, resultado: ResultadoPCA) -> pd.DataFrame:
     """Scores de todos los creadores en las componentes no nulas."""
-    nombres = [
-        f"PC{indice + 1}"
-        for indice in range(resultado.autovalores_pos.size)
-    ]
+    nombres = [f"PC{indice + 1}" for indice in range(resultado.autovalores_pos.size)]
     scores = pd.DataFrame(resultado.scores, columns=nombres)
     return pd.concat(
         [datos[COLUMNAS_ID].reset_index(drop=True), scores],
@@ -593,9 +567,7 @@ def tabla_scores(datos: pd.DataFrame, resultado: ResultadoPCA) -> pd.DataFrame:
     )
 
 
-def tabla_pcs_negocio(
-    datos: pd.DataFrame, resultado: ResultadoPCA
-) -> pd.DataFrame:
+def tabla_pcs_negocio(datos: pd.DataFrame, resultado: ResultadoPCA) -> pd.DataFrame:
     """Correlación entre cada componente y variables de negocio."""
     objetivos = [
         columna
@@ -668,12 +640,8 @@ def guardar_tablas(
     ruta_eda.mkdir(parents=True, exist_ok=True)
     ruta_pca.mkdir(parents=True, exist_ok=True)
 
-    descriptivos.to_csv(
-        ruta_eda / "descriptivos.csv", float_format="%.6f"
-    )
-    correlaciones.to_csv(
-        ruta_eda / "correlaciones.csv", float_format="%.6f"
-    )
+    descriptivos.to_csv(ruta_eda / "descriptivos.csv", float_format="%.6f")
+    correlaciones.to_csv(ruta_eda / "correlaciones.csv", float_format="%.6f")
     correlaciones_obj.to_csv(
         ruta_eda / "correlaciones_objetivo.csv", float_format="%.6f"
     )
@@ -691,9 +659,7 @@ def guardar_tablas(
         float_format="%.8f",
     )
     cargas.to_csv(ruta_pca / "cargas.csv", float_format="%.6f")
-    scores.to_csv(
-        ruta_pca / "scores.csv", index=False, float_format="%.6f"
-    )
+    scores.to_csv(ruta_pca / "scores.csv", index=False, float_format="%.6f")
     pcs_negocio.to_csv(
         ruta_pca / "pcs_vs_negocio.csv",
         index=False,
@@ -705,9 +671,7 @@ def guardar_tablas(
         float_format="%.6f",
     )
 
-    autovalores_nulos = int(
-        np.sum(resultado.autovalores <= resultado.tolerancia)
-    )
+    autovalores_nulos = int(np.sum(resultado.autovalores <= resultado.tolerancia))
     lineas = [
         "Resumen de ejecución — TP4, ejercicio 1.1 (EDA + PCA)",
         f"Datos: {RUTA_DATOS}",
@@ -717,10 +681,7 @@ def guardar_tablas(
         f"Rango de la matriz de correlación: {resultado.autovalores_pos.size}",
         f"Autovalores nulos: {autovalores_nulos}",
         f"Componentes seleccionados: {resultado.q}",
-        (
-            "Varianza acumulada: "
-            f"{resultado.acumulada[resultado.q - 1]:.4%}"
-        ),
+        (f"Varianza acumulada: {resultado.acumulada[resultado.q - 1]:.4%}"),
         "",
         "Chequeos numéricos:",
         f"  Residuo máximo S·v - λ·v: {checks['residuo_autovalores']:.3e}",
@@ -832,9 +793,7 @@ def graficar_eda(
     plt.close(figura)
 
 
-def graficar_pca(
-    datos: pd.DataFrame, resultado: ResultadoPCA, ruta_pca: Path
-) -> None:
+def graficar_pca(datos: pd.DataFrame, resultado: ResultadoPCA, ruta_pca: Path) -> None:
     """Genera scree plot, cargas y biplot del PCA."""
     ruta_pca.mkdir(parents=True, exist_ok=True)
 
@@ -919,17 +878,11 @@ def graficar_pca(
         )
         elegidas = serie.abs().sort_values(ascending=False).head(12).index
         serie = serie.loc[elegidas].sort_values()
-        colores = [
-            "#C44E52" if valor < 0 else "#4C72B0"
-            for valor in serie.to_numpy()
-        ]
+        colores = ["#C44E52" if valor < 0 else "#4C72B0" for valor in serie.to_numpy()]
         eje.barh(serie.index, serie.to_numpy(), color=colores, alpha=0.9)
         eje.axvline(0.0, color="black", linewidth=0.8)
         eje.set_title(
-            (
-                f"PC{componente + 1} "
-                f"({resultado.ratios[componente]:.1%} de varianza)"
-            ),
+            (f"PC{componente + 1} ({resultado.ratios[componente]:.1%} de varianza)"),
             fontsize=11,
         )
         eje.tick_params(axis="y", labelsize=8)
@@ -964,9 +917,7 @@ def graficar_pca(
         "topic_dogs_pct": "#2ca02c",
         "topic_art_pct": "#ff7f0e",
     }
-    topicos = [
-        topico for topico in etiquetas_topico if topico in datos.columns
-    ]
+    topicos = [topico for topico in etiquetas_topico if topico in datos.columns]
 
     # Primero las flechas, para que los puntos queden por encima.
     cargas_2d = resultado.autovectores_pos[:, :2]
@@ -1115,9 +1066,7 @@ def imprimir_reporte(
     titulo("4. Correlaciones con followers, engagement y precio")
     for columna in correlaciones_obj.columns:
         objetivo = columna.removeprefix("r_")
-        serie = correlaciones_obj[columna].drop(
-            labels=[objetivo], errors="ignore"
-        )
+        serie = correlaciones_obj[columna].drop(labels=[objetivo], errors="ignore")
         serie = serie.drop(
             labels=["price_ars", "estimated_argentina_reach"],
             errors="ignore",
@@ -1147,13 +1096,8 @@ def imprimir_reporte(
             resultado.autovectores_pos[:, componente],
             index=resultado.columnas,
         )
-        serie = serie.reindex(
-            serie.abs().sort_values(ascending=False).index
-        )
-        print(
-            f"\nPC{componente + 1} "
-            f"({resultado.ratios[componente]:.2%} de varianza):"
-        )
+        serie = serie.reindex(serie.abs().sort_values(ascending=False).index)
+        print(f"\nPC{componente + 1} ({resultado.ratios[componente]:.2%} de varianza):")
         print(serie.head(8).round(3).to_string())
 
     titulo("7. Correlación de las componentes con variables de negocio")
@@ -1161,10 +1105,7 @@ def imprimir_reporte(
 
     titulo("8. Chequeos numéricos")
     print(f"Residuo máximo S·v - λ·v: {checks['residuo_autovalores']:.3e}")
-    print(
-        "Error máximo de varianza de scores: "
-        f"{checks['error_varianza_scores']:.3e}"
-    )
+    print(f"Error máximo de varianza de scores: {checks['error_varianza_scores']:.3e}")
     print(f"Suma de ratios de varianza: {checks['suma_ratios']:.12f}")
 
     titulo("9. Archivos generados")
@@ -1179,17 +1120,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     validar_datos(datos)
 
     numericas = datos.select_dtypes(include=np.number).columns.tolist()
-    columnas_eda = [
-        columna for columna in COLUMNAS_ORDEN_EDA if columna in numericas
-    ]
-    columnas_eda += [
-        columna for columna in numericas if columna not in columnas_eda
-    ]
+    columnas_eda = [columna for columna in COLUMNAS_ORDEN_EDA if columna in numericas]
+    columnas_eda += [columna for columna in numericas if columna not in columnas_eda]
 
     redundancias, excluidas = detectar_redundancias(datos)
-    columnas_pca = [
-        columna for columna in numericas if columna not in excluidas
-    ]
+    columnas_pca = [columna for columna in numericas if columna not in excluidas]
 
     descriptivos = resumen_descriptivo(datos, columnas_eda)
     correlaciones = matriz_correlaciones(datos, columnas_eda)
