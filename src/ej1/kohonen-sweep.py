@@ -25,6 +25,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 
 RAIZ = Path(__file__).resolve().parents[2]
 RUTA_CONFIG_BARRIDO = Path(__file__).resolve().with_name("kohonen-sweep.toml")
@@ -437,6 +440,54 @@ def _guardar_paso(
     )
 
 
+def _indice_valor(valores: Sequence[object], buscado: object) -> int | None:
+    """Devuelve la posición del valor buscado en una secuencia."""
+    for indice, valor in enumerate(valores):
+        if valor == buscado:
+            return indice
+        if (
+            isinstance(valor, (int, float, np.number))
+            and not isinstance(valor, bool)
+            and isinstance(buscado, (int, float, np.number))
+            and not isinstance(buscado, bool)
+            and np.isclose(float(valor), float(buscado))
+        ):
+            return indice
+    return None
+
+
+def _subrayar_etiqueta_elegida(
+    figura: Figure,
+    eje: Axes,
+    indice: int | None,
+) -> None:
+    """Subraya la etiqueta del eje x correspondiente al valor elegido."""
+    if indice is None:
+        return
+
+    figura.canvas.draw()
+    etiquetas = eje.get_xticklabels()
+    if indice < 0 or indice >= len(etiquetas):
+        return
+
+    etiqueta = etiquetas[indice]
+    renderizador = figura.canvas.get_renderer()
+    caja = etiqueta.get_window_extent(renderer=renderizador)
+    inversa = figura.transFigure.inverted()
+    x0, y0 = inversa.transform((caja.x0, caja.y0))
+    x1, _ = inversa.transform((caja.x1, caja.y0))
+
+    linea = Line2D(
+        [x0, x1],
+        [y0 - 0.006, y0 - 0.006],
+        transform=figura.transFigure,
+        color="black",
+        linewidth=1.2,
+        clip_on=False,
+    )
+    figura.add_artist(linea)
+
+
 def _graficar_paso(
     resultado: ResultadoPaso,
     indice: int,
@@ -444,6 +495,7 @@ def _graficar_paso(
 ) -> None:
     """Genera la figura individual de un paso (opción A)."""
     resumen = resultado.resumen
+    valores = resumen["valor"].tolist()
     figura, eje = plt.subplots(figsize=(9, 5))
 
     if pd.api.types.is_numeric_dtype(resumen["valor"]):
@@ -463,13 +515,8 @@ def _graficar_paso(
             alpha=0.55,
             label="Semillas",
         )
-        eje.axvline(
-            resultado.mejor_valor,
-            color="#2E7D32",
-            linestyle="--",
-            linewidth=1.2,
-            label=f"Elegido: {resultado.mejor_valor}",
-        )
+        eje.set_xticks(resumen["valor"])
+        eje.set_xticklabels([str(valor) for valor in valores])
     else:
         posiciones = np.arange(len(resumen))
         eje.bar(
@@ -480,7 +527,7 @@ def _graficar_paso(
             color="#4C72B0",
             alpha=0.9,
         )
-        for posicion, valor in enumerate(resumen["valor"]):
+        for posicion, valor in zip(posiciones, valores):
             semillas = resultado.resultados[resultado.resultados["valor"] == valor]
             eje.scatter(
                 np.full(len(semillas), posicion),
@@ -488,23 +535,13 @@ def _graficar_paso(
                 s=14,
                 color="#C44E52",
                 alpha=0.55,
+                label="Semillas" if posicion == 0 else None,
             )
         eje.set_xticks(posiciones)
-        eje.set_xticklabels([str(valor) for valor in resumen["valor"]], rotation=30)
-        elegido = resumen.index[resumen["valor"] == resultado.mejor_valor]
-        if len(elegido):
-            posicion = resumen.reset_index(drop=True).index[
-                resumen.reset_index(drop=True)["valor"] == resultado.mejor_valor
-            ]
-            if len(posicion):
-                eje.axvline(
-                    int(posicion[0]),
-                    color="#2E7D32",
-                    linestyle="--",
-                    linewidth=1.2,
-                    label=f"Elegido: {resultado.mejor_valor}",
-                )
+        eje.set_xticklabels([str(valor) for valor in valores])
 
+    indice_elegido = _indice_valor(valores, resultado.mejor_valor)
+    eje.tick_params(axis="x", labelsize=8)
     eje.set_xlabel(resultado.parametro)
     eje.set_ylabel("QE media")
     eje.set_title(
@@ -514,6 +551,7 @@ def _graficar_paso(
     eje.grid(alpha=0.25)
     eje.legend(fontsize=8)
     figura.tight_layout()
+    _subrayar_etiqueta_elegida(figura, eje, indice_elegido)
     figura.savefig(ruta, dpi=150, bbox_inches="tight")
     plt.close(figura)
 
