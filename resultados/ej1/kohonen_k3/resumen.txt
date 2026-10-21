@@ -1,0 +1,28 @@
+Resumen de ejecución — TP4, ejercicio 1.2 (Red de Kohonen)
+Datos: /home/cele/Rejunte/git/facu/sia-tp4/datos/creadores.csv
+Variables de entrada: 27
+Grilla: 3 x 3
+Topología: rectangular
+Distancia: euclidiana
+Inicialización: uniforme
+Iteraciones: 5000
+Semillas: [0, 1, 2]
+Semilla representativa: 0
+QE media: 3.47895335
+QE desvío: 0.00768516
+TE representativo: 0.18000000
+Unidades muertas representativas: 0
+Ocupación representativa: 1.00000000
+Tiempo total de entrenamiento: 0.361 s
+
+Archivos generados:
+  config_usada.toml
+  normalizacion.csv
+  pesos.csv
+  neuronas.csv
+  asignaciones.csv
+  matriz_u.csv
+  metricas.csv
+  fig_neuronas.png
+  fig_distribucion.png
+  fig_matriz_u.png

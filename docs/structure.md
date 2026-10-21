@@ -23,7 +23,8 @@ sia-tp4/
 │   ├── structure.md
 │   ├── decisiones.md
 │   ├── plan/
-│   │   └── ej1-1.md
+│   │   ├── ej1-1.md
+│   │   └── ej1-2.md
 │   └── context/
 │       ├── gusslop.md
 │       └── consigna/
@@ -33,13 +34,28 @@ sia-tp4/
 ├── resultados/
 │   └── ej1/
 │       ├── eda/
-│       └── pca_<umbral>/
+│       ├── pca_<umbral>/
+│       ├── kohonen_sweep/
+│       │   ├── sweep1/
+│       │   ├── sweep2/
+│       │   ├── sweep3/
+│       │   ├── sweep4/
+│       │   └── sweep5/
+│       ├── kohonen_k3/
+│       ├── kohonen_k4/
+│       └── kohonen_k5/
 ├── src/
 │   └── ej1/
-│       └── eda-pca.py
+│       ├── eda-pca.py
+│       ├── kohonen.py
+│       ├── kohonen-sweep.py
+│       ├── kohonen.toml
+│       └── kohonen-sweep.toml
 └── tests/
     └── ej1/
-        └── test_eda_pca.py
+        ├── test_eda_pca.py
+        ├── test_kohonen.py
+        └── test_kohonen_sweep.py
 ```
 
 ## Convenciones
@@ -81,6 +97,42 @@ python src/ej1/eda-pca.py --varianza 0.99
 `--varianza` es una fracción entre 0 y 1. Por ejemplo, `0.95` significa
 conservar al menos el 95% de la varianza total. El valor por defecto es `0.95`.
 
+## Ejercicio 1.2 — Red de Kohonen
+
+- Motor: `src/ej1/kohonen.py`.
+- Barrido: `src/ej1/kohonen-sweep.py`.
+- Configuración neutra: `src/ej1/kohonen.toml`.
+- Configuración del barrido: `src/ej1/kohonen-sweep.toml`.
+- Plan: `docs/plan/ej1-2.md`.
+- Tests: `tests/ej1/test_kohonen.py` y `tests/ej1/test_kohonen_sweep.py`.
+- Barridos archivados: `resultados/ej1/kohonen_sweep/sweep1/` y `sweep2/`.
+- Barridos de grilla fija: `sweep3/` (`k=3`), `sweep4/` (`k=4`) y
+  `sweep5/` (`k=5`).
+- Corridas finales: `resultados/ej1/kohonen_k3/`, `kohonen_k4/` y
+  `kohonen_k5/`.
+
+La grilla se fija por corrida con `grillas_fijas = [3, 4, 5]`; no se barre
+`grilla`. Para cada tamaño se corre el mismo barrido secuencial y después se
+prueban los acoplamientos fuertes.
+
+### Ejecución
+
+```bash
+# Barridos completos para k = 3, 4 y 5
+python src/ej1/kohonen-sweep.py --config src/ej1/kohonen-sweep.toml
+
+# Corridas finales con el mejor config_optima de cada tamaño
+python src/ej1/kohonen.py \
+  --config resultados/ej1/kohonen_sweep/sweep3/config_optima.toml
+python src/ej1/kohonen.py \
+  --config resultados/ej1/kohonen_sweep/sweep4/config_optima.toml
+python src/ej1/kohonen.py \
+  --config resultados/ej1/kohonen_sweep/sweep5/config_optima.toml
+```
+
+Los hiperparámetros y las rutas se pueden pisar por línea de comandos. La
+precedencia es: CLI > archivo TOML > valores por defecto.
+
 ### Tests y lint
 
 La forma más simple de correr todo como en el CI:
@@ -101,7 +153,7 @@ ruff check .
 ruff format --check .
 ```
 
-Para correr solo los tests del ejercicio 1.1:
+Para correr solo los tests del ejercicio 1:
 
 ```bash
 python3 -m pytest -q tests/ej1
@@ -138,7 +190,7 @@ before merging** y seleccionar `Calidad`.
 | Ejercicio | Subejercicio | Script | Estado |
 |---|---|---|---|
 | 1 | 1. Exploración y representación | `src/ej1/eda-pca.py` | Implementado |
-| 1 | 2. Red de Kohonen | — | Pendiente |
+| 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
 | 1 | 3. Índice de Oja | — | Pendiente |
 | 1 | 4. Decisión para las campañas | — | Pendiente |
 | 2 | Memoria asociativa (Hopfield) | — | Pendiente |

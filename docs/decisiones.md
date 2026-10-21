@@ -11,9 +11,10 @@
 - Los resultados de 1.1 se guardan en `resultados/ej1/`.
 - Ejercicio 1.2: Red de Kohonen.
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
-- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados, y `sweep3`,
-  `sweep4` y `sweep5` ejecutados con grilla fija. Queda por planificar y correr
-  la fase final para el mejor `config_optima.toml` de cada tamaño.
+- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados, `sweep3`,
+  `sweep4` y `sweep5` ejecutados con grilla fija, y las tres corridas finales
+  (`kohonen_k3/`, `kohonen_k4/`, `kohonen_k5/`) terminadas. Queda la
+  interpretación de resultados con el grupo, fuera de los archivos del proyecto.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -230,7 +231,7 @@ cada `k`, el orden es:
 
 ### Resultados finales por tamaño
 
-- Se corre el mejor `config_optima.toml` de `sweep3`, `sweep4` y `sweep5`.
+- Se corrió el mejor `config_optima.toml` de `sweep3`, `sweep4` y `sweep5`.
 - Salidas: `resultados/ej1/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
 - Para cada tamaño se generan tres figuras:
   - `fig_neuronas.png`: planos de componentes, un heatmap `k × k` por variable,
@@ -407,6 +408,34 @@ Observaciones técnicas:
   degenerado de QE 0.
 - Las figuras generadas son A y B; no se generó `opcion_c/`.
 
+### Configuraciones finales elegidas
+
+| k | Configuración final | QE media | QE desvío | TE | Muertas | Ocupación |
+|---:|---|---:|---:|---:|---:|---:|
+| 3 | `sweep3/config_optima.toml` | 3,478953 | 0,007685 | 0,160000 | 0 / 9 | 1,0000 |
+| 4 | `sweep4/config_optima.toml` | 3,173119 | 0,013589 | 0,046667 | 1 / 16 | 0,9375 |
+| 5 | `sweep5/config_optima.toml` | 2,807907 | 0,063630 | 0,033333 | 6,33 / 25 | 0,7467 |
+
+### Corridas finales ejecutadas
+
+- `sweep3/config_optima.toml` → `resultados/ej1/kohonen_k3/`
+  - semilla representativa: `0`
+  - QE 3,478953; 0 unidades muertas; ocupación 1,0000
+- `sweep4/config_optima.toml` → `resultados/ej1/kohonen_k4/`
+  - semilla representativa: `2`
+  - QE 3,173119; 1 unidad muerta; ocupación 0,9375
+- `sweep5/config_optima.toml` → `resultados/ej1/kohonen_k5/`
+  - semilla representativa: `0`
+  - QE 2,807907; 8 unidades muertas; ocupación 0,6800
+  - La ocupación varía entre semillas (0,68; 0,84; 0,72); la figura usa la
+    semilla 0.
+- Cada salida contiene `config_usada.toml`, `normalizacion.csv`, `pesos.csv`,
+  `neuronas.csv`, `asignaciones.csv`, `matriz_u.csv`, `metricas.csv`,
+  `resumen.txt` y las tres figuras finales.
+- La comparación entre tamaños se hace con QE, TE, unidades muertas, ocupación,
+  distribución de asignaciones y las figuras. La interpretación de perfiles de
+  creadores queda fuera de los archivos del proyecto.
+
 ### Pendientes de 1.2
 
 - Fase B: completada.
@@ -418,8 +447,10 @@ Observaciones técnicas:
   completada.
 - Paso 2: implementación de grilla fija y eliminación del codo; completada.
 - Paso 3: completado; `sweep3/`, `sweep4/` y `sweep5/` ejecutados.
-- Paso 4: pendiente de actualizar el plan de la corrida final por tamaño.
-- Fase F: pendiente de correr las configuraciones finales por tamaño.
+- Paso 4: completado; plan de corrida final por tamaño registrado.
+- Fase F: completada; las tres corridas finales se ejecutaron.
+- Pendiente: interpretación de resultados con el grupo, fuera de los archivos
+  del proyecto.
 
 ## Salidas y estructura
 
@@ -435,7 +466,7 @@ Observaciones técnicas:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 50 tests en verde.
+- `python3 -m pytest -q`: 53 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.

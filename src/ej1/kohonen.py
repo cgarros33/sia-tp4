@@ -749,6 +749,17 @@ def _coordenadas_hexagonales(k: int) -> tuple[np.ndarray, np.ndarray]:
     return x.astype(float), y.astype(float)
 
 
+def _color_texto_contraste(
+    cmap: plt.Colormap,
+    norm: Normalize,
+    valor: float,
+) -> str:
+    """Elige texto blanco o negro según la luminancia del fondo."""
+    rojo, verde, azul, _ = cmap(norm(valor))
+    luminancia = 0.299 * rojo + 0.587 * verde + 0.114 * azul
+    return "white" if luminancia < 0.5 else "black"
+
+
 def _dibujar_mapa(
     eje: plt.Axes,
     valores: np.ndarray,
@@ -779,7 +790,7 @@ def _dibujar_mapa(
                     ha="center",
                     va="center",
                     fontsize=fuente,
-                    color="black",
+                    color=_color_texto_contraste(cmap, norm, valores[indice]),
                 )
         return
 
@@ -803,7 +814,7 @@ def _dibujar_mapa(
                 ha="center",
                 va="center",
                 fontsize=fuente,
-                color="black",
+                color=_color_texto_contraste(cmap, norm, valor),
             )
     eje.set_aspect("equal")
     eje.autoscale_view()
