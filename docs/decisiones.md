@@ -13,8 +13,9 @@
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
 - Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados en
   `resultados/ej1/kohonen_sweep/`. `sweep2` quedó con QE nula y ocupación baja,
-  así que no se usa para la corrida final. El próximo paso fija la grilla en
-  `k = 3, 4, 5` y corre un barrido completo para cada tamaño.
+  así que no se usa para la corrida final. La grilla fija ya está implementada:
+  falta correr los barridos completos para `k = 3, 4, 5` (`sweep3/`, `sweep4/`
+  y `sweep5/`).
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -148,21 +149,22 @@
 
 ### Hiperparámetros
 
-Orden del barrido secuencial:
+La grilla no se barre. Se fija en `3`, `4` y `5`, y se corre un barrido
+secuencial completo para cada tamaño (`sweep3/`, `sweep4/`, `sweep5/`). Para
+cada `k`, el orden es:
 
-1. `grilla`
-2. `topologia`
-3. `distancia`
-4. `inicializacion`
-5. `radio_inicial_relativo`
-6. `decaimiento_radio`
-7. `eta_inicial`
-8. `decaimiento_eta`
-9. `iteraciones`
+1. `topologia`
+2. `distancia`
+3. `inicializacion`
+4. `radio_inicial_relativo`
+5. `decaimiento_radio`
+6. `eta_inicial`
+7. `decaimiento_eta`
+8. `iteraciones`
 
 | Hiperparámetro | Valores a probar | Neutro |
 |---|---|---|
-| `grilla` | `6, 7, 8, 9, 10, 11, 12, 13, 14` | `6` |
+| `grillas_fijas` | `3, 4, 5` | — |
 | `topologia` | `rectangular, hexagonal` | `rectangular` |
 | `distancia` | `euclidiana, exponencial` | `euclidiana` |
 | `inicializacion` | `uniforme, muestras` | `muestras` |
@@ -170,23 +172,22 @@ Orden del barrido secuencial:
 | `decaimiento_radio` | `constante, lineal, exponencial, inversa` | `lineal` |
 | `eta_inicial` | `0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9` | `0.5` |
 | `decaimiento_eta` | `lineal, exponencial, inversa` | `lineal` |
-| `iteraciones` | `5000, 10000, 20000, 40000, 80000` | `20000` |
+| `iteraciones` | `5000, 10000, 15000, 25000` | `10000` |
 
 - `radio_final = 1.0` y `eta_final = 0.001` quedan fijos por la teoría.
 - Las listas de valores viven en `src/ej1/kohonen-sweep.toml`, no en el código.
   Si un óptimo queda en el borde de una lista, se amplía la lista y se vuelve a
   correr ese paso sin tocar el código.
-- Las iteraciones se dejan como están por ahora (`20000` neutro y candidatos de
-  `5000` a `80000`). Quedan fácilmente modificables en la configuración.
+- La regla del codo del 5% se retiró y su código se eliminó. En `sweep1` y
+  `sweep2` eligió el máximo `k` y produjo mapas cada vez más dispersos. Con la
+  grilla fija por corrida, no hay excepción para `grilla`.
 
 ### Selección de hiperparámetros
 
-- Para todos los hiperparámetros, salvo `grilla`, se elige el menor QE medio
-  sobre las semillas.
-- Excepción para `grilla`: se elige el menor `k` cuyo QE medio esté dentro del
-  5% del QE medio mínimo. Se configura con
-  `criterio_grilla = "codo"` y `tolerancia_codo = 0.05`.
-- La excepción y el codo del 5% quedan registrados acá.
+- Para todos los hiperparámetros restantes se elige el menor QE medio sobre las
+  semillas.
+- No hay excepción para `grilla`: cada corrida usa un `k` fijo de
+  `grillas_fijas`.
 - Se usan 3 semillas (`[0, 1, 2]`), las mismas para todos los candidatos, y se
   reporta media ± desvío muestral.
 - Cada paso incluye el valor neutro vigente entre sus candidatos, para medir si
@@ -209,13 +210,14 @@ Orden del barrido secuencial:
 
 ### Visualizaciones del barrido
 
-- Se generan las opciones A y B, cada una en su carpeta:
-  - `resultados/ej1/kohonen_sweep/figuras/opcion_a/`: una figura por paso más
-    `fig_progreso.png`. El valor elegido se marca subrayando su etiqueta del
-    eje x, sin línea vertical.
-  - `resultados/ej1/kohonen_sweep/figuras/opcion_b/`: dashboard enfocado en
-    legibilidad, con los 9 pasos secuenciales y otro dashboard para los
-    acoplamientos.
+- Se generan las opciones A y B dentro de cada `sweep{k}/`, cada una en su
+  carpeta:
+  - `resultados/ej1/kohonen_sweep/sweep{k}/figuras/opcion_a/`: una figura por
+    paso más `fig_progreso.png`. El valor elegido se marca subrayando su
+    etiqueta del eje x, sin línea vertical.
+  - `resultados/ej1/kohonen_sweep/sweep{k}/figuras/opcion_b/`: dashboard
+    enfocado en legibilidad, con los 8 pasos secuenciales y otro dashboard para
+    los acoplamientos.
 - La opción C (boxplots por paso) queda desactivada por legibilidad. Su código
   se conserva, pero no se genera en el barrido real.
 - No se genera la opción D (heatmap global), porque cada paso secuencial tiene
@@ -225,11 +227,11 @@ Orden del barrido secuencial:
   de una corrida nueva). Las dos carpetas de figuras permiten comparar y elegir
   cuál va a la presentación.
 
-### Resultados finales
+### Resultados finales por tamaño
 
-- La corrida final usa `config_optima.toml` y guarda en
-  `resultados/ej1/kohonen/`.
-- Se generan tres figuras:
+- Se corre el mejor `config_optima.toml` de `sweep3`, `sweep4` y `sweep5`.
+- Salidas: `resultados/ej1/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
+- Para cada tamaño se generan tres figuras:
   - `fig_neuronas.png`: planos de componentes, un heatmap `k × k` por variable,
     27 paneles en una disposición 5×6, con escala de color compartida.
   - `fig_distribucion.png`: heatmap de cantidad de creadores por neurona y, al
@@ -241,19 +243,22 @@ Orden del barrido secuencial:
   comparación manual durante la interpretación.
 - Las figuras usan la semilla cuyo QE está más cerca de la media; la semilla
   elegida se registra en `resumen.txt` y `config_usada.toml`.
+- La comparación final se hace entre los tres tamaños, no solo dentro de uno.
 
 ### Salidas
 
 - Primer barrido archivado: `resultados/ej1/kohonen_sweep/sweep1/`.
 - Segundo barrido archivado: `resultados/ej1/kohonen_sweep/sweep2/`.
-- Corrida final: `resultados/ej1/kohonen/`.
+- Nuevos barridos de grilla fija: `sweep3/`, `sweep4/` y `sweep5/`.
+- Corridas finales por tamaño: `resultados/ej1/kohonen_k3/`,
+  `kohonen_k4/` y `kohonen_k5/`.
 - Corridas neutras manuales: `resultados/ej1/kohonen_base/`.
-- El barrido guarda `config_barrido.toml`, `config_optima.toml`, `registro.txt`,
-  `resumen_pasos.csv`, los CSV por paso, `acoplamientos/` y las dos carpetas de
-  figuras habilitadas (A y B).
-- La corrida final guarda `config_usada.toml`, `normalizacion.csv`, `pesos.csv`,
-  `neuronas.csv`, `asignaciones.csv`, `matriz_u.csv`, `metricas.csv`,
-  `resumen.txt` y las tres figuras.
+- Cada barrido guarda `config_barrido.toml`, `config_optima.toml`,
+  `registro.txt`, `resumen_pasos.csv`, los CSV por paso, `acoplamientos/` y
+  las dos carpetas de figuras habilitadas (A y B).
+- Cada corrida final guarda `config_usada.toml`, `normalizacion.csv`,
+  `pesos.csv`, `neuronas.csv`, `asignaciones.csv`, `matriz_u.csv`,
+  `metricas.csv`, `resumen.txt` y las tres figuras.
 
 ### Reproducibilidad
 
@@ -377,9 +382,10 @@ Revisión técnica de sweep2:
 - Fases E.2 a E.5: completadas.
 - Fase E.6: barrido sweep2 ejecutado, revisado y archivado en `sweep2/`;
   completada.
-- Próximo paso: fijar la grilla en `k = 3, 4, 5`, correr un barrido completo
-  para cada tamaño y luego planificar la corrida final por tamaño.
-- Fase F: pendiente de correr la configuración final.
+- Paso 2: implementación de grilla fija y eliminación del codo; completada.
+- Paso 3: pendiente de correr los barridos completos para `k = 3, 4, 5`.
+- Paso 4: pendiente de actualizar el plan de la corrida final por tamaño.
+- Fase F: pendiente de correr las configuraciones finales por tamaño.
 
 ## Salidas y estructura
 

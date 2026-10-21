@@ -51,13 +51,11 @@ def config_barrido_minimo() -> dict:
     """Configuración de barrido reducida para las pruebas."""
     return {
         "barrido": {
-            "orden": ["grilla", "topologia"],
+            "grillas_fijas": [3, 4, 5],
+            "orden": ["topologia"],
             "semillas": [0, 1],
-            "criterio_grilla": "codo",
-            "tolerancia_codo": 0.05,
         },
         "valores": {
-            "grilla": [2, 3],
             "topologia": ["rectangular", "hexagonal"],
         },
         "acoplamientos": {
@@ -140,23 +138,9 @@ def test_seleccionar_mejor_minimo(barrido: ModuleType) -> None:
         }
     )
 
-    elegido = barrido.seleccionar_mejor(resumen, "minimo")
+    elegido = barrido.seleccionar_mejor(resumen)
 
     assert np.isclose(elegido, 0.2)
-
-
-def test_seleccionar_mejor_codo(barrido: ModuleType) -> None:
-    """El codo debe elegir el menor valor dentro del 5% del mínimo."""
-    resumen = pd.DataFrame(
-        {
-            "valor": [2, 3, 4, 5],
-            "qe_media": [10.0, 9.0, 8.7, 8.6],
-        }
-    )
-
-    elegido = barrido.seleccionar_mejor(resumen, "codo", 0.05)
-
-    assert elegido == 3
 
 
 def test_actualizar_config_copia(kohonen: ModuleType, barrido: ModuleType) -> None:
@@ -196,6 +180,7 @@ def test_ejecutar_barrido_secuencial(
 ) -> None:
     """El barrido debe actualizar el neutro después de cada paso."""
     config = kohonen.cargar_config(RUTA_CONFIG_KOHONEN)
+    config["modelo"]["grilla"] = 3
     salida = tmp_path / "salida"
 
     final, resumen = barrido.ejecutar_barrido(
@@ -208,7 +193,7 @@ def test_ejecutar_barrido_secuencial(
 
     assert final["modelo"]["grilla"] == 3
     assert final["modelo"]["topologia"] == "hexagonal"
-    assert set(resumen["parametro"]) == {"grilla", "topologia"}
+    assert set(resumen["parametro"]) == {"topologia"}
 
 
 def test_acoplamiento_cartesiano(
@@ -256,9 +241,9 @@ def test_ejecutar_barrido_no_adopta_acoplamiento_peor(
     """Si el acoplamiento no mejora, se conserva el valor secuencial."""
     config = kohonen.cargar_config(RUTA_CONFIG_KOHONEN)
     config_barrido = config_barrido_minimo()
-    config_barrido["barrido"]["orden"] = ["grilla"]
+    config_barrido["barrido"]["orden"] = ["topologia"]
     config_barrido["valores"] = {
-        "grilla": [2, 3],
+        "topologia": ["rectangular", "hexagonal"],
         "eta_inicial": [0.1, 0.2],
         "decaimiento_eta": ["lineal"],
     }
@@ -316,7 +301,7 @@ def test_salidas_reducidas(
 
     assert (salida / "config_optima.toml").exists()
     assert (salida / "resumen_pasos.csv").exists()
-    assert (salida / "paso_01_grilla.csv").exists()
+    assert (salida / "paso_01_topologia.csv").exists()
 
     for opcion in ["opcion_a", "opcion_b", "opcion_c"]:
         carpeta = salida / "figuras" / opcion
@@ -348,18 +333,62 @@ def test_opciones_por_defecto_sin_c(
     assert not (salida / "figuras" / "opcion_c").exists()
 
 
+def test_ejecutar_barridos_crea_tres_tamanos(
+    kohonen: ModuleType,
+    barrido: ModuleType,
+    tmp_path: Path,
+) -> None:
+    """Un solo llamado debe crear sweep3, sweep4 y sweep5."""
+    config = kohonen.cargar_config(RUTA_CONFIG_KOHONEN)
+    config_barrido = config_barrido_minimo()
+    config_barrido["salida"] = {
+        "directorio": str(tmp_path / "barridos"),
+        "directorio_final_base": str(tmp_path / "finales" / "kohonen"),
+    }
+
+    resultados = barrido.ejecutar_barridos(
+        config,
+        datos_pequenos(),
+        config_barrido,
+        entrenador_falso,
+        tmp_path / "barridos",
+    )
+
+    assert set(resultados) == {3, 4, 5}
+    for grilla in (3, 4, 5):
+        carpeta = tmp_path / "barridos" / f"sweep{grilla}"
+        assert (carpeta / "config_optima.toml").exists()
+        recargada = kohonen.cargar_config(carpeta / "config_optima.toml")
+        assert recargada["modelo"]["grilla"] == grilla
+        assert (carpeta / "figuras" / "opcion_a").is_dir()
+        assert (carpeta / "figuras" / "opcion_b").is_dir()
+
+
 def test_config_barrido_valida(barrido: ModuleType) -> None:
     """La configuración completa debe cargar y validar."""
     config_barrido = barrido.cargar_config_barrido(RUTA_CONFIG_SWEEP)
 
-    assert config_barrido["barrido"]["orden"][0] == "grilla"
+    assert config_barrido["barrido"]["grillas_fijas"] == [3, 4, 5]
+    assert config_barrido["barrido"]["orden"][0] == "topologia"
+    assert "grilla" not in config_barrido["barrido"]["orden"]
+    assert "grilla" not in config_barrido["valores"]
+    assert config_barrido["valores"]["iteraciones"] == [
+        5000,
+        10000,
+        15000,
+        25000,
+    ]
     assert config_barrido["valores"]["distancia"] == ["euclidiana", "exponencial"]
     assert config_barrido["figuras"]["opciones"] == ["a", "b"]
 
     with pytest.raises(ValueError):
         barrido.validar_config_barrido(
             {
-                "barrido": {"orden": ["inexistente"], "semillas": [0]},
+                "barrido": {
+                    "grillas_fijas": [3],
+                    "orden": ["inexistente"],
+                    "semillas": [0],
+                },
                 "valores": {},
             }
         )
@@ -367,7 +396,11 @@ def test_config_barrido_valida(barrido: ModuleType) -> None:
     with pytest.raises(ValueError):
         barrido.validar_config_barrido(
             {
-                "barrido": {"orden": ["grilla"], "semillas": [0]},
-                "valores": {"grilla": []},
+                "barrido": {
+                    "grillas_fijas": [3],
+                    "orden": ["grilla"],
+                    "semillas": [0],
+                },
+                "valores": {"grilla": [3]},
             }
         )

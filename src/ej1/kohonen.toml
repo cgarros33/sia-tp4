@@ -9,7 +9,8 @@ columnas_excluidas = ["price_ars", "estimated_argentina_reach",
                       "total_engagement_per_1000", "organic_posts_pct"]
 
 [modelo]
-# Tamaño k de la grilla k x k.
+# Tamaño k de la grilla k x k. El barrido lo fija en 3, 4 y 5.
+# Este valor queda como fallback para corridas manuales.
 grilla = 6
 # rectangular o hexagonal.
 topologia = "rectangular"
@@ -30,7 +31,8 @@ eta_final = 0.001
 # lineal, exponencial o inversa.
 decaimiento_eta = "lineal"
 # Cantidad total de actualizaciones. Editable si la corrida resulta muy larga.
-iteraciones = 20000
+# Es el valor neutro; el barrido prueba 5k, 10k, 15k y 25k.
+iteraciones = 10000
 
 [reproducibilidad]
 # Se usan al menos 3 semillas para reportar media ± desvío.

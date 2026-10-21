@@ -43,7 +43,6 @@ PARAMETROS_VALIDOS = (
     "decaimiento_eta",
     "iteraciones",
 )
-CRITERIOS_VALIDOS = ("minimo", "codo")
 OPCIONES_FIGURAS = ("a", "b", "c")
 OPCIONES_FIGURAS_POR_DEFECTO = ("a", "b")
 
@@ -149,9 +148,27 @@ def validar_config_barrido(config: dict) -> None:
     if len(set(orden)) != len(orden):
         raise ValueError("barrido.orden no puede tener parámetros repetidos.")
 
+    if "grilla" in orden:
+        raise ValueError(
+            "barrido.orden no puede incluir grilla; usar barrido.grillas_fijas."
+        )
+
     for parametro in orden:
         if parametro not in PARAMETROS_VALIDOS:
             raise ValueError(f"Parámetro de barrido desconocido: {parametro}")
+
+    grillas_fijas = barrido.get("grillas_fijas")
+    if (
+        not isinstance(grillas_fijas, list)
+        or not grillas_fijas
+        or not all(
+            isinstance(grilla, int) and not isinstance(grilla, bool) and grilla >= 2
+            for grilla in grillas_fijas
+        )
+    ):
+        raise ValueError(
+            "barrido.grillas_fijas debe ser una lista no vacía de enteros >= 2."
+        )
 
     semillas = barrido.get("semillas")
     if (
@@ -163,14 +180,6 @@ def validar_config_barrido(config: dict) -> None:
         )
     ):
         raise ValueError("barrido.semillas debe ser una lista de enteros.")
-
-    criterio = barrido.get("criterio_grilla", "minimo")
-    if criterio not in CRITERIOS_VALIDOS:
-        raise ValueError(f"Criterio de grilla inválido: {criterio}")
-
-    tolerancia = barrido.get("tolerancia_codo", 0.05)
-    if not isinstance(tolerancia, (int, float)) or tolerancia < 0.0:
-        raise ValueError("barrido.tolerancia_codo debe ser no negativa.")
 
     valores = config.get("valores")
     if not isinstance(valores, dict):
@@ -230,6 +239,10 @@ def validar_config_barrido(config: dict) -> None:
             salida["directorio_final"], str
         ):
             raise ValueError("salida.directorio_final debe ser un texto.")
+        if "directorio_final_base" in salida and not isinstance(
+            salida["directorio_final_base"], str
+        ):
+            raise ValueError("salida.directorio_final_base debe ser un texto.")
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -295,30 +308,15 @@ def _valor_python(valor: object) -> object:
     return valor
 
 
-def seleccionar_mejor(
-    resumen: pd.DataFrame,
-    criterio: str = "minimo",
-    tolerancia: float = 0.05,
-) -> object:
-    """Selecciona el mejor valor de un resumen de un solo parámetro."""
-    if criterio not in CRITERIOS_VALIDOS:
-        raise ValueError(f"Criterio desconocido: {criterio}")
+def seleccionar_mejor(resumen: pd.DataFrame) -> object:
+    """Selecciona el valor con la menor QE media de un resumen."""
     if resumen.empty:
         raise ValueError("No hay resultados para seleccionar.")
     if "valor" not in resumen.columns or "qe_media" not in resumen.columns:
         raise ValueError("El resumen debe tener las columnas valor y qe_media.")
 
-    qe_minimo = float(resumen["qe_media"].min())
-    if criterio == "minimo":
-        fila = resumen.loc[resumen["qe_media"].idxmin()]
-        return _valor_python(fila["valor"])
-
-    limite = qe_minimo * (1.0 + tolerancia)
-    candidatos = resumen[resumen["qe_media"] <= limite]
-    if candidatos.empty:
-        candidatos = resumen
-    candidatos = candidatos.sort_values("valor")
-    return _valor_python(candidatos.iloc[0]["valor"])
+    fila = resumen.loc[resumen["qe_media"].idxmin()]
+    return _valor_python(fila["valor"])
 
 
 def actualizar_config(config: dict, parametro: str, valor: object) -> dict:
@@ -370,8 +368,6 @@ def evaluar_paso(
     datos: np.ndarray,
     semillas: Sequence[int],
     entrenador: Callable[[np.ndarray, dict, int], dict],
-    criterio: str | None = None,
-    tolerancia: float = 0.05,
     progreso: ProgresoBarrido | None = None,
 ) -> ResultadoPaso:
     """Evalúa un parámetro manteniendo el resto de la configuración fija."""
@@ -379,9 +375,6 @@ def evaluar_paso(
         raise ValueError(f"Parámetro desconocido: {parametro}")
 
     candidatos = list(dict.fromkeys(list(valores) + [config["modelo"][parametro]]))
-    if criterio is None:
-        criterio = "codo" if parametro == "grilla" else "minimo"
-
     total_candidatos = max(1, len(candidatos))
     filas: list[dict] = []
     for indice_candidato, valor in enumerate(candidatos):
@@ -400,7 +393,7 @@ def evaluar_paso(
 
     resultados = pd.DataFrame(filas)
     resumen = agregar_resultados(resultados)
-    mejor_valor = seleccionar_mejor(resumen, criterio, tolerancia)
+    mejor_valor = seleccionar_mejor(resumen)
     fila_mejor = resumen.loc[resumen["valor"] == mejor_valor].iloc[0]
 
     return ResultadoPaso(
@@ -876,8 +869,6 @@ def ejecutar_barrido(
     config_actual = deepcopy(config)
     orden = config_barrido["barrido"]["orden"]
     semillas = config_barrido["barrido"]["semillas"]
-    criterio_grilla = config_barrido["barrido"].get("criterio_grilla", "minimo")
-    tolerancia = float(config_barrido["barrido"].get("tolerancia_codo", 0.05))
     seccion_acoplamientos = config_barrido.get("acoplamientos", {})
     pares = seccion_acoplamientos.get("pares", [])
     adoptar_solo_si_mejora = bool(
@@ -901,8 +892,6 @@ def ejecutar_barrido(
             datos,
             semillas,
             entrenador,
-            criterio=criterio_grilla if parametro == "grilla" else "minimo",
-            tolerancia=tolerancia,
             progreso=progreso,
         )
         _guardar_paso(resultado, indice, ruta_salida)
@@ -1028,8 +1017,6 @@ def ejecutar_barrido(
         "Registro del barrido — TP4, ejercicio 1.2 (Red de Kohonen)",
         f"Orden: {orden}",
         f"Semillas: {semillas}",
-        f"Criterio de grilla: {criterio_grilla}",
-        f"Tolerancia del codo: {tolerancia}",
         f"Pares de acoplamiento: {pares}",
         f"Configuración final: {config_actual['modelo']}",
         f"QE final: {qe_actual:.8f}",
@@ -1057,6 +1044,55 @@ def ejecutar_barrido(
     )
 
     return config_actual, resumen_pasos
+
+
+def ejecutar_barridos(
+    config: dict,
+    datos: np.ndarray,
+    config_barrido: dict,
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    ruta_base: Path,
+) -> dict[int, tuple[dict, pd.DataFrame]]:
+    """Ejecuta un barrido secuencial completo para cada grilla fija."""
+    validar_config_barrido(config_barrido)
+    grillas = config_barrido["barrido"]["grillas_fijas"]
+    base_final = config_barrido.get("salida", {}).get(
+        "directorio_final_base",
+        config["salida"]["directorio"],
+    )
+    directorio_base_texto = str(
+        config_barrido.get("salida", {}).get(
+            "directorio",
+            "resultados/ej1/kohonen_sweep",
+        )
+    ).rstrip("/")
+    ruta_base = Path(ruta_base)
+    resultados: dict[int, tuple[dict, pd.DataFrame]] = {}
+
+    for indice, grilla in enumerate(grillas, start=1):
+        print(
+            f"\n=== Barrido {indice}/{len(grillas)}: k={grilla} ===",
+            flush=True,
+        )
+        config_k = deepcopy(config)
+        config_k["modelo"]["grilla"] = int(grilla)
+        config_barrido_k = deepcopy(config_barrido)
+        config_barrido_k["barrido"]["grillas_fijas"] = [int(grilla)]
+        config_barrido_k.setdefault("salida", {})
+        config_barrido_k["salida"]["directorio"] = (
+            f"{directorio_base_texto}/sweep{grilla}"
+        )
+        config_barrido_k["salida"]["directorio_final"] = f"{base_final}_k{grilla}"
+        ruta_k = ruta_base / f"sweep{grilla}"
+        resultados[int(grilla)] = ejecutar_barrido(
+            config_k,
+            datos,
+            config_barrido_k,
+            entrenador,
+            ruta_k,
+        )
+
+    return resultados
 
 
 def _entrenador_real(datos: np.ndarray, modelo: dict, semilla: int) -> dict:
@@ -1091,26 +1127,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     matriz = datos[columnas].to_numpy(dtype=float)
     estandarizada, _, _ = kohonen.estandarizar(matriz)
 
-    ruta_salida = kohonen.resolver_ruta(config_barrido["salida"]["directorio"])
+    ruta_base = kohonen.resolver_ruta(config_barrido["salida"]["directorio"])
 
     inicio = time.perf_counter()
-    config_final, resumen = ejecutar_barrido(
+    resultados = ejecutar_barridos(
         base,
         estandarizada,
         config_barrido,
         _entrenador_real,
-        ruta_salida,
+        ruta_base,
     )
     tiempo_total = time.perf_counter() - inicio
 
     print("=" * 78)
     print("TP4 — Ejercicio 1.2: barrido de hiperparámetros de Kohonen")
     print("=" * 78)
-    print(f"Resultados: {ruta_salida}")
+    print(f"Resultados: {ruta_base}")
     print(f"Tiempo total: {tiempo_total:.3f} s")
-    print(f"Configuración final: {config_final['modelo']}")
-    print("Resumen de pasos:")
-    print(resumen.to_string(index=False))
+
+    for grilla, (config_final, resumen) in resultados.items():
+        print()
+        print(f"--- k = {grilla} ---")
+        print(f"Configuración final: {config_final['modelo']}")
+        print("Resumen de pasos:")
+        print(resumen.to_string(index=False))
     return 0
 
 
