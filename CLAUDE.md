@@ -92,3 +92,6 @@ The CLAUDE.md file is in English for token efficiency. Code and comments are to 
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## 8. Project Structure
+See [docs/structure.md](docs/structure.md) for the repository layout, conventions, and run commands.
