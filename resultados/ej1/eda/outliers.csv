@@ -1,0 +1,8 @@
+variable,n_outliers,creator_ids
+estimated_argentina_reach,5,"INF001, INF010, INF021, INF036, INF040"
+likes_per_1000,1,INF043
+comments_per_1000,1,INF010
+shares_per_1000,1,INF032
+total_engagement_per_1000,3,"INF032, INF040, INF043"
+topic_makeup_pct,11,"INF001, INF002, INF006, INF010, INF014, INF022, INF025, INF032, INF038, INF042, INF046"
+topic_art_pct,11,"INF004, INF008, INF012, INF016, INF024, INF026, INF029, INF040, INF044, INF048, INF049"

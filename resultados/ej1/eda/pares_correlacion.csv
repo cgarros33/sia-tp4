@@ -1,0 +1,16 @@
+variable_1,variable_2,correlacion
+price_usd,price_ars,1.000000
+sponsored_posts_pct,organic_posts_pct,-1.000000
+average_reach,average_video_views,0.997284
+average_impressions,average_video_views,0.988356
+average_reach,average_impressions,0.987439
+video_posts_pct,short_form_posts_pct,0.970760
+short_form_posts_pct,trend_posts_pct,0.960845
+video_posts_pct,trend_posts_pct,0.951541
+followers,average_reach,0.918072
+average_impressions,price_ars,0.914536
+average_impressions,price_usd,0.914536
+followers,average_impressions,0.911733
+average_video_views,price_ars,0.908178
+average_video_views,price_usd,0.908178
+average_reach,price_usd,0.907048
