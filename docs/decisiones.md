@@ -11,8 +11,9 @@
 - Los resultados de 1.1 se guardan en `resultados/ej1/`.
 - Ejercicio 1.2: Red de Kohonen.
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
-- Etapa actual: 1.1 implementado; 1.2 con plan y decisiones registradas,
-  pendiente de tests e implementación (fases B a F).
+- Etapa actual: 1.2 implementado; barrido completo con resultados provisorios.
+  Queda pendiente revisar los valores que quedaron en el borde de sus rangos y
+  correr la configuración final (fase F).
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -160,11 +161,11 @@ Orden del barrido secuencial:
 
 | Hiperparámetro | Valores a probar | Neutro |
 |---|---|---|
-| `grilla` | `3, 4, 5, 6, 7, 8, 10` | `6` |
+| `grilla` | `6, 7, 8, 9, 10, 11, 12, 13, 14` | `6` |
 | `topologia` | `rectangular, hexagonal` | `rectangular` |
 | `distancia` | `euclidiana, exponencial` | `euclidiana` |
 | `inicializacion` | `uniforme, muestras` | `muestras` |
-| `radio_inicial_relativo` | `0.5k, 0.75k, 1.0k, 1.5k` | `0.5k` |
+| `radio_inicial_relativo` | `0.3k, 0.4k, 0.5k, 0.75k, 1.0k, 1.5k` | `0.5k` |
 | `decaimiento_radio` | `constante, lineal, exponencial, inversa` | `lineal` |
 | `eta_inicial` | `0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9` | `0.5` |
 | `decaimiento_eta` | `lineal, exponencial, inversa` | `lineal` |
@@ -207,18 +208,19 @@ Orden del barrido secuencial:
 
 ### Visualizaciones del barrido
 
-- Se generan las tres opciones, cada una en su carpeta:
+- Se generan las opciones A y B, cada una en su carpeta:
   - `resultados/ej1/kohonen_sweep/figuras/opcion_a/`: una figura por paso más
-    `fig_progreso.png`.
+    `fig_progreso.png`. El valor elegido se marca subrayando su etiqueta del
+    eje x, sin línea vertical.
   - `resultados/ej1/kohonen_sweep/figuras/opcion_b/`: dashboard enfocado en
     legibilidad, con los 9 pasos secuenciales y otro dashboard para los
     acoplamientos.
-  - `resultados/ej1/kohonen_sweep/figuras/opcion_c/`: boxplots por paso más
-    `fig_progreso.png`.
+- La opción C (boxplots por paso) queda desactivada por legibilidad. Su código
+  se conserva, pero no se genera en el barrido real.
 - No se genera la opción D (heatmap global), porque cada paso secuencial tiene
   una configuración base distinta y las corridas no son directamente
   comparables en una única matriz.
-- Los CSV quedan en la raíz de `kohonen_sweep/`. Las tres carpetas de figuras
+- Los CSV quedan en la raíz de `kohonen_sweep/`. Las dos carpetas de figuras
   permiten comparar y elegir cuál va a la presentación.
 
 ### Resultados finales
@@ -240,12 +242,13 @@ Orden del barrido secuencial:
 
 ### Salidas
 
-- Barrido: `resultados/ej1/kohonen_sweep/`.
+- Primer barrido archivado: `resultados/ej1/kohonen_sweep/sweep1/`.
+- Próximo barrido: raíz de `resultados/ej1/kohonen_sweep/`.
 - Corrida final: `resultados/ej1/kohonen/`.
 - Corridas neutras manuales: `resultados/ej1/kohonen_base/`.
 - El barrido guarda `config_barrido.toml`, `config_optima.toml`, `registro.txt`,
-  `resumen_pasos.csv`, los CSV por paso, `acoplamientos/` y las tres carpetas
-  de figuras.
+  `resumen_pasos.csv`, los CSV por paso, `acoplamientos/` y las dos carpetas de
+  figuras habilitadas (A y B).
 - La corrida final guarda `config_usada.toml`, `normalizacion.csv`, `pesos.csv`,
   `neuronas.csv`, `asignaciones.csv`, `matriz_u.csv`, `metricas.csv`,
   `resumen.txt` y las tres figuras.
@@ -261,17 +264,68 @@ Orden del barrido secuencial:
 - No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
   la biblioteca estándar.
 
+### Resultados del barrido (sweep1)
+
+- Se ejecutó el barrido secuencial completo con 3 semillas y los valores de
+  `src/ej1/kohonen-sweep.toml`.
+- Salida: `resultados/ej1/kohonen_sweep/sweep1/`.
+- Tiempo total del barrido: 734,34 s.
+
+| Paso | Parámetro | Valor elegido | QE media | QE desvío |
+|---:|---|---|---:|---:|
+| 1 | `grilla` | `10` | 1,414228 | 0,065676 |
+| 2 | `topologia` | `rectangular` | 1,414228 | 0,065676 |
+| 3 | `distancia` | `exponencial` | 1,357106 | 0,203866 |
+| 4 | `inicializacion` | `muestras` | 1,357106 | 0,203866 |
+| 5 | `radio_inicial_relativo` | `0.5` | 1,357106 | 0,203866 |
+| 6 | `decaimiento_radio` | `inversa` | 0,532888 | 0,129570 |
+| 7 | `eta_inicial` | `0.9` | 0,475524 | 0,221087 |
+| 8 | `decaimiento_eta` | `lineal` | 0,475524 | 0,221087 |
+| 9 | `iteraciones` | `80000` | 0,376768 | 0,109013 |
+
+Acoplamientos fuertes:
+
+| Par | Mejor valor | QE media | QE base | ¿Adoptado? |
+|---|---|---:|---:|---|
+| `eta_inicial` x `decaimiento_eta` | `0.9` x `lineal` | 0,376768 | 0,376768 | No |
+| `radio_inicial_relativo` x `decaimiento_radio` | `0.5` x `inversa` | 0,376768 | 0,376768 | No |
+
+Los dos acoplamientos devolvieron la misma combinación que ya estaba vigente,
+así que no se modificó la configuración secuencial.
+
+### Revisión de bordes del barrido
+
+- `grilla = 10` es el máximo de la lista. El promedio de unidades muertas es
+  58,33 de 100 neuronas y la ocupación media es 0,4167. El codo del 5% eligió
+  `10` porque el mínimo es 1,414228, el límite es 1,484939 y `k = 8` tiene QE
+  1,868502, por encima del límite. La lista no se extendió todavía.
+- `eta_inicial = 0.9` es el máximo de la lista, con QE 0,475524 y desvío
+  0,221087.
+- `iteraciones = 80000` es el máximo de la lista, con QE 0,376768 y desvío
+  0,109013.
+- `radio_inicial_relativo = 0.5` es el mínimo de la lista. El acoplamiento
+  probó 0,5; 0,75; 1,0 y 1,5, y 0,5 con `inversa` fue el mejor de esos valores.
+  No se probó 0,25.
+- Las listas de `topologia`, `distancia`, `inicializacion`,
+  `decaimiento_radio` y `decaimiento_eta` son categóricas y exhaustivas; no
+  requieren extensión.
+- Se decidió ampliar `grilla` a `[6, 7, 8, 9, 10, 11, 12, 13, 14]` y agregar
+  `0.3` y `0.4` a `radio_inicial_relativo`. El próximo barrido escribe en la
+  raíz de `resultados/ej1/kohonen_sweep/`; `sweep1/` queda como archivo.
+- `eta_inicial` e `iteraciones` se dejan como están por ahora; el próximo
+  barrido vuelve a decidirlos.
+- `config_optima.toml` de `sweep1/` queda como configuración provisoria del
+  primer barrido y no se usa todavía para la corrida final.
+
 ### Pendientes de 1.2
 
-- Fase B: escribir los tests y verificar que el CI falla por falta de
-  implementación.
-- Fase C: implementar `kohonen.py` y su TOML, con corrida de humo fuera de
-  `resultados/`.
-- Fase D: implementar `kohonen-sweep.py` y su TOML, con barrido reducido fuera
-  de `resultados/`.
-- Fase E: correr el barrido completo, los acoplamientos fuertes y generar las
-  tres opciones de visualización.
-- Fase F: correr la configuración óptima y generar los resultados finales.
+- Fase B: completada.
+- Fase C: completada.
+- Fase D: completada.
+- Fase E.1: resultados del primer barrido archivados en `sweep1/`; completada.
+- Fases E.2 a E.6: pendientes (nuevo rango de grilla y radio, subrayado del
+  valor elegido, barra de progreso, opción C desactivada y nuevo barrido).
+- Fase F: pendiente de correr la configuración final.
 
 ## Salidas y estructura
 
@@ -287,7 +341,7 @@ Orden del barrido secuencial:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 8 tests en verde.
+- `python3 -m pytest -q`: 50 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.
