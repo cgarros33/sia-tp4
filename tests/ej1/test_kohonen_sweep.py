@@ -241,6 +241,13 @@ def test_debe_adoptar(barrido: ModuleType) -> None:
     assert not barrido.debe_adoptar(10.0, 9.0)
 
 
+def test_barra_progreso(barrido: ModuleType) -> None:
+    """La barra debe cubrir el ancho indicado según el porcentaje."""
+    assert barrido._barra_progreso(0.0, 10) == "[----------]"
+    assert barrido._barra_progreso(50.0, 10) == "[#####-----]"
+    assert barrido._barra_progreso(100.0, 10) == "[##########]"
+
+
 def test_ejecutar_barrido_no_adopta_acoplamiento_peor(
     kohonen: ModuleType,
     barrido: ModuleType,

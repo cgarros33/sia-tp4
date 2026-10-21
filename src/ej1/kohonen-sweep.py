@@ -78,6 +78,53 @@ class ResultadoPaso:
     qe_media: float
 
 
+def _barra_progreso(porcentaje: float, ancho: int = 30) -> str:
+    """Devuelve una barra ASCII para un porcentaje entre 0 y 100."""
+    porcentaje = min(max(float(porcentaje), 0.0), 100.0)
+    completos = int(round(porcentaje / 100.0 * ancho))
+    return "[" + "#" * completos + "-" * (ancho - completos) + "]"
+
+
+class ProgresoBarrido:
+    """Barra de progreso de una sola línea para el barrido."""
+
+    def __init__(self, total_pasos: int, ancho: int = 30) -> None:
+        self.total_pasos = max(1, int(total_pasos))
+        self.ancho = max(10, int(ancho))
+        self.paso_actual = 0
+        self.descripcion = ""
+        self.fraccion_paso = 0.0
+        self._longitud_maxima = 0
+
+    def iniciar_paso(self, paso: int, descripcion: str) -> None:
+        """Inicia un paso y muestra el progreso en cero."""
+        self.paso_actual = max(1, int(paso))
+        self.descripcion = descripcion
+        self.fraccion_paso = 0.0
+        self._imprimir()
+
+    def actualizar(self, fraccion: float, detalle: str = "") -> None:
+        """Actualiza la fracción completada del paso actual."""
+        self.fraccion_paso = min(max(float(fraccion), 0.0), 1.0)
+        sufijo = f" | {detalle}" if detalle else ""
+        self._imprimir(sufijo)
+
+    def finalizar(self) -> None:
+        """Cierra la barra con un salto de línea."""
+        self.fraccion_paso = 1.0
+        self._imprimir()
+        print()
+
+    def _imprimir(self, sufijo: str = "") -> None:
+        fraccion_total = (self.paso_actual - 1 + self.fraccion_paso) / self.total_pasos
+        porcentaje = 100.0 * fraccion_total
+        barra = _barra_progreso(porcentaje, self.ancho)
+        texto = f"{barra} {porcentaje:5.1f}% | {self.descripcion}{sufijo}"
+        relleno = max(0, self._longitud_maxima - len(texto))
+        print("\r" + texto + " " * relleno, end="", flush=True)
+        self._longitud_maxima = max(self._longitud_maxima, len(texto))
+
+
 def cargar_config_barrido(ruta: Path) -> dict:
     """Lee y valida la configuración del barrido."""
     with Path(ruta).open("rb") as archivo:
@@ -287,10 +334,15 @@ def _evaluar_candidato(
     config: dict,
     semillas: Sequence[int],
     entrenador: Callable[[np.ndarray, dict, int], dict],
+    progreso: ProgresoBarrido | None = None,
+    fraccion_inicio: float = 0.0,
+    fraccion_fin: float = 1.0,
+    detalle: str = "",
 ) -> list[dict]:
     """Entrena un candidato con todas las semillas y devuelve sus métricas."""
     filas: list[dict] = []
-    for semilla in semillas:
+    total_semillas = max(1, len(semillas))
+    for indice, semilla in enumerate(semillas):
         metricas = entrenador(datos, config["modelo"], int(semilla))
         filas.append(
             {
@@ -301,6 +353,12 @@ def _evaluar_candidato(
                 "ocupacion": float(metricas["ocupacion"]),
             }
         )
+        if progreso is not None:
+            fraccion = (
+                fraccion_inicio
+                + (fraccion_fin - fraccion_inicio) * (indice + 1) / total_semillas
+            )
+            progreso.actualizar(fraccion, detalle)
     return filas
 
 
@@ -313,6 +371,7 @@ def evaluar_paso(
     entrenador: Callable[[np.ndarray, dict, int], dict],
     criterio: str | None = None,
     tolerancia: float = 0.05,
+    progreso: ProgresoBarrido | None = None,
 ) -> ResultadoPaso:
     """Evalúa un parámetro manteniendo el resto de la configuración fija."""
     if parametro not in PARAMETROS_VALIDOS:
@@ -322,10 +381,20 @@ def evaluar_paso(
     if criterio is None:
         criterio = "codo" if parametro == "grilla" else "minimo"
 
+    total_candidatos = max(1, len(candidatos))
     filas: list[dict] = []
-    for valor in candidatos:
+    for indice_candidato, valor in enumerate(candidatos):
         config_candidato = actualizar_config(config, parametro, valor)
-        for fila in _evaluar_candidato(datos, config_candidato, semillas, entrenador):
+        for fila in _evaluar_candidato(
+            datos,
+            config_candidato,
+            semillas,
+            entrenador,
+            progreso=progreso,
+            fraccion_inicio=indice_candidato / total_candidatos,
+            fraccion_fin=(indice_candidato + 1) / total_candidatos,
+            detalle=(f"candidato {indice_candidato + 1}/{total_candidatos} ({valor})"),
+        ):
             filas.append({"parametro": parametro, "valor": valor, **fila})
 
     resultados = pd.DataFrame(filas)
@@ -351,6 +420,7 @@ def evaluar_acoplamiento(
     datos: np.ndarray,
     semillas: Sequence[int],
     entrenador: Callable[[np.ndarray, dict, int], dict],
+    progreso: ProgresoBarrido | None = None,
 ) -> ResultadoPaso:
     """Evalúa el producto cartesiano de dos parámetros acoplados."""
     for parametro in (parametro_a, parametro_b):
@@ -365,8 +435,10 @@ def evaluar_acoplamiento(
     candidatos_b = list(
         dict.fromkeys(list(valores_b) + [config["modelo"][parametro_b]])
     )
+    total_combinaciones = max(1, len(candidatos_a) * len(candidatos_b))
 
     filas: list[dict] = []
+    indice_combinacion = 0
     for valor_a in candidatos_a:
         for valor_b in candidatos_b:
             config_candidato = actualizar_config(config, parametro_a, valor_a)
@@ -376,7 +448,17 @@ def evaluar_acoplamiento(
                 valor_b,
             )
             for fila in _evaluar_candidato(
-                datos, config_candidato, semillas, entrenador
+                datos,
+                config_candidato,
+                semillas,
+                entrenador,
+                progreso=progreso,
+                fraccion_inicio=indice_combinacion / total_combinaciones,
+                fraccion_fin=(indice_combinacion + 1) / total_combinaciones,
+                detalle=(
+                    f"combinación {indice_combinacion + 1}/"
+                    f"{total_combinaciones} ({valor_a}, {valor_b})"
+                ),
             ):
                 filas.append(
                     {
@@ -387,6 +469,7 @@ def evaluar_acoplamiento(
                         **fila,
                     }
                 )
+            indice_combinacion += 1
 
     resultados = pd.DataFrame(filas)
     resumen = agregar_resultados(resultados)
@@ -794,11 +877,21 @@ def ejecutar_barrido(
     semillas = config_barrido["barrido"]["semillas"]
     criterio_grilla = config_barrido["barrido"].get("criterio_grilla", "minimo")
     tolerancia = float(config_barrido["barrido"].get("tolerancia_codo", 0.05))
+    seccion_acoplamientos = config_barrido.get("acoplamientos", {})
+    pares = seccion_acoplamientos.get("pares", [])
+    adoptar_solo_si_mejora = bool(
+        seccion_acoplamientos.get("adoptar_solo_si_mejora", True)
+    )
 
+    progreso = ProgresoBarrido(len(orden) + len(pares))
     resultados_pasos: list[ResultadoPaso] = []
     filas_resumen: list[dict] = []
 
     for indice, parametro in enumerate(orden, start=1):
+        progreso.iniciar_paso(
+            indice,
+            f"Paso {indice}/{len(orden)}: {parametro}",
+        )
         valores = config_barrido["valores"][parametro]
         resultado = evaluar_paso(
             parametro,
@@ -809,6 +902,7 @@ def ejecutar_barrido(
             entrenador,
             criterio=criterio_grilla if parametro == "grilla" else "minimo",
             tolerancia=tolerancia,
+            progreso=progreso,
         )
         _guardar_paso(resultado, indice, ruta_salida)
         config_actual = actualizar_config(
@@ -835,13 +929,12 @@ def ejecutar_barrido(
     qe_actual = _qe_de_config(config_actual, datos, semillas, entrenador)
     acoplamientos: list[ResultadoPaso] = []
     filas_acoplamientos: list[dict] = []
-    seccion_acoplamientos = config_barrido.get("acoplamientos", {})
-    pares = seccion_acoplamientos.get("pares", [])
-    adoptar_solo_si_mejora = bool(
-        seccion_acoplamientos.get("adoptar_solo_si_mejora", True)
-    )
 
-    for parametro_a, parametro_b in pares:
+    for indice_par, (parametro_a, parametro_b) in enumerate(pares, start=1):
+        progreso.iniciar_paso(
+            len(orden) + indice_par,
+            (f"Acoplamiento {indice_par}/{len(pares)}: {parametro_a} x {parametro_b}"),
+        )
         resultado = evaluar_acoplamiento(
             parametro_a,
             config_barrido["valores"][parametro_a],
@@ -851,6 +944,7 @@ def ejecutar_barrido(
             datos,
             semillas,
             entrenador,
+            progreso=progreso,
         )
         carpeta = ruta_salida / "acoplamientos" / f"{parametro_a}_x_{parametro_b}"
         carpeta.mkdir(parents=True, exist_ok=True)
@@ -894,6 +988,8 @@ def ejecutar_barrido(
                 "adoptado": adoptado,
             }
         )
+
+    progreso.finalizar()
 
     resumen_pasos = pd.DataFrame(filas_resumen)
     resumen_pasos.to_csv(
