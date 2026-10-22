@@ -15,6 +15,9 @@
   `sweep4` y `sweep5` ejecutados con grilla fija, y las tres corridas finales
   (`kohonen_k3/`, `kohonen_k4/`, `kohonen_k5/`) terminadas. Queda la
   interpretación de resultados con el grupo, fuera de los archivos del proyecto.
+- Ejercicio 1.3: Índice de Oja.
+- El plan de 1.3 está en `docs/plan/ej1-3.md`.
+- Etapa actual: 1.3 en fase 1 (plan y decisiones); sin implementación.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -451,6 +454,156 @@ Observaciones técnicas:
 - Fase F: completada; las tres corridas finales se ejecutaron.
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
+
+## Ejercicio 1.3 — Índice de Oja
+
+### Alcance
+
+- El plan completo está en `docs/plan/ej1-3.md`.
+- El script será `src/ej1/oja.py` y la configuración `src/ej1/oja.toml`.
+- Los tests serán `tests/ej1/test_oja.py`.
+- Las salidas serán `resultados/ej1/oja/`.
+- No se implementa la red de Sanger: la consigna pide la regla de Oja.
+
+### Datos y preprocesamiento
+
+- Se usan los 50 creadores y las mismas 27 variables numéricas que en 1.1 y
+  1.2.
+- Se excluyen `price_ars`, `estimated_argentina_reach`,
+  `total_engagement_per_1000` y `organic_posts_pct`, por las mismas razones que
+  en 1.1.
+- No hay conjunto de test: el ejercicio es no supervisado y todos los creadores
+  se usan para entrenar y analizar. Es la misma excepción documentada que en
+  1.2 al punto 2 de `CLAUDE.md`.
+- Estandarización z-score con media 0 y desvío muestral 1 (`ddof=1`), ajustada
+  sobre los 50 creadores. Los outliers se conservan.
+- El índice queda en unidades estandarizadas; su ranking es equivalente al de
+  un índice lineal en escala original.
+
+### Modelo
+
+- Un perceptrón lineal con una sola salida y sin sesgo.
+- Vector de pesos `w ∈ R^27`.
+- Inicialización uniforme en `[0, 1)` por componente, con semilla explícita, y
+  normalización a norma unitaria antes de la primera actualización.
+- Forma online estándar: una actualización por muestra, con épocas mezcladas y
+  operaciones vectorizadas sobre las 27 dimensiones.
+- La regla final es la regla normalizada exacta de Oja, ecuaciones 16.7-16.8:
+
+  ```text
+  w ← (w + η s z) / ||w + η s z||
+  ```
+
+- También se implementa la forma de Taylor de la ecuación 16.9:
+
+  ```text
+  w ← w + η s (z - s w)
+  ```
+
+  Se corre con `eta_inicial = 0.5` y con `eta_inicial = 0.05`, como
+  comparaciones. No se usa para el índice final.
+- Horario de aprendizaje: `η(t) = eta0 / (1 + t)` (`inversa`), con
+  `eta0 = 0.5` en la corrida final y `t` el índice global de actualización.
+- `epocas = 500` (25.000 actualizaciones). Si las curvas no se estabilizan, se
+  amplía el presupuesto antes de la corrida final.
+- Semillas `[0, 1, 2]`, las mismas para todas las corridas. Cada resultado se
+  reporta como media ± desvío muestral.
+- Al final se orienta cada vector de pesos para que `followers` tenga carga
+  positiva, igual que PC1 en 1.1.
+
+### Control de divergencia y convergencia
+
+- Al final de cada época se corta la corrida si hay valores no finitos, si
+  `||w|| > 5.0`, si `wᵀ C w / λ1 > 5.0` o si la razón de varianza es negativa.
+- Se registran `divergio`, `epoca_detencion` y `motivo`.
+- Una corrida converge si no divergió, si `wᵀ C w / λ1 >= 0.99` y si la
+  correlación de Pearson entre el índice de Oja y los scores de PC1 es
+  `>= 0.99`.
+- Los umbrales quedan en `config_usada.toml` bajo `[control]`.
+
+### Comparación con PC1
+
+- No se recalcula PC1. Se leen los resultados de 1.1:
+  - `resultados/ej1/pca_0.95/cargas.csv`
+  - `resultados/ej1/pca_0.95/scores.csv`
+  - `resultados/ej1/pca_0.95/autovalores.csv`
+  - `resultados/ej1/eda/correlaciones.csv`
+- Las cargas se reindexan al orden de las 27 variables del modelo y los scores
+  se alinean por `creator_id`.
+- Se valida que `v1ᵀ C v1 ≈ λ1`, que `var(pc1_scores, ddof=1) ≈ λ1`, que
+  `mean(pc1_scores) ≈ 0`, que la diagonal de `C` sea 1 y que `followers` tenga
+  carga positiva en PC1.
+- Si alguna validación falla, el script se detiene. No hay recomputación de
+  respaldo.
+- La comparación usa solo:
+  - correlación de Pearson entre el índice de Oja y los scores de PC1;
+  - razón de varianza `wᵀ C w / λ1`.
+- No se usa Spearman, top-k ni coseno. La comparación de cargas se muestra en
+  `pesos.csv` y `fig_pesos.png`.
+
+### Correlaciones del índice
+
+- El índice es `I = Σ_j w_j z_j` sobre las 27 variables del modelo.
+- Para cualquier variable `k` de las 31 originales:
+
+  ```text
+  corr(I, x_k) = (Σ_j w_j C_jk) / sqrt(wᵀ C_model w)
+  ```
+
+- Se usa la matriz de correlación de 1.1, sin recalcular correlaciones desde los
+  datos crudos.
+- Se guardan las 31 correlaciones con una columna `incluida_en_modelo`.
+- No se agrega `engagement_por_dolar` en 1.3; queda para la parte 4.
+
+### Sensibilidad
+
+- Para la regla exacta se prueban:
+  - `eta_inicial ∈ {0.01, 0.05, 0.1, 0.2, 0.5}`;
+  - `decaimiento_eta ∈ {constante, inversa, raiz}`.
+- 3 semillas y 500 épocas.
+- Se reportan razón de varianza, Pearson con PC1, norma final y cantidad de
+  divergencias.
+- Es una métrica de robustez; no se elige la configuración final a partir de
+  ella.
+- Las combinaciones de sensibilidad no generan configuraciones individuales.
+
+### Configuraciones guardadas
+
+- `config_usada.toml`: configuración resuelta de la corrida exacta final.
+- `config_regla_taylor_0.5.toml`: solo si la corrida de Taylor con `η0 = 0.5`
+  converge.
+- `config_regla_taylor_0.05.toml`: solo si la corrida de Taylor con `η0 = 0.05`
+  converge.
+- Una corrida que diverge o no converge no genera configuración; queda
+  registrada en `comparacion_reglas.csv`.
+
+### Salidas
+
+- `resultados/ej1/oja/` con:
+  - `config_usada.toml` y, si convergen, las configuraciones de Taylor;
+  - `normalizacion.csv`, `pesos.csv`, `indice.csv`;
+  - `comparacion_pc1.csv`, `correlaciones_indice.csv`;
+  - `convergencia.csv`;
+  - `sensibilidad.csv`, `sensibilidad_resumen.csv`;
+  - `comparacion_reglas.csv`, `comparacion_reglas_resumen.csv`;
+  - `resumen.txt`;
+  - las figuras `fig_convergencia.png`, `fig_pesos.png`, `fig_indice.png`,
+    `fig_comparacion_pc1.png`, `fig_indice_vs_negocio.png`,
+    `fig_sensibilidad.png` y `fig_comparacion_reglas.png`.
+
+### Reproducibilidad
+
+- Cada corrida usa una semilla explícita.
+- La configuración resuelta y las semillas se guardan con los resultados.
+- Cada resultado presentado se reporta como media ± desvío sobre 3 semillas.
+- Todas las figuras se regeneran desde los CSV guardados.
+- No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
+  la biblioteca estándar.
+
+### Pendientes de 1.3
+
+- Fase 1: completada; plan y decisiones registrados.
+- Fases 2 a 4: pendientes.
 
 ## Salidas y estructura
 
