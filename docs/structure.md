@@ -24,7 +24,8 @@ sia-tp4/
 │   ├── decisiones.md
 │   ├── plan/
 │   │   ├── ej1-1.md
-│   │   └── ej1-2.md
+│   │   ├── ej1-2.md
+│   │   └── ej1-3.md
 │   └── context/
 │       ├── gusslop.md
 │       └── consigna/
@@ -43,19 +44,23 @@ sia-tp4/
 │       │   └── sweep5/
 │       ├── kohonen_k3/
 │       ├── kohonen_k4/
-│       └── kohonen_k5/
+│       ├── kohonen_k5/
+│       └── oja/
 ├── src/
 │   └── ej1/
 │       ├── eda-pca.py
 │       ├── kohonen.py
 │       ├── kohonen-sweep.py
 │       ├── kohonen.toml
-│       └── kohonen-sweep.toml
+│       ├── kohonen-sweep.toml
+│       ├── oja.py
+│       └── oja.toml
 └── tests/
     └── ej1/
         ├── test_eda_pca.py
         ├── test_kohonen.py
-        └── test_kohonen_sweep.py
+        ├── test_kohonen_sweep.py
+        └── test_oja.py
 ```
 
 ## Convenciones
@@ -185,12 +190,54 @@ Para exigir que el chequeo pase antes de mergear, activar la protección de la
 rama principal en GitHub: **Settings → Branches → Require status checks to pass
 before merging** y seleccionar `Calidad`.
 
+## Ejercicio 1.3 — Índice de Oja
+
+- Script: `src/ej1/oja.py`.
+- Configuración: `src/ej1/oja.toml`.
+- Plan: `docs/plan/ej1-3.md`.
+- Tests: `tests/ej1/test_oja.py`.
+- Salidas: `resultados/ej1/oja/`.
+
+El script lee los resultados de PCA y correlaciones de 1.1 desde
+`resultados/ej1/pca_0.95/` y `resultados/ej1/eda/correlaciones.csv`; no
+recalcula PC1. La corrida final usa la regla exacta de Oja. Las corridas de
+Taylor con `eta_inicial = 0.5` y `0.05` se usan solo como comparación, y sus
+configuraciones se guardan únicamente si convergen.
+
+### Ejecución
+
+```bash
+python src/ej1/oja.py --config src/ej1/oja.toml
+```
+
+Los parámetros y las rutas se pueden pisar por línea de comandos. La
+precedencia es: CLI > archivo TOML > valores por defecto. Ejemplo:
+
+```bash
+python src/ej1/oja.py --config src/ej1/oja.toml \
+  --regla taylor --eta-inicial 0.05 \
+  --salida /tmp/opencode/oja_taylor_005
+```
+
+### Salidas principales
+
+- `config_usada.toml` y, si convergen, `config_regla_taylor_0.5.toml` y
+  `config_regla_taylor_0.05.toml`.
+- `normalizacion.csv`, `pesos.csv`, `indice.csv`.
+- `comparacion_pc1.csv`, `correlaciones_indice.csv`.
+- `convergencia.csv`, `sensibilidad.csv`, `sensibilidad_resumen.csv`.
+- `comparacion_reglas.csv`, `comparacion_reglas_resumen.csv`.
+- `resumen.txt`.
+- Figuras `fig_convergencia.png`, `fig_pesos.png`, `fig_indice.png`,
+  `fig_comparacion_pc1.png`, `fig_indice_vs_negocio.png`,
+  `fig_sensibilidad.png` y `fig_comparacion_reglas.png`.
+
 ## Estado
 
 | Ejercicio | Subejercicio | Script | Estado |
 |---|---|---|---|
 | 1 | 1. Exploración y representación | `src/ej1/eda-pca.py` | Implementado |
 | 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
-| 1 | 3. Índice de Oja | — | Pendiente |
+| 1 | 3. Índice de Oja | `src/ej1/oja.py` | Implementado |
 | 1 | 4. Decisión para las campañas | — | Pendiente |
 | 2 | Memoria asociativa (Hopfield) | — | Pendiente |

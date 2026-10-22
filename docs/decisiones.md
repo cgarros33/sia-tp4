@@ -17,7 +17,8 @@
   interpretación de resultados con el grupo, fuera de los archivos del proyecto.
 - Ejercicio 1.3: Índice de Oja.
 - El plan de 1.3 está en `docs/plan/ej1-3.md`.
-- Etapa actual: 1.3 en fase 1 (plan y decisiones); sin implementación.
+- Etapa actual: 1.3 implementado y ejecutado; resultados en
+  `resultados/ej1/oja/`.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -460,9 +461,9 @@ Observaciones técnicas:
 ### Alcance
 
 - El plan completo está en `docs/plan/ej1-3.md`.
-- El script será `src/ej1/oja.py` y la configuración `src/ej1/oja.toml`.
-- Los tests serán `tests/ej1/test_oja.py`.
-- Las salidas serán `resultados/ej1/oja/`.
+- El script es `src/ej1/oja.py` y la configuración `src/ej1/oja.toml`.
+- Los tests están en `tests/ej1/test_oja.py`.
+- Las salidas están en `resultados/ej1/oja/`.
 - No se implementa la red de Sanger: la consigna pide la regla de Oja.
 
 ### Datos y preprocesamiento
@@ -600,10 +601,71 @@ Observaciones técnicas:
 - No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
   la biblioteca estándar.
 
+### Resultados de 1.3
+
+- Corrida final: regla exacta, `eta_inicial = 0.5`, decaimiento `inversa`,
+  500 épocas y semillas `[0, 1, 2]`.
+- Las tres semillas convergieron sin divergencia.
+- Razón de varianza final: `1.000000 ± 0.000000`.
+- Pearson con PC1: `1.000000 ± 0.000000`.
+- Norma final de los pesos: `1.000000`.
+- Comparación con PC1:
+  - Pearson entre el índice y PC1: `1.0000000000`.
+  - Razón de varianza: `0.9999999797`.
+  - Varianza del índice: `13.4208673970`.
+  - Varianza de PC1: `13.4208680017`.
+  - `lambda1`: `13.4208676700`.
+- El ranking de Oja coincide exactamente con el ranking de PC1; la diferencia
+  máxima de ranking es 0.
+- Primeros cinco creadores por índice: `@futbolsinvueltas` (6.503237),
+  `@galeriacotidiana` (5.896866), `@brillourbano` (5.690295),
+  `@crearenreels` (5.544413) y `@golconmate` (5.436186).
+- Correlaciones positivas más altas del índice:
+  `average_impressions` (0.918112), `average_video_views` (0.912725),
+  `average_reach` (0.908672), `trend_posts_pct` (0.900423),
+  `video_posts_pct` (0.879608), `short_form_posts_pct` (0.872668),
+  `followers` (0.869469) y `price_usd` (0.869361).
+- Correlaciones negativas más altas del índice:
+  `average_caption_words` (-0.937431), `saves_per_1000` (-0.840787),
+  `profile_visits_per_1000` (-0.772786), `comments_per_1000` (-0.766975),
+  `average_watch_time_seconds` (-0.729670), `content_tutorial_pct`
+  (-0.729167) y `content_review_pct` (-0.667435).
+- `total_engagement_per_1000`: 0.354000.
+- Tópicos: `topic_football_pct` 0.241210, `topic_makeup_pct` 0.239463,
+  `topic_art_pct` 0.026446 y `topic_dogs_pct` -0.486051.
+- Observación técnica: el índice queda alineado con tamaño y alcance, y no con
+  una medida de eficiencia. Es consistente con PC1 de 1.1 y con la comparación
+  entre ambos rankings.
+- Regla de Taylor con `eta_inicial = 0.05`: las tres semillas convergieron;
+  razón de varianza `0.998613 ± 0.002108` y Pearson `0.999921 ± 0.000129`.
+  Su configuración se guardó en `config_regla_taylor_0.05.toml`.
+- Regla de Taylor con `eta_inicial = 0.5`: dos de las tres semillas divergieron
+  en la época 1 por valores no finitos y la restante convergió. No se guardó
+  configuración porque no todas las semillas convergieron.
+- En la comparación de reglas, las medias excluyen las semillas divergidas.
+- Sensibilidad de la regla exacta:
+  - `raiz` converge para todos los `eta_inicial` probados; la razón de varianza
+    queda entre 0.996589 y 1.000000 y el Pearson entre 0.999825 y 1.000000.
+  - `inversa` converge para `eta_inicial = 0.05, 0.1, 0.2, 0.5`; con `0.01`
+    no alcanza el criterio (razón de varianza 0.342282).
+  - `constante` no alcanza el criterio en ningún `eta_inicial`; la razón de
+    varianza queda entre 0.592862 y 0.960472.
+  - El detalle completo está en `sensibilidad_resumen.csv`.
+- Salidas completas en `resultados/ej1/oja/`: `config_usada.toml`,
+  `config_regla_taylor_0.05.toml`, `normalizacion.csv`, `pesos.csv`,
+  `indice.csv`, `comparacion_pc1.csv`, `correlaciones_indice.csv`,
+  `convergencia.csv`, `sensibilidad.csv`, `sensibilidad_resumen.csv`,
+  `comparacion_reglas.csv`, `comparacion_reglas_resumen.csv`, `resumen.txt` y
+  las siete figuras.
+
 ### Pendientes de 1.3
 
 - Fase 1: completada; plan y decisiones registrados.
-- Fases 2 a 4: pendientes.
+- Fase 2: completada; `tests/ej1/test_oja.py` con 23 tests.
+- Fase 3: completada; `src/ej1/oja.py` y `src/ej1/oja.toml`.
+- Fase 4: completada; resultados en `resultados/ej1/oja/`.
+- Pendiente: interpretación de resultados con el grupo, fuera de los archivos
+  del proyecto.
 
 ## Salidas y estructura
 
