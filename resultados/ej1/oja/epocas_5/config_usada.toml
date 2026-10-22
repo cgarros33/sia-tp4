@@ -1,0 +1,29 @@
+[datos]
+ruta = "datos/creadores.csv"
+columnas_excluidas = ["price_ars", "estimated_argentina_reach", "total_engagement_per_1000", "organic_posts_pct"]
+
+[modelo]
+regla = "exacta"
+epocas = 5
+eta_inicial = 0.5
+decaimiento_eta = "inversa"
+
+[control]
+norma_max = 5.0
+ratio_max = 5.0
+ratio_min_convergencia = 0.99
+pearson_min_convergencia = 0.99
+
+[referencias]
+pca_directorio = "resultados/ej1/pca_0.95"
+correlaciones = "resultados/ej1/eda/correlaciones.csv"
+
+[reproducibilidad]
+semillas = [0, 1, 2]
+
+[sensibilidad]
+eta_inicial = [0.01, 0.05, 0.1, 0.2, 0.5]
+decaimiento_eta = ["constante", "inversa", "raiz"]
+
+[salida]
+directorio = "resultados/ej1/oja/epocas_5"
