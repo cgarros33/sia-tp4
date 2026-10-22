@@ -20,6 +20,9 @@
 - Etapa actual: 1.3 implementado y ejecutado. La corrida final usa 5 épocas
   (`resultados/ej1/oja/epocas_5/`); la corrida de 500 épocas quedó archivada
   en `resultados/ej1/oja/epocas_500/`.
+- Ejercicio 2.2: Recomendación (red de Hopfield de 5 × 5).
+- El plan de 2.2 está en `docs/plan/ej2-2.md`.
+- Etapa actual: 2.2 planificado; implementación pendiente.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -718,6 +721,56 @@ Observaciones técnicas:
 - Fase 4: completada; corrida final de 5 épocas y archivo de 500 épocas.
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
+
+## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
+
+### Alcance
+
+- El plan completo está en `docs/plan/ej2-2.md`.
+- Los scripts van en `src/ej2/`: `qr-to-matrix.py`, `hopfield.py` y
+  `hopfield-runner.py`.
+- La configuración por defecto es `src/ej2/hopfield.toml`; la CLI pisa el TOML.
+- Las salidas van en `resultados/ej2/hopfield/<dataset>/`.
+- No se implementa todavía el análisis completo de 2.1.
+
+### Datos
+
+- `datos/hopfield/abecedario_5x5.csv`: 26 letras A-Z, mayúsculas, sin Ñ.
+- `datos/hopfield/letras_5x5.csv`: cuatro patrones para 2.2, `J`, `O`, `T` y
+  `A`.
+- La `J` se copia exactamente de la consigna.
+- Formato CSV: `nombre,filas,columnas,p0000,...,pNNNN`, con valores `1` y `-1`.
+- `datos/hopfield/qr_37x37.csv` se genera con `qr-to-matrix.py` a partir de los
+  PNG. Es una excepción documentada a la regla de solo lectura de `datos/`.
+- El conversor usa umbral 128: negro → `1`, blanco → `-1`, sin invertir.
+- Se agrega `Pillow` a `requirements.txt`.
+
+### Modelo
+
+- Hopfield discreto con estados `{-1, +1}`.
+- Pesos `W = (1/N) Xᵀ X`, diagonal nula y matriz simétrica.
+- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
+- Energía `E(S) = -1/2 Sᵀ W S`.
+- Actualización asincrónica secuencial por defecto; sincrónica opcional.
+- El almacenamiento es Hebbiano en forma cerrada; la iteración hasta el estado
+  estable es la recuperación.
+- Se guardan `pesos.npz`, `patrones.csv`, `config_usada.toml`, estabilidad,
+  solapamiento, Hamming, capacidad, energía y resumen.
+
+### Runner y análisis
+
+- El runner lee una red entrenada, valida dimensiones y clasifica cada consulta
+  como almacenada correcta, almacenada incorrecta, espuria, ciclo o no
+  convergente.
+- `--ruido` y `--repeticiones` generan consultas ruidosas reproducibles.
+- `--graphic` renderiza `1` como `*` y `-1` como espacio.
+- El análisis de 2.2 revisa ortogonalidad, capacidad, estabilidad, energía y al
+  menos un estado espurio si aparece.
+
+### Estado
+
+- Fase 1: completada; plan y decisiones registrados.
+- Fases 2 a 6: pendientes.
 
 ## Salidas y estructura
 
