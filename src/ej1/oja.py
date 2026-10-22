@@ -4,7 +4,7 @@
 El script lee ``datos/creadores.csv``, estandariza las mismas 27 variables de
 1.1 y 1.2, entrena la regla de Oja y construye un índice por creador. Después
 compara el índice con la proyección sobre PC1 ya calculada en 1.1 y guarda
-tablas, figuras y un resumen en ``resultados/ej1/oja/``.
+tablas, figuras y un resumen en ``resultados/ej1/oja/epocas_5/`` por defecto.
 
 Referencia teórica: ``artif-eng.pdf``, capítulo 16, pp. 131-134.
 """
@@ -54,7 +54,7 @@ CONFIG_POR_DEFECTO: dict = {
     },
     "modelo": {
         "regla": "exacta",
-        "epocas": 500,
+        "epocas": 5,
         "eta_inicial": 0.5,
         "decaimiento_eta": "inversa",
     },
@@ -76,7 +76,7 @@ CONFIG_POR_DEFECTO: dict = {
         "decaimiento_eta": ["constante", "inversa", "raiz"],
     },
     "salida": {
-        "directorio": "resultados/ej1/oja",
+        "directorio": "resultados/ej1/oja/epocas_5",
     },
 }
 
@@ -794,9 +794,11 @@ def _figura_convergencia(convergencia: pd.DataFrame, ruta: Path) -> None:
     axes[0].set_title("Razón de varianza")
     axes[1].set_title("Pearson con PC1")
     axes[2].set_title("Norma de los pesos")
+    max_epoca = float(convergencia["epoca"].max())
     for eje in axes:
         eje.set_xlabel("época")
-        eje.set_xscale("log")
+        if max_epoca > 20.0:
+            eje.set_xscale("log")
         eje.grid(alpha=0.3)
     axes[0].legend(title="semilla", fontsize=8)
     _guardar_figura(fig, ruta)
@@ -984,6 +986,7 @@ def _figura_comparacion_reglas(
 ) -> None:
     """Compara exacta, Taylor 0.5 y Taylor 0.05."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    max_epoca = 0.0
     for (regla, eta), por_semilla in historiales.items():
         validas = reglas.loc[
             (reglas["regla"] == regla)
@@ -999,6 +1002,7 @@ def _figura_comparacion_reglas(
         if not lista:
             continue
         media = _historial_medio(lista)
+        max_epoca = max(max_epoca, float(media["epoca"].max()))
         etiqueta = f"{regla} η0={eta:g} (n={len(lista)})"
         for eje, columna_media, columna_desvio in zip(
             axes,
@@ -1020,7 +1024,8 @@ def _figura_comparacion_reglas(
     axes[2].set_title("Norma de los pesos")
     for eje in axes:
         eje.set_xlabel("época")
-        eje.set_xscale("log")
+        if max_epoca > 20.0:
+            eje.set_xscale("log")
         eje.grid(alpha=0.3)
     axes[0].legend(fontsize=8)
     _guardar_figura(fig, ruta)

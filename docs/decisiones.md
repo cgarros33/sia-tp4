@@ -17,8 +17,9 @@
   interpretación de resultados con el grupo, fuera de los archivos del proyecto.
 - Ejercicio 1.3: Índice de Oja.
 - El plan de 1.3 está en `docs/plan/ej1-3.md`.
-- Etapa actual: 1.3 implementado y ejecutado; resultados en
-  `resultados/ej1/oja/`.
+- Etapa actual: 1.3 implementado y ejecutado. La corrida final usa 5 épocas
+  (`resultados/ej1/oja/epocas_5/`); la corrida de 500 épocas quedó archivada
+  en `resultados/ej1/oja/epocas_500/`.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
 
 ## Datos
@@ -463,7 +464,9 @@ Observaciones técnicas:
 - El plan completo está en `docs/plan/ej1-3.md`.
 - El script es `src/ej1/oja.py` y la configuración `src/ej1/oja.toml`.
 - Los tests están en `tests/ej1/test_oja.py`.
-- Las salidas están en `resultados/ej1/oja/`.
+- Las salidas de la corrida final están en `resultados/ej1/oja/epocas_5/`.
+- Las salidas de la corrida de 500 épocas están archivadas en
+  `resultados/ej1/oja/epocas_500/`.
 - No se implementa la red de Sanger: la consigna pide la regla de Oja.
 
 ### Datos y preprocesamiento
@@ -505,8 +508,10 @@ Observaciones técnicas:
   comparaciones. No se usa para el índice final.
 - Horario de aprendizaje: `η(t) = eta0 / (1 + t)` (`inversa`), con
   `eta0 = 0.5` en la corrida final y `t` el índice global de actualización.
-- `epocas = 500` (25.000 actualizaciones). Si las curvas no se estabilizan, se
-  amplía el presupuesto antes de la corrida final.
+- La corrida final usa `epocas = 5` (250 actualizaciones), para que la
+  convergencia sea visible en las figuras. La corrida previa de 500 épocas
+  (25.000 actualizaciones) se conserva en `resultados/ej1/oja/epocas_500/` y no
+  se vuelve a ejecutar.
 - Semillas `[0, 1, 2]`, las mismas para todas las corridas. Cada resultado se
   reporta como media ± desvío muestral.
 - Al final se orienta cada vector de pesos para que `followers` tenga carga
@@ -561,7 +566,8 @@ Observaciones técnicas:
 - Para la regla exacta se prueban:
   - `eta_inicial ∈ {0.01, 0.05, 0.1, 0.2, 0.5}`;
   - `decaimiento_eta ∈ {constante, inversa, raiz}`.
-- 3 semillas y 500 épocas.
+- 3 semillas y las mismas 5 épocas de la corrida final. La corrida archivada de
+  500 épocas conserva su propio análisis de sensibilidad.
 - Se reportan razón de varianza, Pearson con PC1, norma final y cantidad de
   divergencias.
 - Es una métrica de robustez; no se elige la configuración final a partir de
@@ -577,10 +583,16 @@ Observaciones técnicas:
   converge.
 - Una corrida que diverge o no converge no genera configuración; queda
   registrada en `comparacion_reglas.csv`.
+- En `epocas_500/` está guardada `config_regla_taylor_0.05.toml`, porque las
+  tres semillas de esa corrida convergieron.
+- En `epocas_5/` no se guardó ninguna configuración de Taylor porque con 5
+  épocas ninguna variante de Taylor convergió.
 
 ### Salidas
 
-- `resultados/ej1/oja/` con:
+- `resultados/ej1/oja/epocas_5/`: corrida final con 5 épocas.
+- `resultados/ej1/oja/epocas_500/`: corrida archivada con 500 épocas.
+- Cada carpeta contiene:
   - `config_usada.toml` y, si convergen, las configuraciones de Taylor;
   - `normalizacion.csv`, `pesos.csv`, `indice.csv`;
   - `comparacion_pc1.csv`, `correlaciones_indice.csv`;
@@ -601,9 +613,11 @@ Observaciones técnicas:
 - No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
   la biblioteca estándar.
 
-### Resultados de 1.3
+### Resultados de la corrida de 500 épocas (archivada)
 
-- Corrida final: regla exacta, `eta_inicial = 0.5`, decaimiento `inversa`,
+- Esta corrida no se vuelve a ejecutar; sus resultados están en
+  `resultados/ej1/oja/epocas_500/`.
+- Corrida: regla exacta, `eta_inicial = 0.5`, decaimiento `inversa`,
   500 épocas y semillas `[0, 1, 2]`.
 - Las tres semillas convergieron sin divergencia.
 - Razón de varianza final: `1.000000 ± 0.000000`.
@@ -651,19 +665,57 @@ Observaciones técnicas:
   - `constante` no alcanza el criterio en ningún `eta_inicial`; la razón de
     varianza queda entre 0.592862 y 0.960472.
   - El detalle completo está en `sensibilidad_resumen.csv`.
-- Salidas completas en `resultados/ej1/oja/`: `config_usada.toml`,
+- Salidas completas en `resultados/ej1/oja/epocas_500/`: `config_usada.toml`,
   `config_regla_taylor_0.05.toml`, `normalizacion.csv`, `pesos.csv`,
   `indice.csv`, `comparacion_pc1.csv`, `correlaciones_indice.csv`,
   `convergencia.csv`, `sensibilidad.csv`, `sensibilidad_resumen.csv`,
   `comparacion_reglas.csv`, `comparacion_reglas_resumen.csv`, `resumen.txt` y
   las siete figuras.
 
+### Resultados de la corrida final de 5 épocas
+
+- Corrida: regla exacta, `eta_inicial = 0.5`, decaimiento `inversa`,
+  `epocas = 5` (250 actualizaciones) y semillas `[0, 1, 2]`.
+- Las tres semillas convergieron sin divergencia.
+- Razón de varianza por semilla: 0.999323, 0.999211 y 0.998505.
+- Razón de varianza: `0.999013 ± 0.000443`.
+- Pearson con PC1 por semilla: 0.999966, 0.999970 y 0.999903.
+- Pearson con PC1: `0.999946 ± 0.000038`.
+- Norma final de los pesos: `1.000000`.
+- Comparación con PC1:
+  - Pearson entre el índice y PC1: `0.9999612314`.
+  - Razón de varianza: `0.9989829570`.
+  - Varianza del índice: `13.4072180710`.
+  - Varianza de PC1: `13.4208680017`.
+  - `lambda1`: `13.4208676700`.
+- El índice ya no coincide exactamente con PC1: la razón de varianza es
+  0.998983 y el ranking tiene seis creadores que cambian una posición.
+- Los seis cambios de ranking son tres pares que intercambian posiciones
+  adyacentes: `@artequeinspira`/`@entrelienzos`, `@brochasymates`/
+  `@cosmeticaconsciente` y `@guiadehuellas`/`@clubdelasmascotas`.
+- El top 5 se mantiene: `@futbolsinvueltas`, `@galeriacotidiana`,
+  `@brillourbano`, `@crearenreels` y `@golconmate`.
+- La figura de convergencia muestra la subida desde valores iniciales cercanos
+  a 0.97 hasta 0.999 en cinco épocas, con eje x lineal.
+- Comparación de reglas con 5 épocas:
+  - exacta: razón de varianza `0.999013`, Pearson `0.999946`, sin divergencias;
+  - Taylor `0.05`: razón de varianza `0.809878`, Pearson `0.985778`; no
+    converge con este presupuesto;
+  - Taylor `0.5`: dos semillas divergen y una converge; no se guarda
+    configuración.
+- Sensibilidad con 5 épocas: solo algunas combinaciones alcanzan el criterio
+  (`eta_inicial = 0.05` con `raiz`, `0.2` con `inversa` y `0.5` con `inversa`);
+  el resto no converge con tan pocas épocas. El análisis completo de
+  sensibilidad con 500 épocas queda en `epocas_500/sensibilidad_resumen.csv`.
+- Salidas en `resultados/ej1/oja/epocas_5/`. No se guardó configuración de
+  Taylor porque ninguna variante convergió con 5 épocas.
+
 ### Pendientes de 1.3
 
 - Fase 1: completada; plan y decisiones registrados.
 - Fase 2: completada; `tests/ej1/test_oja.py` con 23 tests.
 - Fase 3: completada; `src/ej1/oja.py` y `src/ej1/oja.toml`.
-- Fase 4: completada; resultados en `resultados/ej1/oja/`.
+- Fase 4: completada; corrida final de 5 épocas y archivo de 500 épocas.
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
 
@@ -681,7 +733,7 @@ Observaciones técnicas:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 53 tests en verde.
+- `python3 -m pytest -q`: 76 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.

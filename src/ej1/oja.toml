@@ -1,0 +1,42 @@
+# Configuración del ejercicio 1.3 (índice de Oja).
+# Los valores de [modelo] son la corrida final. [sensibilidad] es solo una
+# métrica de robustez y no elige la configuración final.
+
+[datos]
+ruta = "datos/creadores.csv"
+columnas_excluidas = ["price_ars", "estimated_argentina_reach",
+                      "total_engagement_per_1000", "organic_posts_pct"]
+
+[modelo]
+# exacta o taylor. La corrida final usa la regla normalizada exacta.
+regla = "exacta"
+# 5 épocas = 250 actualizaciones. Es un presupuesto bajo para que la
+# convergencia sea visible en las figuras. La corrida de 500 épocas quedó
+# archivada en resultados/ej1/oja/epocas_500/.
+epocas = 5
+eta_inicial = 0.5
+# constante, inversa o raiz.
+decaimiento_eta = "inversa"
+
+[control]
+# Umbrales para cortar una corrida que empieza a divergir.
+norma_max = 5.0
+ratio_max = 5.0
+# Criterio para considerar que una corrida convergió a PC1.
+ratio_min_convergencia = 0.99
+pearson_min_convergencia = 0.99
+
+[referencias]
+# Resultados ya generados por el ejercicio 1.1. No se recalculan.
+pca_directorio = "resultados/ej1/pca_0.95"
+correlaciones = "resultados/ej1/eda/correlaciones.csv"
+
+[reproducibilidad]
+semillas = [0, 1, 2]
+
+[sensibilidad]
+eta_inicial = [0.01, 0.05, 0.1, 0.2, 0.5]
+decaimiento_eta = ["constante", "inversa", "raiz"]
+
+[salida]
+directorio = "resultados/ej1/oja/epocas_5"

@@ -46,6 +46,8 @@ sia-tp4/
 │       ├── kohonen_k4/
 │       ├── kohonen_k5/
 │       └── oja/
+│           ├── epocas_5/
+│           └── epocas_500/
 ├── src/
 │   └── ej1/
 │       ├── eda-pca.py
@@ -196,12 +198,16 @@ before merging** y seleccionar `Calidad`.
 - Configuración: `src/ej1/oja.toml`.
 - Plan: `docs/plan/ej1-3.md`.
 - Tests: `tests/ej1/test_oja.py`.
-- Salidas: `resultados/ej1/oja/`.
+- Salida final: `resultados/ej1/oja/epocas_5/`.
+- Corrida archivada: `resultados/ej1/oja/epocas_500/`.
 
 El script lee los resultados de PCA y correlaciones de 1.1 desde
 `resultados/ej1/pca_0.95/` y `resultados/ej1/eda/correlaciones.csv`; no
-recalcula PC1. La corrida final usa la regla exacta de Oja. Las corridas de
-Taylor con `eta_inicial = 0.5` y `0.05` se usan solo como comparación, y sus
+recalcula PC1. La corrida final usa la regla exacta de Oja con 5 épocas
+(250 actualizaciones), para que la convergencia sea visible y el índice no
+coincida exactamente con PC1. La corrida anterior de 500 épocas quedó archivada
+en `epocas_500/` y no se vuelve a ejecutar. Las corridas de Taylor con
+`eta_inicial = 0.5` y `0.05` se usan solo como comparación, y sus
 configuraciones se guardan únicamente si convergen.
 
 ### Ejecución
@@ -221,6 +227,8 @@ python src/ej1/oja.py --config src/ej1/oja.toml \
 
 ### Salidas principales
 
+En `resultados/ej1/oja/epocas_5/` (corrida final):
+
 - `config_usada.toml` y, si convergen, `config_regla_taylor_0.5.toml` y
   `config_regla_taylor_0.05.toml`.
 - `normalizacion.csv`, `pesos.csv`, `indice.csv`.
@@ -231,6 +239,9 @@ python src/ej1/oja.py --config src/ej1/oja.toml \
 - Figuras `fig_convergencia.png`, `fig_pesos.png`, `fig_indice.png`,
   `fig_comparacion_pc1.png`, `fig_indice_vs_negocio.png`,
   `fig_sensibilidad.png` y `fig_comparacion_reglas.png`.
+
+En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
+épocas, con los mismos tipos de archivo y sus configuraciones resueltas.
 
 ## Estado
 
