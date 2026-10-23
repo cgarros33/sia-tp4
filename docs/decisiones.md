@@ -22,8 +22,9 @@
   en `resultados/ej1/oja/epocas_500/`.
 - Ejercicio 2.2: Recomendación (red de Hopfield de 5 × 5).
 - El plan de 2.2 está en `docs/plan/ej2-2.md`.
-- Etapa actual: 2.2 planificado; implementación pendiente.
-- Los tests actuales pasan con `python3 -m pytest -q tests/ej1`.
+- Etapa actual: 2.2 implementado y ejecutado; resultados en
+  `resultados/ej2/hopfield/letras_5x5/`. Queda la interpretación con el grupo.
+- Los tests actuales pasan con `python3 -m pytest -q tests/ej1 tests/ej2`.
 
 ## Datos
 
@@ -767,10 +768,123 @@ Observaciones técnicas:
 - El análisis de 2.2 revisa ortogonalidad, capacidad, estabilidad, energía y al
   menos un estado espurio si aparece.
 
+### Corrida final
+
+- Dataset: `datos/hopfield/letras_5x5.csv`.
+- Patrones: `J`, `O`, `T` y `A`.
+- `N = 25` neuronas y `p = 4` patrones.
+- Configuración: `asincronica`, orden `secuencial`, semilla 0 y máximo 100
+  barridos.
+- Salida: `resultados/ej2/hopfield/letras_5x5/`.
+- Los cuatro patrones son puntos fijos de la red.
+
+### Ortogonalidad y capacidad
+
+- Carga `p/N = 0.16`; el límite teórico es `0.15 N = 3.75`, así que la red
+  excede el límite.
+- Solapamiento absoluto medio: `0.173333`; máximo: `0.36` (par `O`-`A`).
+- Distancia de Hamming mínima: `8` (par `O`-`A`); media: `11.833333`.
+- No hay pares ortogonales.
+
+| | J | O | T | A |
+|---|---:|---:|---:|---:|
+| J | 1.00 | 0.04 | 0.28 | -0.12 |
+| O | 0.04 | 1.00 | -0.04 | 0.36 |
+| T | 0.28 | -0.04 | 1.00 | -0.20 |
+| A | -0.12 | 0.36 | -0.20 | 1.00 |
+
+### Estabilidad
+
+| Patrón | Punto fijo | Margen mínimo | Barridos | Energía |
+|---|---|---:|---:|---:|
+| J | Sí | 0.40 | 1 | -11.68 |
+| O | Sí | 0.40 | 1 | -12.16 |
+| T | Sí | 0.32 | 1 | -12.00 |
+| A | Sí | 0.16 | 1 | -12.80 |
+
+- Ningún patrón tiene neuronas inestables ni empates.
+- `A` tiene el menor margen y el mayor solapamiento con `O`.
+- La regla del 15 por ciento es una guía estadística: con cuatro patrones se
+  supera el límite, pero los cuatro quedan estables.
+
+### Consultas limpias
+
+- Las cuatro consultas limpias se recuperan correctamente.
+- Distancia de Hamming 0, un barrido y energía final igual a la inicial.
+- Salida: `resultados/ej2/hopfield/letras_5x5/consultas/limpias/`.
+
+### Robustez al ruido
+
+Se corrieron 5 niveles de ruido × 3 semillas × 5 repeticiones × 4 letras = 60
+consultas por nivel. La accuracy se reporta como media ± desvío muestral sobre
+las 3 semillas.
+
+| Ruido | Bits invertidos | Accuracy media ± std | Correctos | Incorrectos | Espurios |
+|---:|---:|---:|---:|---:|---:|
+| 0.1 | 2 | 0.983333 ± 0.028868 | 59 | 0 | 1 |
+| 0.2 | 5 | 0.783333 ± 0.125831 | 47 | 4 | 9 |
+| 0.3 | 8 | 0.600000 ± 0.132288 | 36 | 11 | 13 |
+| 0.4 | 10 | 0.250000 ± 0.050000 | 15 | 18 | 27 |
+| 0.5 | 12 | 0.083333 ± 0.028868 | 5 | 28 | 27 |
+
+Accuracy por letra:
+
+| Ruido | A | J | O | T |
+|---:|---:|---:|---:|---:|
+| 0.1 | 0.933333 | 1.000000 | 1.000000 | 1.000000 |
+| 0.2 | 0.733333 | 0.733333 | 0.733333 | 0.933333 |
+| 0.3 | 0.533333 | 0.466667 | 0.666667 | 0.733333 |
+| 0.4 | 0.266667 | 0.200000 | 0.333333 | 0.200000 |
+| 0.5 | 0.133333 | 0.000000 | 0.066667 | 0.133333 |
+
+- La recuperación cae rápido con el ruido. A partir de 0.4 dominan los estados
+  espurios y las asociaciones incorrectas.
+- `T` es la letra más robusta entre 0.1 y 0.3; `A` es la más frágil.
+
+### Estado espurio
+
+- Caso: ruido `0.2`, semilla `0`, repetición `1`, patrón de origen `J`.
+- El estado final es estable: 2 barridos y sin cambios en el último.
+- No coincide con ninguna letra almacenada. El más cercano es `T`, con
+  distancia de Hamming `4`; energía final `-11.68`.
+- Matriz final (`·` representa `-1`):
+
+```text
+*****
+··**·
+·····
+··**·
+·**··
+```
+
+- En el mismo nivel aparecen otros espurios; con ruido `0.1` ya hay uno en la
+  semilla `2`.
+
+### Reproducibilidad
+
+- Una segunda corrida de entrenamiento en `/tmp/opencode/hopfield_repro`
+  produjo pesos, patrones y tablas idénticos.
+- Una segunda corrida del runner para ruido `0.2` y semilla `0` produjo un
+  `consultas.csv` idéntico.
+- La corrida final y las consultas se pueden regenerar con los comandos de
+  `docs/structure.md`.
+
+### Salidas
+
+- `resultados/ej2/hopfield/letras_5x5/`: `config_usada.toml`, `patrones.csv`,
+  `pesos.npz`, `estabilidad.csv`, `estabilidad_neuronas.csv`,
+  `solapamiento.csv`, `hamming.csv`, `ortogonalidad_resumen.csv`,
+  `capacidad.csv`, `energia_entrenamiento.csv` y `resumen.txt`.
+- `consultas/limpias/`.
+- `consultas/ruido_<nivel>_semilla_<semilla>/` para los 15 barridos de ruido.
+- No se generan figuras en esta etapa.
+
 ### Estado
 
 - Fase 1: completada; plan y decisiones registrados.
-- Fases 2 a 6: pendientes.
+- Fases 2 a 6: completadas.
+- Pendiente: interpretación de resultados con el grupo, fuera de los archivos
+  del proyecto.
 
 ## Salidas y estructura
 
@@ -786,7 +900,7 @@ Observaciones técnicas:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 76 tests en verde.
+- `python3 -m pytest -q`: 132 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.
@@ -799,3 +913,5 @@ Observaciones técnicas:
 - Decidir el umbral definitivo comparando 90%, 95% y 99%.
 - Usar estos resultados como base para el resto de los subejercicios.
 - Interpretar en el informe qué significa cada componente para las campañas.
+- Interpretar con el grupo los resultados de 2.2, incluida la aparición de
+  estados espurios y la caída de accuracy con el ruido.

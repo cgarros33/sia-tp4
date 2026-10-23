@@ -19,13 +19,22 @@ sia-tp4/
 ├── datos/
 │   ├── creadores.csv
 │   └── hopfield/
+│       ├── abecedario_5x5.csv
+│       ├── letras_5x5.csv
+│       ├── qr_37x37.csv
+│       ├── beverages_menu_qr.png
+│       ├── dessert_menu_qr.png
+│       ├── food_menu_qr.png
+│       ├── specials_menu_qr.png
+│       └── wine_menu_qr.png
 ├── docs/
 │   ├── structure.md
 │   ├── decisiones.md
 │   ├── plan/
 │   │   ├── ej1-1.md
 │   │   ├── ej1-2.md
-│   │   └── ej1-3.md
+│   │   ├── ej1-3.md
+│   │   └── ej2-2.md
 │   └── context/
 │       ├── gusslop.md
 │       └── consigna/
@@ -33,36 +42,62 @@ sia-tp4/
 │           ├── artificializando.pdf
 │           └── artif-eng.pdf
 ├── resultados/
-│   └── ej1/
-│       ├── eda/
-│       ├── pca_<umbral>/
-│       ├── kohonen_sweep/
-│       │   ├── sweep1/
-│       │   ├── sweep2/
-│       │   ├── sweep3/
-│       │   ├── sweep4/
-│       │   └── sweep5/
-│       ├── kohonen_k3/
-│       ├── kohonen_k4/
-│       ├── kohonen_k5/
-│       └── oja/
-│           ├── epocas_5/
-│           └── epocas_500/
+│   ├── ej1/
+│   │   ├── eda/
+│   │   ├── pca_<umbral>/
+│   │   ├── kohonen_sweep/
+│   │   │   ├── sweep1/
+│   │   │   ├── sweep2/
+│   │   │   ├── sweep3/
+│   │   │   ├── sweep4/
+│   │   │   └── sweep5/
+│   │   ├── kohonen_k3/
+│   │   ├── kohonen_k4/
+│   │   ├── kohonen_k5/
+│   │   └── oja/
+│   │       ├── epocas_5/
+│   │       └── epocas_500/
+│   └── ej2/
+│       └── hopfield/
+│           └── letras_5x5/
+│               ├── consultas/
+│               │   ├── limpias/
+│               │   └── ruido_<nivel>_semilla_<semilla>/
+│               ├── config_usada.toml
+│               ├── patrones.csv
+│               ├── pesos.npz
+│               ├── estabilidad.csv
+│               ├── estabilidad_neuronas.csv
+│               ├── solapamiento.csv
+│               ├── hamming.csv
+│               ├── ortogonalidad_resumen.csv
+│               ├── capacidad.csv
+│               ├── energia_entrenamiento.csv
+│               └── resumen.txt
 ├── src/
-│   └── ej1/
-│       ├── eda-pca.py
-│       ├── kohonen.py
-│       ├── kohonen-sweep.py
-│       ├── kohonen.toml
-│       ├── kohonen-sweep.toml
-│       ├── oja.py
-│       └── oja.toml
+│   ├── ej1/
+│   │   ├── eda-pca.py
+│   │   ├── kohonen.py
+│   │   ├── kohonen-sweep.py
+│   │   ├── kohonen.toml
+│   │   ├── kohonen-sweep.toml
+│   │   ├── oja.py
+│   │   └── oja.toml
+│   └── ej2/
+│       ├── hopfield.py
+│       ├── hopfield.toml
+│       ├── hopfield-runner.py
+│       └── qr-to-matrix.py
 └── tests/
-    └── ej1/
-        ├── test_eda_pca.py
-        ├── test_kohonen.py
-        ├── test_kohonen_sweep.py
-        └── test_oja.py
+    ├── ej1/
+    │   ├── test_eda_pca.py
+    │   ├── test_kohonen.py
+    │   ├── test_kohonen_sweep.py
+    │   └── test_oja.py
+    └── ej2/
+        ├── test_hopfield.py
+        ├── test_hopfield_runner.py
+        └── test_qr_to_matrix.py
 ```
 
 ## Convenciones
@@ -243,6 +278,68 @@ En `resultados/ej1/oja/epocas_5/` (corrida final):
 En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
 épocas, con los mismos tipos de archivo y sus configuraciones resueltas.
 
+## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
+
+- Motor: `src/ej2/hopfield.py`.
+- Runner: `src/ej2/hopfield-runner.py`.
+- Conversor de QR: `src/ej2/qr-to-matrix.py`.
+- Configuración: `src/ej2/hopfield.toml`.
+- Plan: `docs/plan/ej2-2.md`.
+- Tests: `tests/ej2/test_hopfield.py`,
+  `tests/ej2/test_hopfield_runner.py` y `tests/ej2/test_qr_to_matrix.py`.
+- Datos de letras: `datos/hopfield/abecedario_5x5.csv` y
+  `datos/hopfield/letras_5x5.csv`.
+- Matrices de QR: `datos/hopfield/qr_37x37.csv`.
+- Salida de la corrida final: `resultados/ej2/hopfield/letras_5x5/`.
+
+El motor implementa una red de Hopfield discreta con estados `-1`/`1`,
+almacenamiento Hebbiano en forma cerrada y recuperación asincrónica secuencial
+por defecto; también admite el modo sincrónico. El dataset de 2.2 contiene las
+letras `J`, `O`, `T` y `A` en matrices de 5 × 5. El conversor transforma los
+PNG de 37 × 37 en filas del CSV, con negro → `1` y blanco → `-1`.
+
+### Ejecución
+
+```bash
+# Entrenamiento y tablas de la red
+python src/ej2/hopfield.py --config src/ej2/hopfield.toml
+
+# Consultas limpias
+python src/ej2/hopfield-runner.py \
+  --red resultados/ej2/hopfield/letras_5x5 \
+  --salida resultados/ej2/hopfield/letras_5x5/consultas/limpias
+
+# Barrido de ruido: 5 niveles × 3 semillas × 5 repeticiones
+for nivel in 0.1 0.2 0.3 0.4 0.5; do
+  for semilla in 0 1 2; do
+    python src/ej2/hopfield-runner.py \
+      --red resultados/ej2/hopfield/letras_5x5 \
+      --salida "resultados/ej2/hopfield/letras_5x5/consultas/ruido_${nivel}_semilla_${semilla}" \
+      --ruido "$nivel" --semilla "$semilla" --repeticiones 5
+  done
+done
+
+# Ejemplo con salida gráfica
+python src/ej2/hopfield-runner.py \
+  --red resultados/ej2/hopfield/letras_5x5 \
+  --ruido 0.2 --semilla 0 --repeticiones 2 --graphic
+```
+
+### Salidas principales
+
+- `config_usada.toml`, `patrones.csv` y `pesos.npz`.
+- `estabilidad.csv`, `estabilidad_neuronas.csv`, `solapamiento.csv`,
+  `hamming.csv`, `ortogonalidad_resumen.csv`, `capacidad.csv`,
+  `energia_entrenamiento.csv` y `resumen.txt`.
+- `consultas/limpias/` con `consultas.csv`, `energia.csv`,
+  `estados_iniciales.csv`, `estados_finales.csv` y `resumen.txt`.
+- `consultas/ruido_<nivel>_semilla_<semilla>/` para los 15 barridos de ruido,
+  con los mismos archivos.
+- No se generan figuras en esta etapa.
+
+Los resultados numéricos y la interpretación técnica están en
+`docs/decisiones.md`.
+
 ## Estado
 
 | Ejercicio | Subejercicio | Script | Estado |
@@ -251,4 +348,5 @@ En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
 | 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
 | 1 | 3. Índice de Oja | `src/ej1/oja.py` | Implementado |
 | 1 | 4. Decisión para las campañas | — | Pendiente |
-| 2 | Memoria asociativa (Hopfield) | — | Pendiente |
+| 2 | 1. Recuperación de QR deteriorados | — | Pendiente |
+| 2 | 2. Recomendación (Hopfield 5×5) | `src/ej2/hopfield.py` + `src/ej2/hopfield-runner.py` | Implementado |

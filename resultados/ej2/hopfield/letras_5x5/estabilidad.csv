@@ -1,0 +1,5 @@
+nombre,punto_fijo,convergio,ciclo,tipo_resultado,nombre_final,distancia_hamming,margen_minimo,neuronas_inestables,neuronas_empate,barridos,actualizaciones,energia_inicial,energia_final
+J,True,True,False,almacenado_correcto,J,0,0.39999999999999997,0,0,1,25,-11.68,-11.68
+O,True,True,False,almacenado_correcto,O,0,0.4,0,0,1,25,-12.160000000000002,-12.160000000000002
+T,True,True,False,almacenado_correcto,T,0,0.32,0,0,1,25,-12.0,-12.0
+A,True,True,False,almacenado_correcto,A,0,0.16,0,0,1,25,-12.8,-12.8
