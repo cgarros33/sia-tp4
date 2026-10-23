@@ -53,6 +53,7 @@ ESQUEMAS_ETA = ("lineal", "exponencial", "inversa")
 CONFIG_POR_DEFECTO: dict = {
     "datos": {
         "ruta": "datos/creadores.csv",
+        "estandarizar": True,
         "columnas_excluidas": list(COLUMNAS_EXCLUIDAS),
     },
     "modelo": {
@@ -151,6 +152,9 @@ def validar_config(config: dict) -> None:
         isinstance(columna, str) for columna in columnas
     ):
         raise ValueError("datos.columnas_excluidas debe ser una lista de textos.")
+
+    if not isinstance(datos.get("estandarizar", True), bool):
+        raise ValueError("datos.estandarizar debe ser un booleano.")
 
     modelo = config["modelo"]
     grilla = modelo.get("grilla")
@@ -417,6 +421,20 @@ def estandarizar(matriz: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray
         raise ValueError("No se puede estandarizar una variable constante.")
 
     return (matriz - medias) / desvios, medias, desvios
+
+
+def preparar_entrada(
+    matriz: np.ndarray, aplicar: bool = True
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Devuelve la entrada del modelo y los parámetros de normalización."""
+    if aplicar:
+        return estandarizar(matriz)
+
+    matriz = np.asarray(matriz, dtype=float)
+    if matriz.ndim != 2:
+        raise ValueError("La matriz de datos debe tener dos dimensiones.")
+
+    return matriz.copy(), np.zeros(matriz.shape[1]), np.ones(matriz.shape[1])
 
 
 def distancias_grilla(k: int, topologia: str) -> np.ndarray:
@@ -862,7 +880,7 @@ def _graficar_neuronas(
         ScalarMappable(norm=norm, cmap=cmap),
         ax=ejes.ravel().tolist(),
         shrink=0.6,
-        label="Peso estandarizado",
+        label="Peso",
     )
     figura.suptitle(
         "Pesos de las neuronas por variable (mapa de Kohonen)",
@@ -1109,6 +1127,8 @@ def _guardar_resultados(
         "Resumen de ejecución — TP4, ejercicio 1.2 (Red de Kohonen)",
         f"Datos: {resolver_ruta(config['datos']['ruta'])}",
         f"Variables de entrada: {len(columnas)}",
+        "Estandarización: "
+        f"{'sí' if config['datos'].get('estandarizar', True) else 'no'}",
         f"Grilla: {k} x {k}",
         f"Topología: {topologia}",
         f"Distancia: {config['modelo']['distancia']}",
@@ -1174,12 +1194,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     datos = cargar_datos(resolver_ruta(config["datos"]["ruta"]))
     columnas = columnas_entrada(datos, config["datos"]["columnas_excluidas"])
     matriz = datos[columnas].to_numpy(dtype=float)
-    estandarizada, medias, desvios = estandarizar(matriz)
+    entrada, medias, desvios = preparar_entrada(
+        matriz, config["datos"].get("estandarizar", True)
+    )
 
     inicio = time.perf_counter()
     resultados: list[ResultadoEntrenamiento] = []
     for semilla in config["reproducibilidad"]["semillas"]:
-        resultados.append(entrenar_som(estandarizada, config["modelo"], int(semilla)))
+        resultados.append(entrenar_som(entrada, config["modelo"], int(semilla)))
     tiempo_total = time.perf_counter() - inicio
 
     qes = np.array([resultado.qe for resultado in resultados], dtype=float)

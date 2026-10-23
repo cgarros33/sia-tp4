@@ -14,7 +14,9 @@ import pytest
 RAIZ = Path(__file__).resolve().parents[2]
 RUTA_SCRIPT = RAIZ / "src" / "ej1" / "kohonen.py"
 RUTA_CONFIG = RAIZ / "src" / "ej1" / "kohonen.toml"
+RUTA_CONFIG_PCA10 = RAIZ / "src" / "ej1" / "kohonen-pca10.toml"
 RUTA_DATOS = RAIZ / "datos" / "creadores.csv"
+RUTA_SCORES_PCA = RAIZ / "resultados" / "ej1" / "pca_0.90" / "scores.csv"
 
 
 @pytest.fixture(scope="module")
@@ -58,6 +60,34 @@ def test_cargar_datos_y_columnas(modulo: ModuleType) -> None:
     assert set(columnas).issubset(datos.columns)
     for columna in config["datos"]["columnas_excluidas"]:
         assert columna not in columnas
+
+
+def test_config_pca10_usa_diez_componentes(modulo: ModuleType) -> None:
+    """La configuración de 10 componentes excluye PC11 a PC25."""
+    datos = modulo.cargar_datos(RUTA_SCORES_PCA)
+    config = modulo.cargar_config(RUTA_CONFIG_PCA10)
+    columnas = modulo.columnas_entrada(datos, config["datos"]["columnas_excluidas"])
+
+    assert columnas == [f"PC{indice}" for indice in range(1, 11)]
+    assert config["datos"]["estandarizar"] is False
+
+
+def test_preparar_entrada_respeta_estandarizar(modulo: ModuleType) -> None:
+    """Sin estandarización la entrada no cambia y la normalización es identidad."""
+    matriz = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 10.0]])
+
+    entrada, medias, desvios = modulo.preparar_entrada(matriz, False)
+
+    assert np.array_equal(entrada, matriz)
+    assert np.allclose(medias, 0.0)
+    assert np.allclose(desvios, 1.0)
+
+    esperada, medias_esperadas, desvios_esperados = modulo.estandarizar(matriz)
+    entrada, medias, desvios = modulo.preparar_entrada(matriz, True)
+
+    assert np.allclose(entrada, esperada)
+    assert np.allclose(medias, medias_esperadas)
+    assert np.allclose(desvios, desvios_esperados)
 
 
 def test_estandarizacion(modulo: ModuleType) -> None:

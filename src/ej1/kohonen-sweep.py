@@ -1153,14 +1153,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         base["datos"]["columnas_excluidas"],
     )
     matriz = datos[columnas].to_numpy(dtype=float)
-    estandarizada, _, _ = kohonen.estandarizar(matriz)
+    entrada, _, _ = kohonen.preparar_entrada(
+        matriz, base["datos"].get("estandarizar", True)
+    )
 
     ruta_base = kohonen.resolver_ruta(config_barrido["salida"]["directorio"])
 
     inicio = time.perf_counter()
     resultados = ejecutar_barridos(
         base,
-        estandarizada,
+        entrada,
         config_barrido,
         _entrenador_real,
         ruta_base,

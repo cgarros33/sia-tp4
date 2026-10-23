@@ -45,15 +45,24 @@ sia-tp4/
 │   ├── ej1/
 │   │   ├── eda/
 │   │   ├── pca_<umbral>/
-│   │   ├── kohonen_sweep/
-│   │   │   ├── sweep1/
-│   │   │   ├── sweep2/
-│   │   │   ├── sweep3/
-│   │   │   ├── sweep4/
-│   │   │   └── sweep5/
-│   │   ├── kohonen_k3/
-│   │   ├── kohonen_k4/
-│   │   ├── kohonen_k5/
+│   │   ├── ej1.2-full/
+│   │   │   ├── kohonen_sweep/
+│   │   │   │   ├── sweep1/
+│   │   │   │   ├── sweep2/
+│   │   │   │   ├── sweep3/
+│   │   │   │   ├── sweep4/
+│   │   │   │   └── sweep5/
+│   │   │   ├── kohonen_k3/
+│   │   │   ├── kohonen_k4/
+│   │   │   └── kohonen_k5/
+│   │   ├── ej1.2-pca10/
+│   │   │   ├── kohonen_sweep/
+│   │   │   │   ├── sweep3/
+│   │   │   │   ├── sweep4/
+│   │   │   │   └── sweep5/
+│   │   │   ├── kohonen_k3/
+│   │   │   ├── kohonen_k4/
+│   │   │   └── kohonen_k5/
 │   │   └── oja/
 │   │       ├── epocas_5/
 │   │       └── epocas_500/
@@ -81,6 +90,8 @@ sia-tp4/
 │   │   ├── kohonen-sweep.py
 │   │   ├── kohonen.toml
 │   │   ├── kohonen-sweep.toml
+│   │   ├── kohonen-pca10.toml
+│   │   ├── kohonen-sweep-pca10.toml
 │   │   ├── oja.py
 │   │   └── oja.toml
 │   └── ej2/
@@ -143,15 +154,21 @@ conservar al menos el 95% de la varianza total. El valor por defecto es `0.95`.
 
 - Motor: `src/ej1/kohonen.py`.
 - Barrido: `src/ej1/kohonen-sweep.py`.
-- Configuración neutra: `src/ej1/kohonen.toml`.
-- Configuración del barrido: `src/ej1/kohonen-sweep.toml`.
+- Configuración actual (10 componentes): `src/ej1/kohonen-pca10.toml`.
+- Configuración del barrido actual: `src/ej1/kohonen-sweep-pca10.toml`.
+- Configuración archivada con las 27 variables: `src/ej1/kohonen.toml` y
+  `src/ej1/kohonen-sweep.toml`.
 - Plan: `docs/plan/ej1-2.md`.
 - Tests: `tests/ej1/test_kohonen.py` y `tests/ej1/test_kohonen_sweep.py`.
-- Barridos archivados: `resultados/ej1/kohonen_sweep/sweep1/` y `sweep2/`.
-- Barridos de grilla fija: `sweep3/` (`k=3`), `sweep4/` (`k=4`) y
-  `sweep5/` (`k=5`).
-- Corridas finales: `resultados/ej1/kohonen_k3/`, `kohonen_k4/` y
-  `kohonen_k5/`.
+- Corrida actual: `resultados/ej1/ej1.2-pca10/`.
+- Corrida archivada con todas las variables: `resultados/ej1/ej1.2-full/`.
+
+La corrida actual usa `PC1` a `PC10` de
+`resultados/ej1/pca_0.90/scores.csv` (10 componentes, 91,53% de varianza
+acumulada). El PCA no se recalcula. Los scores se usan tal como salen de 1.1,
+sin reestandarizar (`datos.estandarizar = false`), para conservar el peso
+relativo de cada componente. Por eso la QE queda en unidades de score de PCA y
+no es comparable con la de la corrida archivada.
 
 La grilla se fija por corrida con `grillas_fijas = [3, 4, 5]`; no se barre
 `grilla`. Para cada tamaño se corre el mismo barrido secuencial y después se
@@ -160,16 +177,16 @@ prueban los acoplamientos fuertes.
 ### Ejecución
 
 ```bash
-# Barridos completos para k = 3, 4 y 5
-python src/ej1/kohonen-sweep.py --config src/ej1/kohonen-sweep.toml
+# Barrido actual con PC1..PC10 para k = 3, 4 y 5
+python3 src/ej1/kohonen-sweep.py --config src/ej1/kohonen-sweep-pca10.toml
 
 # Corridas finales con el mejor config_optima de cada tamaño
-python src/ej1/kohonen.py \
-  --config resultados/ej1/kohonen_sweep/sweep3/config_optima.toml
-python src/ej1/kohonen.py \
-  --config resultados/ej1/kohonen_sweep/sweep4/config_optima.toml
-python src/ej1/kohonen.py \
-  --config resultados/ej1/kohonen_sweep/sweep5/config_optima.toml
+python3 src/ej1/kohonen.py \
+  --config resultados/ej1/ej1.2-pca10/kohonen_sweep/sweep3/config_optima.toml
+python3 src/ej1/kohonen.py \
+  --config resultados/ej1/ej1.2-pca10/kohonen_sweep/sweep4/config_optima.toml
+python3 src/ej1/kohonen.py \
+  --config resultados/ej1/ej1.2-pca10/kohonen_sweep/sweep5/config_optima.toml
 ```
 
 Los hiperparámetros y las rutas se pueden pisar por línea de comandos. La

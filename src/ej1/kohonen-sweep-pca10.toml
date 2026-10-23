@@ -1,0 +1,42 @@
+# Configuración del barrido secuencial y de los acoplamientos fuertes para la
+# entrada de 10 componentes principales (ejercicio 1.1, umbral 90%).
+# Si un valor elegido queda en el borde de una lista, ampliar la lista y
+# volver a correr ese paso. No hace falta modificar el código.
+
+[base]
+archivo = "src/ej1/kohonen-pca10.toml"
+
+[barrido]
+# Se corre un barrido secuencial completo para cada grilla fija.
+grillas_fijas = [3, 4, 5]
+# Orden del barrido: cada paso usa el mejor valor de los pasos anteriores.
+# grilla no se barre: se fija en grillas_fijas.
+orden = ["topologia", "distancia", "inicializacion",
+         "radio_inicial_relativo", "decaimiento_radio",
+         "eta_inicial", "decaimiento_eta", "iteraciones"]
+semillas = [0, 1, 2]
+
+[valores]
+topologia = ["rectangular", "hexagonal"]
+distancia = ["euclidiana", "exponencial"]
+inicializacion = ["uniforme", "muestras"]
+radio_inicial_relativo = [0.3, 0.4, 0.5, 0.75, 1.0, 1.5]
+decaimiento_radio = ["constante", "lineal", "exponencial", "inversa"]
+eta_inicial = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9]
+decaimiento_eta = ["lineal", "exponencial", "inversa"]
+iteraciones = [5000, 10000, 15000, 25000]
+
+[acoplamientos]
+# Solo los acoplamientos fuertes, después del barrido secuencial.
+pares = [["eta_inicial", "decaimiento_eta"],
+         ["radio_inicial_relativo", "decaimiento_radio"]]
+adoptar_solo_si_mejora = true
+
+[figuras]
+# Se generan A y B; la opción C queda desactivada por legibilidad.
+opciones = ["a", "b"]
+
+[salida]
+directorio = "resultados/ej1/ej1.2-pca10/kohonen_sweep"
+# Cada tamaño k escribe su corrida final en <base>_k<k>.
+directorio_final_base = "resultados/ej1/ej1.2-pca10/kohonen"

@@ -11,9 +11,9 @@
 - Los resultados de 1.1 se guardan en `resultados/ej1/`.
 - Ejercicio 1.2: Red de Kohonen.
 - El plan de 1.2 está en `docs/plan/ej1-2.md`.
-- Etapa actual: 1.2 implementado; `sweep1` y `sweep2` archivados, `sweep3`,
-  `sweep4` y `sweep5` ejecutados con grilla fija, y las tres corridas finales
-  (`kohonen_k3/`, `kohonen_k4/`, `kohonen_k5/`) terminadas. Queda la
+- Etapa actual: 1.2 implementado y ejecutado dos veces. La corrida actual usa
+  `PC1` a `PC10` de 1.1 y está en `resultados/ej1/ej1.2-pca10/`; la corrida con
+  las 27 variables quedó archivada en `resultados/ej1/ej1.2-full/`. Queda la
   interpretación de resultados con el grupo, fuera de los archivos del proyecto.
 - Ejercicio 1.3: Índice de Oja.
 - El plan de 1.3 está en `docs/plan/ej1-3.md`.
@@ -94,28 +94,38 @@
 - El plan completo está en `docs/plan/ej1-2.md`.
 - El motor será `src/ej1/kohonen.py` y el barrido
   `src/ej1/kohonen-sweep.py`.
-- Las configuraciones serán `src/ej1/kohonen.toml` y
-  `src/ej1/kohonen-sweep.toml`.
+- La corrida actual se configura con `src/ej1/kohonen-pca10.toml` y
+  `src/ej1/kohonen-sweep-pca10.toml`. Las configuraciones con todas las
+  variables (`src/ej1/kohonen.toml` y `src/ej1/kohonen-sweep.toml`) quedan para
+  la corrida archivada.
 - No se registra interpretación de perfiles de creadores en archivos del
   proyecto. Las tablas, figuras y resúmenes contienen configuración y
   resultados numéricos; la interpretación se discute aparte con el grupo.
 
 ### Datos y preprocesamiento
 
-- Se usan las mismas 27 variables numéricas que en el PCA de 1.1.
-- Se excluyen `price_ars`, `estimated_argentina_reach`,
+- La corrida actual usa `PC1` a `PC10` de
+  `resultados/ej1/pca_0.90/scores.csv` (10 componentes, 91,53% de varianza
+  acumulada). El PCA no se recalcula: se leen los resultados de 1.1.
+- Los scores se usan tal como salen de 1.1, sin reestandarizar
+  (`datos.estandarizar = false`). El PCA ya los centra y así se conserva el peso
+  relativo de cada componente. La QE queda en unidades de score de PCA y no es
+  comparable con la de la corrida archivada.
+- La corrida archivada con todas las variables usaba las 27 variables numéricas
+  del PCA de 1.1 y estandarización z-score (`ddof=1`).
+- Esas 27 variables excluían `price_ars`, `estimated_argentina_reach`,
   `total_engagement_per_1000` y `organic_posts_pct` por ser duplicado exacto,
-  variable derivada, suma exacta y complemento exacto, respectivamente.
+  variable derivada, suma exacta y complemento exacto, respectivamente. Los
+  scores de PCA ya heredan esa selección.
 - Se conservan completas las cuatro categorías de tópico y las cuatro de
   contenido, igual que en 1.1.
 - Se usan los 50 creadores para entrenamiento y selección de hiperparámetros.
   El ejercicio es no supervisado y no tiene conjunto de test. Esta es una
   excepción documentada al punto 2 de `CLAUDE.md`.
-- Se estandariza con media 0 y desvío muestral 1 (`ddof=1`), ajustado sobre los
-  datos de entrenamiento (los 50 creadores en esta corrida).
 - Los outliers se conservan, como en 1.1.
-- No se reduce dimensionalidad con PCA para la entrada del SOM: la consigna
-  pide usar todas las variables. El PCA queda solo como comparación posterior.
+- La decisión anterior de no reducir dimensionalidad para la entrada del SOM
+  correspondía a la corrida con todas las variables; queda archivada. La
+  corrida actual usa 10 componentes por decisión del grupo.
 
 ### Modelo
 
@@ -222,13 +232,15 @@ cada `k`, el orden es:
 ### Visualizaciones del barrido
 
 - Se generan las opciones A y B dentro de cada `sweep{k}/`, cada una en su
-  carpeta:
-  - `resultados/ej1/kohonen_sweep/sweep{k}/figuras/opcion_a/`: una figura por
-    paso más `fig_progreso.png`. El valor elegido se marca subrayando su
-    etiqueta del eje x, sin línea vertical.
-  - `resultados/ej1/kohonen_sweep/sweep{k}/figuras/opcion_b/`: dashboard
-    enfocado en legibilidad, con los 8 pasos secuenciales y otro dashboard para
-    los acoplamientos.
+  carpeta. Las rutas son relativas a la corrida:
+  - `<corrida>/kohonen_sweep/sweep{k}/figuras/opcion_a/`: una figura por paso
+    más `fig_progreso.png`. El valor elegido se marca subrayando su etiqueta
+    del eje x, sin línea vertical.
+  - `<corrida>/kohonen_sweep/sweep{k}/figuras/opcion_b/`: dashboard enfocado en
+    legibilidad, con los 8 pasos secuenciales y otro dashboard para los
+    acoplamientos.
+- `<corrida>` es `resultados/ej1/ej1.2-full/` para la corrida archivada y
+  `resultados/ej1/ej1.2-pca10/` para la actual.
 - La opción C (boxplots por paso) queda desactivada por legibilidad. Su código
   se conserva, pero no se genera en el barrido real.
 - No se genera la opción D (heatmap global), porque cada paso secuencial tiene
@@ -238,13 +250,15 @@ cada `k`, el orden es:
   de una corrida nueva). Las dos carpetas de figuras permiten comparar y elegir
   cuál va a la presentación.
 
-### Resultados finales por tamaño
+### Resultados finales por tamaño (corrida archivada con todas las variables)
 
-- Se corrió el mejor `config_optima.toml` de `sweep3`, `sweep4` y `sweep5`.
-- Salidas: `resultados/ej1/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
+- Se corrió el mejor `config_optima.toml` de `sweep3`, `sweep4` y `sweep5` de
+  la corrida con las 27 variables.
+- Salidas: `resultados/ej1/ej1.2-full/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
 - Para cada tamaño se generan tres figuras:
-  - `fig_neuronas.png`: planos de componentes, un heatmap `k × k` por variable,
-    27 paneles en una disposición 5×6, con escala de color compartida.
+  - `fig_neuronas.png`: planos de componentes, un heatmap `k × k` por variable
+    (27 paneles en la corrida archivada, 10 en la actual), con escala de color
+    compartida.
   - `fig_distribucion.png`: heatmap de cantidad de creadores por neurona y, al
     lado, un listado agrupado y legible de creadores por neurona.
   - `fig_matriz_u.png`: heatmap de la matriz U con valores y cantidad de
@@ -258,11 +272,16 @@ cada `k`, el orden es:
 
 ### Salidas
 
-- Primer barrido archivado: `resultados/ej1/kohonen_sweep/sweep1/`.
-- Segundo barrido archivado: `resultados/ej1/kohonen_sweep/sweep2/`.
-- Nuevos barridos de grilla fija: `sweep3/`, `sweep4/` y `sweep5/`.
-- Corridas finales por tamaño: `resultados/ej1/kohonen_k3/`,
-  `kohonen_k4/` y `kohonen_k5/`.
+- Barridos archivados con todas las variables:
+  `resultados/ej1/ej1.2-full/kohonen_sweep/sweep1/` a `sweep5/`.
+- Corridas finales archivadas con todas las variables:
+  `resultados/ej1/ej1.2-full/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
+- Barridos actuales con `PC1` a `PC10`:
+  `resultados/ej1/ej1.2-pca10/kohonen_sweep/sweep3/`, `sweep4/` y `sweep5/`.
+- Corridas finales actuales con `PC1` a `PC10`:
+  `resultados/ej1/ej1.2-pca10/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
+- Configuración actual: `src/ej1/kohonen-pca10.toml` y
+  `src/ej1/kohonen-sweep-pca10.toml`.
 - Corridas neutras manuales: `resultados/ej1/kohonen_base/`.
 - Cada barrido guarda `config_barrido.toml`, `config_optima.toml`,
   `registro.txt`, `resumen_pasos.csv`, los CSV por paso, `acoplamientos/` y
@@ -286,7 +305,7 @@ cada `k`, el orden es:
 
 - Se ejecutó el barrido secuencial completo con 3 semillas y los valores de
   `src/ej1/kohonen-sweep.toml`.
-- Salida: `resultados/ej1/kohonen_sweep/sweep1/`.
+- Salida: `resultados/ej1/ej1.2-full/kohonen_sweep/sweep1/`.
 - Tiempo total del barrido: 734,34 s.
 
 | Paso | Parámetro | Valor elegido | QE media | QE desvío |
@@ -329,7 +348,7 @@ así que no se modificó la configuración secuencial.
   requieren extensión.
 - Se decidió ampliar `grilla` a `[6, 7, 8, 9, 10, 11, 12, 13, 14]` y agregar
   `0.3` y `0.4` a `radio_inicial_relativo`. Ese barrido se ejecutó en la raíz de
-  `resultados/ej1/kohonen_sweep/` y luego se archivó en `sweep2/`; `sweep1/`
+  `resultados/ej1/ej1.2-full/kohonen_sweep/` y luego se archivó en `sweep2/`; `sweep1/`
   queda como archivo anterior.
 - `eta_inicial` e `iteraciones` se dejan como están por ahora; el próximo
   barrido vuelve a decidirlos.
@@ -340,7 +359,7 @@ así que no se modificó la configuración secuencial.
 
 - Se ejecutó el barrido completo con 3 semillas, grilla `6..14`, radio
   `0.3..1.5`, barra de progreso y figuras A/B.
-- Salida: `resultados/ej1/kohonen_sweep/sweep2/`.
+- Salida: `resultados/ej1/ej1.2-full/kohonen_sweep/sweep2/`.
 - Tiempo total: 593,59 s.
 
 | Paso | Parámetro | Valor elegido | QE media | QE desvío |
@@ -384,10 +403,10 @@ Revisión técnica de sweep2:
 - Por eso `sweep2/` queda archivado y el próximo enfoque fija la grilla en
   `k = 3, 4, 5` y corre un barrido completo para cada tamaño.
 
-### Resultados de barridos con grilla fija
+### Resultados de barridos con grilla fija (corrida archivada con todas las variables)
 
 Se corrieron los tres barridos completos en una sola invocación. Salidas:
-`resultados/ej1/kohonen_sweep/sweep3/`, `sweep4/` y `sweep5/`. Tiempo total:
+`resultados/ej1/ej1.2-full/kohonen_sweep/sweep3/`, `sweep4/` y `sweep5/`. Tiempo total:
 92,97 s.
 
 | k | Neuronas | Configuración final | QE media | QE desvío | TE | Muertas | Ocupación |
@@ -417,7 +436,7 @@ Observaciones técnicas:
   degenerado de QE 0.
 - Las figuras generadas son A y B; no se generó `opcion_c/`.
 
-### Configuraciones finales elegidas
+### Configuraciones finales elegidas (corrida archivada con todas las variables)
 
 | k | Configuración final | QE media | QE desvío | TE | Muertas | Ocupación |
 |---:|---|---:|---:|---:|---:|---:|
@@ -425,15 +444,15 @@ Observaciones técnicas:
 | 4 | `sweep4/config_optima.toml` | 3,173119 | 0,013589 | 0,046667 | 1 / 16 | 0,9375 |
 | 5 | `sweep5/config_optima.toml` | 2,807907 | 0,063630 | 0,033333 | 6,33 / 25 | 0,7467 |
 
-### Corridas finales ejecutadas
+### Corridas finales ejecutadas (corrida archivada con todas las variables)
 
-- `sweep3/config_optima.toml` → `resultados/ej1/kohonen_k3/`
+- `sweep3/config_optima.toml` → `resultados/ej1/ej1.2-full/kohonen_k3/`
   - semilla representativa: `0`
   - QE 3,478953; 0 unidades muertas; ocupación 1,0000
-- `sweep4/config_optima.toml` → `resultados/ej1/kohonen_k4/`
+- `sweep4/config_optima.toml` → `resultados/ej1/ej1.2-full/kohonen_k4/`
   - semilla representativa: `2`
   - QE 3,173119; 1 unidad muerta; ocupación 0,9375
-- `sweep5/config_optima.toml` → `resultados/ej1/kohonen_k5/`
+- `sweep5/config_optima.toml` → `resultados/ej1/ej1.2-full/kohonen_k5/`
   - semilla representativa: `0`
   - QE 2,807907; 8 unidades muertas; ocupación 0,6800
   - La ocupación varía entre semillas (0,68; 0,84; 0,72); la figura usa la
@@ -444,6 +463,49 @@ Observaciones técnicas:
 - La comparación entre tamaños se hace con QE, TE, unidades muertas, ocupación,
   distribución de asignaciones y las figuras. La interpretación de perfiles de
   creadores queda fuera de los archivos del proyecto.
+
+### Corrida actual con 10 componentes principales
+
+- Entrada: `PC1` a `PC10` de `resultados/ej1/pca_0.90/scores.csv`.
+- El PCA no se recalcula y los scores no se reestandarizan
+  (`datos.estandarizar = false`).
+- Configuración: `src/ej1/kohonen-pca10.toml` y
+  `src/ej1/kohonen-sweep-pca10.toml`.
+- Salidas: `resultados/ej1/ej1.2-pca10/kohonen_sweep/` y
+  `resultados/ej1/ej1.2-pca10/kohonen_k3/`, `kohonen_k4/` y `kohonen_k5/`.
+- El barrido completo de los tres tamaños tardó 215,88 s.
+
+| k | Neuronas | Configuración final | QE media | QE desvío | TE | Muertas | Ocupación |
+|---:|---:|---|---:|---:|---:|---:|---:|
+| 3 | 9 | rectangular, euclidiana, uniforme, radio 0.4, constante, eta 0.3, exponencial, iteraciones 10000 | 3,109693 | 0,015957 | 0,140000 | 0 / 9 | 1,0000 |
+| 4 | 16 | rectangular, exponencial, muestras, radio 1.5, exponencial, eta 0.5, lineal, iteraciones 10000 | 2,806541 | 0,022015 | 0,140000 | 0 / 16 | 1,0000 |
+| 5 | 25 | rectangular, euclidiana, muestras, radio 0.3, lineal, eta 0.3, lineal, iteraciones 10000 | 2,450829 | 0,022026 | 0,040000 | 3 / 25 | 0,8800 |
+
+Detalle de acoplamientos:
+
+- `k=3`: se adoptó `eta_inicial=0.3` con `decaimiento_eta=exponencial`
+  (3,109693 contra 3,127882). El acoplamiento de radio no se adoptó porque
+  devolvió la misma QE.
+- `k=4`: `eta_inicial` y `decaimiento_eta` no se adoptaron. Se adoptó
+  `radio_inicial_relativo=1.5` con `decaimiento_radio=exponencial`
+  (2,806541 contra 2,808934).
+- `k=5`: no se adoptó ninguno de los dos acoplamientos.
+
+Observaciones técnicas:
+
+- Semilla representativa: `0` para `k=3` y `2` para `k=4` y `k=5`.
+- Unidades muertas por semilla: `k=3` 0/0/0; `k=4` 2/0/0; `k=5` 6/4/3.
+- Ocupación por semilla: `k=3` 1,00/1,00/1,00; `k=4` 0,875/1,00/1,00;
+  `k=5` 0,76/0,84/0,88.
+- `k=5` tiene la menor QE y el menor TE, pero también la mayor cantidad de
+  unidades muertas.
+- `radio_inicial_relativo=1.5` para `k=4` es el máximo de la lista y
+  `radio_inicial_relativo=0.3` para `k=5` es el mínimo. El resto de los valores
+  elegidos queda dentro de sus listas.
+- La QE está en unidades de score de PCA y no se compara con la QE de la corrida
+  archivada, que usa 27 variables estandarizadas.
+- Las figuras A y B del barrido y las tres figuras finales por tamaño se
+  regeneraron con esta entrada.
 
 ### Pendientes de 1.2
 
@@ -458,6 +520,8 @@ Observaciones técnicas:
 - Paso 3: completado; `sweep3/`, `sweep4/` y `sweep5/` ejecutados.
 - Paso 4: completado; plan de corrida final por tamaño registrado.
 - Fase F: completada; las tres corridas finales se ejecutaron.
+- Corrida con 10 componentes principales: completada; barrido, corridas finales
+  y figuras regeneradas en `resultados/ej1/ej1.2-pca10/`.
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
 
