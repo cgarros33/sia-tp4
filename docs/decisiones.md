@@ -98,6 +98,7 @@
   `src/ej1/kohonen-sweep-pca10.toml`. Las configuraciones con todas las
   variables (`src/ej1/kohonen.toml` y `src/ej1/kohonen-sweep.toml`) quedan para
   la corrida archivada.
+- El análisis detallado del barrido está en `docs/sweep.md`.
 - No se registra interpretación de perfiles de creadores en archivos del
   proyecto. Las tablas, figuras y resúmenes contienen configuración y
   resultados numéricos; la interpretación se discute aparte con el grupo.

@@ -30,6 +30,7 @@ sia-tp4/
 ├── docs/
 │   ├── structure.md
 │   ├── decisiones.md
+│   ├── sweep.md
 │   ├── plan/
 │   │   ├── ej1-1.md
 │   │   ├── ej1-2.md
@@ -127,6 +128,8 @@ sia-tp4/
   - `docs/plan/`: planes de trabajo aprobados.
   - `docs/decisiones.md`: registro simple de decisiones y estado actual.
   - `docs/structure.md`: este archivo.
+  - `docs/sweep.md`: análisis del barrido de Kohonen (empates de TE, régimen
+    de capacidad, iteraciones bajas, suelo de k-means y normalización min–max).
   - `docs/context/`: consigna, teoría y notas personales. Es la fuente de
     verdad para las reglas del trabajo.
 
