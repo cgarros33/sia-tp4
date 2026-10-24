@@ -1,0 +1,79 @@
+Recuperación de QR deteriorados con Hopfield — TP4, ejercicio 2.1
+
+Patrones: 5 de 37×37 = 1369 neuronas
+Píxeles idénticos en todos los QR: 955 (69.8%)
+Solapamiento entre pares: 0.576 a 0.860
+
+Puntos fijos por regla:
+  hebb: 0 de 5
+  pseudoinversa: 5 de 5
+
+Subconjuntos con todos los QR estables, por cantidad:
+  hebb: 1 QR -> 5 de 5
+  hebb: 2 QR -> 10 de 10
+  hebb: 3 QR -> 0 de 10
+  hebb: 4 QR -> 0 de 5
+  hebb: 5 QR -> 0 de 1
+  pseudoinversa: 1 QR -> 5 de 5
+  pseudoinversa: 2 QR -> 10 de 10
+  pseudoinversa: 3 QR -> 10 de 10
+  pseudoinversa: 4 QR -> 5 de 5
+  pseudoinversa: 5 QR -> 1 de 1
+
+Tasa de recuperación correcta (media ± desvío sobre semillas):
+  hebb           esquina  nivel 0.05  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.40
+  hebb           esquina  nivel 0.1   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.44
+  hebb           esquina  nivel 0.15  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.44
+  hebb           esquina  nivel 0.2   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.44
+  hebb           esquina  nivel 0.25  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.44
+  hebb           esquina  nivel 0.3   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.47
+  hebb           esquina  nivel 0.4   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.44
+  hebb           esquina  nivel 0.5   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.29
+  hebb           manchas  nivel 0.05  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.21
+  hebb           manchas  nivel 0.1   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.23
+  hebb           manchas  nivel 0.15  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.24
+  hebb           manchas  nivel 0.2   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.28
+  hebb           manchas  nivel 0.25  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.29
+  hebb           manchas  nivel 0.3   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.35
+  hebb           manchas  nivel 0.35  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.31
+  hebb           manchas  nivel 0.4   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.33
+  hebb           manchas  nivel 0.45  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.45
+  hebb           manchas  nivel 0.5   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.85
+  hebb           ruido    nivel 0.05  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.03
+  hebb           ruido    nivel 0.1   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.17
+  hebb           ruido    nivel 0.15  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.12
+  hebb           ruido    nivel 0.2   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.21
+  hebb           ruido    nivel 0.25  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.27
+  hebb           ruido    nivel 0.3   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.28
+  hebb           ruido    nivel 0.35  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.28
+  hebb           ruido    nivel 0.4   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.28
+  hebb           ruido    nivel 0.45  correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.36
+  hebb           ruido    nivel 0.5   correcto 0.000 ± 0.000 | espurio 1.000 | incorrecto 0.000 | barridos 2.91
+  pseudoinversa  esquina  nivel 0.05  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  esquina  nivel 0.1   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  esquina  nivel 0.15  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  esquina  nivel 0.2   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  esquina  nivel 0.25  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  esquina  nivel 0.3   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.07
+  pseudoinversa  esquina  nivel 0.4   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.19
+  pseudoinversa  esquina  nivel 0.5   correcto 0.880 ± 0.069 | espurio 0.000 | incorrecto 0.120 | barridos 2.19
+  pseudoinversa  manchas  nivel 0.05  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  manchas  nivel 0.1   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  manchas  nivel 0.15  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  manchas  nivel 0.2   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  manchas  nivel 0.25  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  manchas  nivel 0.3   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.03
+  pseudoinversa  manchas  nivel 0.35  correcto 0.973 ± 0.023 | espurio 0.000 | incorrecto 0.027 | barridos 2.13
+  pseudoinversa  manchas  nivel 0.4   correcto 0.853 ± 0.046 | espurio 0.067 | incorrecto 0.080 | barridos 2.31
+  pseudoinversa  manchas  nivel 0.45  correcto 0.573 ± 0.101 | espurio 0.067 | incorrecto 0.360 | barridos 2.68
+  pseudoinversa  manchas  nivel 0.5   correcto 0.000 ± 0.000 | espurio 0.480 | incorrecto 0.520 | barridos 2.80
+  pseudoinversa  ruido    nivel 0.05  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.1   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.15  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.2   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.25  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.3   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.35  correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.00
+  pseudoinversa  ruido    nivel 0.4   correcto 1.000 ± 0.000 | espurio 0.000 | incorrecto 0.000 | barridos 2.09
+  pseudoinversa  ruido    nivel 0.45  correcto 0.747 ± 0.101 | espurio 0.040 | incorrecto 0.213 | barridos 2.60
+  pseudoinversa  ruido    nivel 0.5   correcto 0.000 ± 0.000 | espurio 0.587 | incorrecto 0.413 | barridos 2.80

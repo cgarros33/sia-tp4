@@ -358,3 +358,48 @@ def test_integracion_smoke(modulo: ModuleType, tmp_path: Path) -> None:
     assert len(normalizacion) == 27
     assert len(metricas) == 1
     assert matriz_u.shape == (3, 3)
+
+
+def test_guarda_pesos_y_asignaciones_por_semilla(
+    modulo: ModuleType, tmp_path: Path
+) -> None:
+    """Cada semilla deja sus pesos y asignaciones para el análisis posterior."""
+    salida = tmp_path / "kohonen"
+
+    codigo = modulo.main(
+        [
+            "--config",
+            str(RUTA_CONFIG),
+            "--salida",
+            str(salida),
+            "--grilla",
+            "3",
+            "--iteraciones",
+            "200",
+            "--semillas",
+            "0,1",
+        ]
+    )
+
+    assert codigo == 0
+    pesos = pd.read_csv(salida / "pesos_semillas.csv")
+    asignaciones = pd.read_csv(salida / "asignaciones_semillas.csv")
+    metricas = pd.read_csv(salida / "metricas.csv")
+
+    assert len(pesos) == 2 * 9
+    assert len(asignaciones) == 2 * 50
+    assert sorted(pesos["semilla"].unique()) == [0, 1]
+    assert sorted(asignaciones["semilla"].unique()) == [0, 1]
+
+    # La QE de cada semilla se recupera desde las distancias guardadas.
+    for semilla in (0, 1):
+        qe = asignaciones.loc[asignaciones["semilla"] == semilla, "distancia_bmu"]
+        esperado = metricas.loc[metricas["semilla"] == semilla, "qe"].item()
+        assert qe.mean() == pytest.approx(esperado, abs=1e-7)
+
+    # Los archivos de la semilla representativa siguen igual que antes.
+    representativa = pd.read_csv(salida / "asignaciones.csv")
+    config = modulo.cargar_config(salida / "config_usada.toml")
+    semilla_rep = config["reproducibilidad"]["semilla_representativa"]
+    filtro = asignaciones[asignaciones["semilla"] == semilla_rep]
+    assert filtro["neurona"].tolist() == representativa["neurona"].tolist()

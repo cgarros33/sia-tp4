@@ -623,3 +623,121 @@ def test_main_integracion(modulo: ModuleType, tmp_path: Path) -> None:
     assert len(estabilidad) == 4
     assert len(patrones) == 4
     assert (directorio / "resumen.txt").read_text(encoding="utf-8").strip()
+
+
+def test_pesos_pseudoinversa_estabiliza_patrones_correlacionados(
+    modulo: ModuleType,
+) -> None:
+    """Con patrones muy correlacionados Hebb falla y la pseudo-inversa no."""
+    generador = np.random.default_rng(0)
+    base = generador.choice([-1, 1], size=60)
+    patrones = np.tile(base, (4, 1))
+    # Cada patrón difiere de la base en un bloque propio de 6 píxeles.
+    for indice in range(4):
+        patrones[indice, indice * 6 : indice * 6 + 6] *= -1
+
+    hebb = modulo.calcular_pesos(patrones, regla="hebb")
+    pseudo = modulo.calcular_pesos(patrones, regla="pseudoinversa")
+
+    estables_hebb = [
+        np.all(modulo.calcular_margenes_estabilidad(hebb, p) > 0) for p in patrones
+    ]
+    estables_pseudo = [
+        np.all(modulo.calcular_margenes_estabilidad(pseudo, p) > 0) for p in patrones
+    ]
+    assert not all(estables_hebb)
+    assert all(estables_pseudo)
+    np.testing.assert_allclose(pseudo, pseudo.T, atol=1e-12)
+    assert np.all(np.diag(pseudo) == 0.0)
+
+
+def test_pesos_pseudoinversa_patrones_ortogonales_igual_hebb(
+    modulo: ModuleType,
+) -> None:
+    """Con patrones ortogonales la pseudo-inversa coincide con Hebb."""
+    patrones = np.array([[1, 1, 1, 1], [1, -1, 1, -1]])
+    np.testing.assert_allclose(
+        modulo.calcular_pesos(patrones, regla="pseudoinversa"),
+        modulo.calcular_pesos(patrones, regla="hebb"),
+        atol=1e-12,
+    )
+
+
+def test_calcular_pesos_regla_invalida(modulo: ModuleType) -> None:
+    """Una regla desconocida debe fallar."""
+    with pytest.raises(ValueError):
+        modulo.calcular_pesos(np.ones((1, 4)), regla="oja")
+
+
+def test_energia_por_actualizacion(modulo: ModuleType) -> None:
+    """La energía incremental coincide con la directa y nunca crece."""
+    generador = np.random.default_rng(3)
+    patrones = generador.choice([-1, 1], size=(3, 30))
+    pesos = modulo.calcular_pesos(patrones)
+    inicial = patrones[0].copy()
+    inicial[:8] *= -1
+
+    resultado = modulo.recuperar(pesos, inicial, registrar_actualizaciones=True)
+
+    energias = np.asarray(resultado.energia_actualizaciones)
+    assert energias.size == 1 + resultado.actualizaciones
+    assert energias[0] == pytest.approx(resultado.energia_inicial)
+    assert energias[-1] == pytest.approx(resultado.energia_final)
+    assert np.all(np.diff(energias) <= 1e-12)
+    # Sin pedirlo no se registra nada.
+    assert modulo.recuperar(pesos, inicial).energia_actualizaciones is None
+
+
+def test_config_regla(modulo: ModuleType, tmp_path: Path) -> None:
+    """La regla se lee del TOML, la CLI la pisa y una config vieja es Hebb."""
+    config = deepcopy(modulo.CONFIG_POR_DEFECTO)
+    del config["modelo"]["regla"]
+    modulo.validar_config(config)
+
+    config["modelo"]["regla"] = "pseudoinversa"
+    modulo.validar_config(config)
+    config["modelo"]["regla"] = "otra"
+    with pytest.raises(ValueError):
+        modulo.validar_config(config)
+
+    cli = argparse.Namespace(config=RUTA_CONFIG, regla="pseudoinversa")
+    assert modulo.resolver_config(cli)["modelo"]["regla"] == "pseudoinversa"
+
+
+def test_capacidad_por_subconjuntos(modulo: ModuleType) -> None:
+    """Con patrones muy correlacionados Hebb sostiene dos pero no tres."""
+    generador = np.random.default_rng(0)
+    base = generador.choice([-1, 1], size=60)
+    patrones = np.tile(base, (3, 1))
+    # Cada patrón difiere de la base en un bloque propio de 6 píxeles: los
+    # solapamientos son 0,6 y en el bloque propio h = ξ(1 - 0,6 - 0,6) < 0.
+    for indice in range(3):
+        patrones[indice, indice * 6 : indice * 6 + 6] *= -1
+
+    tabla = modulo.capacidad_por_subconjuntos(patrones, ("a", "b", "c"), "hebb")
+
+    assert len(tabla) == 3 + 3 + 1
+    assert set(tabla.columns) >= {
+        "cantidad",
+        "patrones",
+        "todos_estables",
+        "patrones_estables",
+        "margen_minimo",
+    }
+    por_cantidad = tabla.groupby("cantidad")["todos_estables"].all()
+    assert por_cantidad[1] and por_cantidad[2] and not por_cantidad[3]
+
+    pseudo = modulo.capacidad_por_subconjuntos(
+        patrones, ("a", "b", "c"), "pseudoinversa"
+    )
+    assert pseudo["todos_estables"].all()
+
+
+def test_main_guarda_capacidad_por_subconjuntos(
+    modulo: ModuleType, tmp_path: Path
+) -> None:
+    """La corrida del motor guarda la tabla de capacidad por subconjuntos."""
+    salida = tmp_path / "red"
+    assert modulo.main(["--datos", str(RUTA_LETRAS), "--salida", str(salida)]) == 0
+    tabla = pd.read_csv(salida / "capacidad_subconjuntos.csv")
+    assert len(tabla) == 2**4 - 1

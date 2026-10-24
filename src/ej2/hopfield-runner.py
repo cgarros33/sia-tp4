@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Runner de una red de Hopfield entrenada (TP4, ejercicio 2.2).
 
-El script carga una red guardada por ``hopfield.py``, aplica ruido opcional a
-los patrones de consulta, ejecuta la recuperación y guarda las tablas de
-resultados. El modo gráfico imprime cada estado final como texto.
+El script carga una red guardada por ``hopfield.py``, aplica un deterioro
+opcional a los patrones de consulta (ruido, esquina rota o manchas), ejecuta la
+recuperación y guarda las tablas de resultados. El modo gráfico imprime cada
+estado final como texto.
 
 Uso:
     python3 src/ej2/hopfield-runner.py \
@@ -27,6 +28,8 @@ import numpy as np
 import pandas as pd
 
 RUTA_RED_POR_DEFECTO = Path("resultados") / "ej2" / "hopfield"
+DETERIOROS = ("ruido", "esquina", "manchas")
+LADO_MANCHA = 3
 
 
 def _cargar_motor() -> ModuleType:
@@ -88,6 +91,82 @@ def aplicar_ruido(
         indices = rng.choice(vector.size, size=cantidad, replace=False)
         resultado[indices] *= -1
     return resultado
+
+
+def aplicar_esquina(
+    patron: np.ndarray,
+    nivel: float,
+    filas: int,
+    columnas: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Pone en blanco (-1) un bloque de área ``nivel·N`` en una esquina al azar.
+
+    Simula un QR con una esquina rota: la parte faltante se lee como papel en
+    blanco.
+    """
+    resultado = np.asarray(patron).astype(np.int8, copy=True)
+    alto = int(round(np.sqrt(nivel) * filas))
+    ancho = int(round(np.sqrt(nivel) * columnas))
+    if alto == 0 or ancho == 0:
+        return resultado
+
+    matriz = resultado.reshape(filas, columnas)
+    abajo, derecha = rng.integers(0, 2, size=2)
+    fila_inicio = filas - alto if abajo else 0
+    columna_inicio = columnas - ancho if derecha else 0
+    matriz[
+        fila_inicio : fila_inicio + alto, columna_inicio : columna_inicio + ancho
+    ] = -1
+    return resultado
+
+
+def aplicar_manchas(
+    patron: np.ndarray,
+    nivel: float,
+    filas: int,
+    columnas: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Invierte exactamente ``round(nivel·N)`` píxeles agrupados en manchas.
+
+    Las manchas son bloques de ``LADO_MANCHA × LADO_MANCHA`` en posiciones al
+    azar; el último bloque se recorta para llegar a la cantidad exacta.
+    """
+    resultado = np.asarray(patron).astype(np.int8, copy=True)
+    objetivo = int(round(nivel * resultado.size))
+    afectados = np.zeros((filas, columnas), dtype=bool)
+    lado = min(LADO_MANCHA, filas, columnas)
+
+    while afectados.sum() < objetivo:
+        fila = int(rng.integers(0, filas - lado + 1))
+        columna = int(rng.integers(0, columnas - lado + 1))
+        bloque = np.zeros_like(afectados)
+        bloque[fila : fila + lado, columna : columna + lado] = True
+        nuevos = np.flatnonzero(bloque & ~afectados)
+        faltan = objetivo - int(afectados.sum())
+        afectados.flat[nuevos[:faltan]] = True
+
+    resultado[afectados.reshape(-1)] *= -1
+    return resultado
+
+
+def deteriorar(
+    patron: np.ndarray,
+    deterioro: str,
+    nivel: float,
+    filas: int,
+    columnas: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Aplica el tipo de deterioro pedido."""
+    if deterioro == "ruido":
+        return aplicar_ruido(patron, nivel, rng)
+    if deterioro == "esquina":
+        return aplicar_esquina(patron, nivel, filas, columnas, rng)
+    if deterioro == "manchas":
+        return aplicar_manchas(patron, nivel, filas, columnas, rng)
+    raise ValueError(f"El deterioro debe ser uno de {DETERIOROS}.")
 
 
 def renderizar_matriz(estado: np.ndarray, filas: int, columnas: int) -> str:
@@ -186,6 +265,7 @@ def construir_resumen(
     ruta_consulta: Path,
     config: dict,
     consultas: pd.DataFrame,
+    deterioro: str,
     ruido: float,
     semilla: int,
     repeticiones: int,
@@ -193,13 +273,15 @@ def construir_resumen(
     """Construye el resumen textual de una corrida del runner."""
     tipos = consultas["tipo_resultado"].value_counts().to_dict()
     lineas = [
-        "Consultas de Hopfield — Ejercicio 2.2",
+        "Consultas de Hopfield",
         f"Red: {red_dir}",
         f"Dataset de consulta: {ruta_consulta}",
+        f"Regla: {config['modelo'].get('regla', 'hebb')}",
         f"Modo: {config['modelo']['modo']}",
         f"Orden: {config['modelo']['orden']}",
         f"Máximo de barridos: {config['modelo']['max_barridos']}",
-        f"Ruido: {ruido}",
+        f"Deterioro: {deterioro}",
+        f"Nivel: {ruido}",
         f"Semilla: {semilla}",
         f"Repeticiones: {repeticiones}",
         f"Cantidad de consultas: {len(consultas)}",
@@ -239,10 +321,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Dataset de consulta; por defecto usa patrones.csv de la red.",
     )
     parser.add_argument(
+        "--deterioro",
+        choices=DETERIOROS,
+        default="ruido",
+        help="Tipo de deterioro de las consultas.",
+    )
+    parser.add_argument(
         "--ruido",
+        "--nivel",
+        dest="ruido",
         type=float,
         default=0.0,
-        help="Fracción de bits a invertir, entre 0 y 1.",
+        help="Nivel de deterioro: fracción de píxeles afectados, entre 0 y 1.",
+    )
+    parser.add_argument(
+        "--energia-detallada",
+        action="store_true",
+        help="Guarda la energía después de cada actualización de neurona.",
     )
     parser.add_argument(
         "--semilla",
@@ -311,6 +406,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     registros: list[dict[str, object]] = []
     energias: list[dict[str, object]] = []
+    detalle: list[dict[str, object]] = []
     estados_iniciales: list[tuple[str, np.ndarray]] = []
     estados_finales: list[tuple[str, np.ndarray]] = []
 
@@ -318,7 +414,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         zip(consulta.nombres, consulta.patrones, strict=True)
     ):
         for repeticion in range(argumentos.repeticiones):
-            estado_inicial = aplicar_ruido(patron, argumentos.ruido, rng)
+            estado_inicial = deteriorar(
+                patron,
+                argumentos.deterioro,
+                argumentos.ruido,
+                red.filas,
+                red.columnas,
+                rng,
+            )
             resultado = motor.recuperar(
                 red.pesos,
                 estado_inicial,
@@ -326,6 +429,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 orden=orden,
                 max_barridos=max_barridos,
                 semilla=semilla_red,
+                registrar_actualizaciones=argumentos.energia_detallada,
             )
             clasificacion = clasificar_consulta(resultado, red, nombre)
             nombre_consulta = (
@@ -338,8 +442,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "nombre_origen": nombre,
                     "indice_patron": indice_patron,
                     "repeticion": repeticion,
+                    "deterioro": argumentos.deterioro,
                     "ruido": argumentos.ruido,
                     "semilla": argumentos.semilla,
+                    "hamming_inicial": int(np.count_nonzero(estado_inicial != patron)),
                     "tipo_resultado": clasificacion.tipo,
                     "nombre_final": clasificacion.nombre or "",
                     "distancia_hamming": clasificacion.distancia_minima,
@@ -362,6 +468,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "energia": paso.energia,
                         "cambios": paso.cambios,
                     }
+                )
+
+            if resultado.energia_actualizaciones is not None:
+                detalle.extend(
+                    {"consulta": nombre_consulta, "actualizacion": paso, "energia": e}
+                    for paso, e in enumerate(resultado.energia_actualizaciones)
                 )
 
             estados_iniciales.append((nombre_consulta, estado_inicial))
@@ -393,12 +505,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     tabla_energia.to_csv(salida / "energia.csv", index=False)
     tabla_iniciales.to_csv(salida / "estados_iniciales.csv", index=False)
     tabla_finales.to_csv(salida / "estados_finales.csv", index=False)
+    if argumentos.energia_detallada:
+        pd.DataFrame(detalle).to_csv(
+            salida / "energia_actualizaciones.csv", index=False
+        )
     (salida / "resumen.txt").write_text(
         construir_resumen(
             red_dir,
             ruta_consulta,
             config,
             tabla_consultas,
+            argumentos.deterioro,
             argumentos.ruido,
             argumentos.semilla,
             argumentos.repeticiones,

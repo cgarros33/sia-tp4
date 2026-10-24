@@ -1,0 +1,11 @@
+regla,cantidad,subconjuntos,subconjuntos_estables,fraccion_estables,margen_minimo
+hebb,1,5,5,1.000000,0.999270
+hebb,2,10,10,1.000000,0.138787
+hebb,3,10,0,0.000000,-0.628196
+hebb,4,5,0,0.000000,-1.228634
+hebb,5,1,0,0.000000,-1.823229
+pseudoinversa,1,5,5,1.000000,0.999270
+pseudoinversa,2,10,10,1.000000,0.989583
+pseudoinversa,3,10,10,1.000000,0.987531
+pseudoinversa,4,5,5,1.000000,0.983269
+pseudoinversa,5,1,1,1.000000,0.980769

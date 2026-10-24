@@ -1,0 +1,34 @@
+Red de Hopfield
+Dataset: /home/leowk/ITBA/5A-1C/SIA/sia-tp4/datos/hopfield/qr_37x37.csv
+Regla: pseudoinversa
+Patrones: beverages_menu_qr, dessert_menu_qr, food_menu_qr, specials_menu_qr, wine_menu_qr
+Filas: 37
+Columnas: 37
+Neuronas: 1369
+Cantidad de patrones: 5
+Modo: asincronica
+Orden: secuencial
+Semilla: 0
+Máximo de barridos: 100
+
+Capacidad:
+  carga p/N = 0.003652
+  límite teórico = 205.350000
+  excede límite = False
+
+Ortogonalidad:
+  solapamiento absoluto medio = 0.670124
+  solapamiento absoluto máximo = 0.859752
+  Hamming mínimo = 96
+  Hamming medio = 225.800000
+  pares ortogonales = 0
+
+Puntos fijos: 5 de 5
+Tipos de resultado: {'almacenado_correcto': 5}
+
+Detalle por patrón:
+  beverages_menu_qr: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-682.000000, margen_mínimo=0.980769
+  dessert_menu_qr: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-682.000000, margen_mínimo=0.980769
+  food_menu_qr: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-682.000000, margen_mínimo=0.980769
+  specials_menu_qr: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-682.000000, margen_mínimo=0.980769
+  wine_menu_qr: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-682.000000, margen_mínimo=0.980769

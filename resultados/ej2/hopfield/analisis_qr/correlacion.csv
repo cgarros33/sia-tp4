@@ -1,0 +1,6 @@
+nombre,beverages_menu_qr,dessert_menu_qr,food_menu_qr,specials_menu_qr,wine_menu_qr
+beverages_menu_qr,1.000000,0.757487,0.599708,0.593864,0.576333
+dessert_menu_qr,0.757487,1.000000,0.593864,0.614317,0.576333
+food_menu_qr,0.599708,0.593864,1.000000,0.766253,0.859752
+specials_menu_qr,0.593864,0.614317,0.766253,1.000000,0.763331
+wine_menu_qr,0.576333,0.576333,0.859752,0.763331,1.000000

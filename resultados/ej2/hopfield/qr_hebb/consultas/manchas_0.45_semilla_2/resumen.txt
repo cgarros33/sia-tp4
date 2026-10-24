@@ -1,0 +1,40 @@
+Consultas de Hopfield
+Red: /home/leowk/ITBA/5A-1C/SIA/sia-tp4/resultados/ej2/hopfield/qr_hebb
+Dataset de consulta: /home/leowk/ITBA/5A-1C/SIA/sia-tp4/resultados/ej2/hopfield/qr_hebb/patrones.csv
+Regla: hebb
+Modo: asincronica
+Orden: secuencial
+Máximo de barridos: 100
+Deterioro: manchas
+Nivel: 0.45
+Semilla: 2
+Repeticiones: 5
+Cantidad de consultas: 25
+Tipos de resultado: {'espurio': 25}
+
+Detalle por consulta:
+  beverages_menu_qr_rep0: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  beverages_menu_qr_rep1: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  beverages_menu_qr_rep2: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  beverages_menu_qr_rep3: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  beverages_menu_qr_rep4: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  dessert_menu_qr_rep0: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  dessert_menu_qr_rep1: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  dessert_menu_qr_rep2: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  dessert_menu_qr_rep3: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  dessert_menu_qr_rep4: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  food_menu_qr_rep0: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  food_menu_qr_rep1: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  food_menu_qr_rep2: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  food_menu_qr_rep3: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  food_menu_qr_rep4: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  specials_menu_qr_rep0: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  specials_menu_qr_rep1: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  specials_menu_qr_rep2: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  specials_menu_qr_rep3: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  specials_menu_qr_rep4: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  wine_menu_qr_rep0: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  wine_menu_qr_rep1: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474
+  wine_menu_qr_rep2: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  wine_menu_qr_rep3: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  wine_menu_qr_rep4: espurio, nombre_final=-, distancia_hamming=71, barridos=3, energía_final=-2172.879474

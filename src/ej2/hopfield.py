@@ -2,11 +2,13 @@
 """Motor de una red de Hopfield discreta (TP4, ejercicio 2.2).
 
 El script lee un dataset de patrones binarios ``-1``/``1``, calcula la matriz de
-pesos con la regla de Hebb y guarda la red entrenada junto con las tablas de
-estabilidad, ortogonalidad, capacidad y energía.
+pesos y guarda la red entrenada junto con las tablas de estabilidad,
+ortogonalidad, capacidad y energía.
 
 El aprendizaje de Hopfield es la regla de Hebb en forma cerrada. La iteración
 hasta el estado estable corresponde a la recuperación, no al aprendizaje.
+Como extensión para patrones correlacionados (ejercicio 2.1) se puede usar la
+regla de la pseudo-inversa (Personnaz et al., 1985).
 
 Referencia teórica: ``artif-eng.pdf``, capítulo 15, pp. 125-130.
 """
@@ -14,6 +16,7 @@ Referencia teórica: ``artif-eng.pdf``, capítulo 15, pp. 125-130.
 from __future__ import annotations
 
 import argparse
+import itertools
 import sys
 import tomllib
 from collections.abc import Sequence
@@ -29,12 +32,14 @@ RUTA_CONFIG = RAIZ / "src" / "ej2" / "hopfield.toml"
 
 MODOS = ("asincronica", "sincronica")
 ORDENES = ("secuencial", "aleatorio")
+REGLAS = ("hebb", "pseudoinversa")
 
 CONFIG_POR_DEFECTO: dict = {
     "datos": {
         "ruta": "datos/hopfield/letras_5x5.csv",
     },
     "modelo": {
+        "regla": "hebb",
         "modo": "asincronica",
         "orden": "secuencial",
         "semilla": 0,
@@ -110,6 +115,7 @@ class ResultadoRecuperacion:
     convergio: bool
     ciclo: bool
     motivo: str
+    energia_actualizaciones: list[float] | None = None
 
 
 @dataclass(frozen=True)
@@ -219,19 +225,27 @@ def cargar_dataset(ruta: str | Path) -> Dataset:
     )
 
 
-def calcular_pesos(patrones: np.ndarray) -> np.ndarray:
-    """Calcula la matriz de pesos con la regla de Hebb.
+def calcular_pesos(patrones: np.ndarray, regla: str = "hebb") -> np.ndarray:
+    """Calcula la matriz de pesos con diagonal nula y matriz simétrica.
 
-    ``W = (1/N) Xᵀ X`` con diagonal nula y matriz simétrica.
+    - ``hebb``: ``W = (1/N) Xᵀ X``.
+    - ``pseudoinversa``: ``W = Xᵀ (X Xᵀ)⁻¹ X``, la proyección sobre el
+      subespacio de los patrones. Cada patrón linealmente independiente es punto
+      fijo aunque los patrones estén correlacionados. Con patrones ortogonales
+      coincide con Hebb.
     """
+    if regla not in REGLAS:
+        raise ValueError(f"La regla debe ser una de {REGLAS}.")
     arreglo = np.asarray(patrones, dtype=float)
     if arreglo.ndim != 2 or arreglo.shape[0] == 0 or arreglo.shape[1] == 0:
         raise ValueError("Los patrones deben ser una matriz no vacía (p, N).")
     if not np.isin(arreglo, [-1.0, 1.0]).all():
         raise ValueError("Los patrones deben contener solo 1 y -1.")
 
-    n_neuronas = arreglo.shape[1]
-    pesos = arreglo.T @ arreglo / n_neuronas
+    if regla == "hebb":
+        pesos = arreglo.T @ arreglo / arreglo.shape[1]
+    else:
+        pesos = arreglo.T @ np.linalg.pinv(arreglo @ arreglo.T) @ arreglo
     np.fill_diagonal(pesos, 0.0)
     return (pesos + pesos.T) / 2.0
 
@@ -271,6 +285,7 @@ def recuperar(
     orden: str = "secuencial",
     max_barridos: int = 100,
     semilla: int = 0,
+    registrar_actualizaciones: bool = False,
 ) -> ResultadoRecuperacion:
     """Ejecuta la dinámica hasta un estado estable, un ciclo o el límite.
 
@@ -281,6 +296,8 @@ def recuperar(
         orden: ``secuencial`` o ``aleatorio`` para el modo asincrónico.
         max_barridos: Cantidad máxima de barridos.
         semilla: Semilla para el orden aleatorio.
+        registrar_actualizaciones: Si es verdadero, guarda la energía después de
+            cada actualización de neurona (en modo sincrónico, de cada barrido).
 
     Returns:
         Resultado con el estado final, la energía por barrido y el motivo de
@@ -306,6 +323,8 @@ def recuperar(
     rng = np.random.default_rng(semilla)
     energia_inicial = calcular_energia(pesos, estado)
     historial = [PasoEnergia(barrido=0, energia=energia_inicial, cambios=0)]
+    detalle = [energia_inicial] if registrar_actualizaciones else None
+    energia_actual = energia_inicial
     vistos = {estado.tobytes()}
 
     convergio = False
@@ -325,8 +344,12 @@ def recuperar(
                 campo = float(pesos[indice] @ estado)
                 nuevo = actualizar_neurona(campo, int(estado[indice]))
                 if nuevo != estado[indice]:
+                    # Con W simétrica y diagonal nula: ΔE = -(s_nuevo - s_viejo) h_i.
+                    energia_actual -= (nuevo - int(estado[indice])) * campo
                     estado[indice] = nuevo
                     cambios += 1
+                if detalle is not None:
+                    detalle.append(energia_actual)
         else:
             campos = pesos @ estado.astype(float)
             nuevo_estado = np.where(
@@ -339,7 +362,13 @@ def recuperar(
 
         barridos = barrido
         energia = calcular_energia(pesos, estado)
+        energia_actual = energia
         historial.append(PasoEnergia(barrido=barrido, energia=energia, cambios=cambios))
+        if detalle is not None:
+            if modo == "sincronica":
+                detalle.append(energia)
+            else:
+                detalle[-1] = energia
 
         if cambios == 0:
             convergio = True
@@ -365,6 +394,7 @@ def recuperar(
         convergio=convergio,
         ciclo=ciclo,
         motivo=motivo,
+        energia_actualizaciones=detalle,
     )
 
 
@@ -498,6 +528,38 @@ def calcular_margenes_estabilidad(
     campos = calcular_campo_local(pesos, patron)
     vector = _validar_estado(patron, pesos.shape[0])
     return vector.astype(float) * campos
+
+
+def capacidad_por_subconjuntos(
+    patrones: np.ndarray, nombres: Sequence[str], regla: str
+) -> pd.DataFrame:
+    """Estabilidad al almacenar cada subconjunto no vacío de los patrones.
+
+    Para cada subconjunto se calculan los pesos con ``regla`` y se informa si
+    todos sus patrones son puntos fijos. Mide la capacidad práctica de la red
+    con patrones correlacionados, donde la regla del 15% no aplica.
+    """
+    arreglo = np.asarray(patrones)
+    filas = []
+    for cantidad in range(1, len(nombres) + 1):
+        for indices in itertools.combinations(range(len(nombres)), cantidad):
+            subconjunto = arreglo[list(indices)]
+            pesos = calcular_pesos(subconjunto, regla)
+            margenes = [
+                float(calcular_margenes_estabilidad(pesos, patron).min())
+                for patron in subconjunto
+            ]
+            estables = sum(margen > 0.0 for margen in margenes)
+            filas.append(
+                {
+                    "cantidad": cantidad,
+                    "patrones": "+".join(nombres[i] for i in indices),
+                    "todos_estables": estables == cantidad,
+                    "patrones_estables": estables,
+                    "margen_minimo": min(margenes),
+                }
+            )
+    return pd.DataFrame(filas)
 
 
 def analizar_red(
@@ -737,6 +799,8 @@ def validar_config(config: dict) -> None:
         raise ValueError("datos.ruta debe ser un texto no vacío.")
 
     modelo = config["modelo"]
+    if modelo.get("regla", "hebb") not in REGLAS:
+        raise ValueError(f"modelo.regla debe ser una de {REGLAS}.")
     if modelo.get("modo") not in MODOS:
         raise ValueError(f"modelo.modo debe ser uno de {MODOS}.")
     if modelo.get("orden") not in ORDENES:
@@ -777,7 +841,7 @@ def resolver_config(cli: argparse.Namespace) -> dict:
     if salida_cli is not None:
         config["salida"]["directorio"] = str(salida_cli)
 
-    for clave in ("modo", "orden", "semilla", "max_barridos"):
+    for clave in ("regla", "modo", "orden", "semilla", "max_barridos"):
         valor = getattr(cli, clave, None)
         if valor is not None:
             config["modelo"][clave] = valor
@@ -805,8 +869,9 @@ def construir_resumen(
     puntos_fijos = int(analisis.estabilidad["punto_fijo"].sum())
     tipos = analisis.estabilidad["tipo_resultado"].value_counts().to_dict()
     lineas = [
-        "Red de Hopfield — Ejercicio 2.2",
+        "Red de Hopfield",
         f"Dataset: {config['datos']['ruta']}",
+        f"Regla: {config['modelo'].get('regla', 'hebb')}",
         f"Patrones: {', '.join(dataset.nombres)}",
         f"Filas: {dataset.filas}",
         f"Columnas: {dataset.columnas}",
@@ -874,6 +939,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Directorio de salida; pisa salida.directorio del TOML.",
     )
     parser.add_argument(
+        "--regla",
+        choices=REGLAS,
+        default=None,
+        help="Regla para calcular los pesos.",
+    )
+    parser.add_argument(
         "--modo",
         choices=MODOS,
         default=None,
@@ -901,7 +972,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     config = resolver_config(argumentos)
     dataset = cargar_dataset(config["datos"]["ruta"])
-    pesos = calcular_pesos(dataset.patrones)
+    pesos = calcular_pesos(dataset.patrones, config["modelo"]["regla"])
     analisis = analizar_red(
         dataset,
         pesos,
@@ -935,6 +1006,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         directorio / "ortogonalidad_resumen.csv", index=False
     )
     pd.DataFrame([analisis.capacidad]).to_csv(directorio / "capacidad.csv", index=False)
+    capacidad_por_subconjuntos(
+        dataset.patrones, dataset.nombres, config["modelo"]["regla"]
+    ).to_csv(directorio / "capacidad_subconjuntos.csv", index=False)
     (directorio / "resumen.txt").write_text(
         construir_resumen(config, dataset, analisis),
         encoding="utf-8",

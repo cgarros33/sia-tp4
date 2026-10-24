@@ -1,0 +1,12 @@
+[datos]
+ruta = "/home/leowk/ITBA/5A-1C/SIA/sia-tp4/datos/hopfield/qr_37x37.csv"
+
+[modelo]
+regla = "pseudoinversa"
+modo = "asincronica"
+orden = "secuencial"
+semilla = 0
+max_barridos = 100
+
+[salida]
+directorio = "/home/leowk/ITBA/5A-1C/SIA/sia-tp4/resultados/ej2/hopfield/qr_pseudoinversa"

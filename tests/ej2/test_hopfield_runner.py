@@ -364,3 +364,83 @@ def test_main_red_inexistente(modulo: ModuleType, tmp_path: Path) -> None:
     """Una red inexistente debe producir un error claro."""
     with pytest.raises(FileNotFoundError):
         modulo.main(["--red", str(tmp_path / "no_existe")])
+
+
+def test_aplicar_esquina(modulo: ModuleType) -> None:
+    """Borra en blanco un bloque cuadrado pegado a una esquina."""
+    patron = np.ones(100, dtype=np.int8)
+    rng = np.random.default_rng(0)
+    resultado = modulo.aplicar_esquina(patron, 0.25, 10, 10, rng).reshape(10, 10)
+
+    blancos = np.argwhere(resultado == -1)
+    assert len(blancos) == 25
+    filas, columnas = blancos[:, 0], blancos[:, 1]
+    assert filas.max() - filas.min() == 4
+    assert columnas.max() - columnas.min() == 4
+    assert filas.min() in (0, 5) and columnas.min() in (0, 5)
+
+
+def test_aplicar_esquina_nivel_cero(modulo: ModuleType) -> None:
+    """Sin nivel no se modifica nada."""
+    patron = np.ones(16, dtype=np.int8)
+    rng = np.random.default_rng(0)
+    assert np.array_equal(modulo.aplicar_esquina(patron, 0.0, 4, 4, rng), patron)
+
+
+def test_aplicar_manchas(modulo: ModuleType) -> None:
+    """Invierte exactamente round(nivel·N) píxeles agrupados en bloques."""
+    patron = np.ones(37 * 37, dtype=np.int8)
+    rng = np.random.default_rng(1)
+    resultado = modulo.aplicar_manchas(patron, 0.1, 37, 37, rng)
+
+    invertidos = resultado == -1
+    assert invertidos.sum() == round(0.1 * 37 * 37)
+    # Las manchas son contiguas: casi todo píxel invertido tiene un vecino
+    # invertido, cosa que con ruido aleatorio al 10% casi nunca pasa.
+    matriz = invertidos.reshape(37, 37)
+    relleno = np.pad(matriz, 1)
+    vecinos = (
+        relleno[:-2, 1:-1] | relleno[2:, 1:-1] | relleno[1:-1, :-2] | relleno[1:-1, 2:]
+    )
+    assert (vecinos & matriz).sum() / matriz.sum() > 0.9
+
+
+def test_aplicar_manchas_reproducible(modulo: ModuleType) -> None:
+    """La misma semilla da las mismas manchas."""
+    patron = np.ones(100, dtype=np.int8)
+    a = modulo.aplicar_manchas(patron, 0.3, 10, 10, np.random.default_rng(5))
+    b = modulo.aplicar_manchas(patron, 0.3, 10, 10, np.random.default_rng(5))
+    assert np.array_equal(a, b)
+
+
+def test_main_deterioro_y_energia_detallada(
+    modulo: ModuleType,
+    red_sintetica: tuple[Path, Path],
+    tmp_path: Path,
+) -> None:
+    """El runner registra el deterioro, la distancia inicial y la energía fina."""
+    red_dir, _ = red_sintetica
+    salida = tmp_path / "salida"
+
+    codigo = modulo.main(
+        [
+            "--red",
+            str(red_dir),
+            "--deterioro",
+            "esquina",
+            "--nivel",
+            "0.25",
+            "--energia-detallada",
+            "--salida",
+            str(salida),
+        ]
+    )
+
+    assert codigo == 0
+    consultas = pd.read_csv(salida / "consultas.csv")
+    assert consultas["deterioro"].tolist() == ["esquina"]
+    assert consultas["ruido"].tolist() == [0.25]
+    assert consultas["hamming_inicial"].tolist() == [1]
+    detalle = pd.read_csv(salida / "energia_actualizaciones.csv")
+    assert list(detalle.columns) == ["consulta", "actualizacion", "energia"]
+    assert len(detalle) == 1 + consultas["actualizaciones"].item()

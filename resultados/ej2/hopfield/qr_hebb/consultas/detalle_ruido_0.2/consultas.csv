@@ -1,0 +1,6 @@
+consulta,nombre_origen,indice_patron,repeticion,deterioro,ruido,semilla,hamming_inicial,tipo_resultado,nombre_final,distancia_hamming,nombre_mas_cercano,barridos,actualizaciones,energia_inicial,energia_final,convergio,ciclo,motivo
+beverages_menu_qr,beverages_menu_qr,0,0,ruido,0.2,0,274,espurio,,71,food_menu_qr,2,2738,-636.184075967859,-2172.8794740686635,True,False,estable
+dessert_menu_qr,dessert_menu_qr,1,0,ruido,0.2,0,274,espurio,,71,food_menu_qr,2,2738,-638.8108108108099,-2172.8794740686635,True,False,estable
+food_menu_qr,food_menu_qr,2,0,ruido,0.2,0,274,espurio,,71,food_menu_qr,2,2738,-788.5639152666163,-2172.8794740686635,True,False,estable
+specials_menu_qr,specials_menu_qr,3,0,ruido,0.2,0,274,espurio,,71,food_menu_qr,2,2738,-755.1848064280487,-2172.8794740686635,True,False,estable
+wine_menu_qr,wine_menu_qr,4,0,ruido,0.2,0,274,espurio,,71,food_menu_qr,2,2738,-755.4857560262949,-2172.8794740686635,True,False,estable
