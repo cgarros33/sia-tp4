@@ -508,6 +508,136 @@ Observaciones técnicas:
 - Las figuras A y B del barrido y las tres figuras finales por tamaño se
   regeneraron con esta entrada.
 
+### Métricas de error del mapa
+
+Son las métricas que usa el barrido y la comparación. Ninguna sola alcanza para
+elegir un mapa: se leen juntas.
+
+- **QE, error de cuantización.** Distancia media de cada creador a su neurona
+  ganadora (BMU). Mide qué tan bien el vector de pesos de cada neurona resume a
+  los creadores que agrupa. Es lo que minimiza el barrido. Siempre baja al
+  agregar neuronas (con una neurona por creador vale 0), así que no sirve para
+  elegir `k`: por eso la grilla se fija en 3, 4 y 5.
+- **TE, error topográfico.** Fracción de creadores cuya primera y segunda
+  neurona más parecida no son vecinas en la grilla. Mide si el mapa conserva la
+  topología: si creadores parecidos quedan en neuronas cercanas. Un TE alto
+  indica un mapa "plegado", donde la cercanía en la grilla deja de significar
+  parecido y las regiones no se pueden interpretar.
+- **Unidades muertas y ocupación.** Neuronas que no son BMU de ningún creador y
+  fracción de neuronas usadas. Muchas muertas indican que la grilla es grande
+  para 50 creadores y el mapa deja de categorizar.
+- **ARI, índice de Rand ajustado** (solo en la comparación). Para cada par de
+  creadores mira si dos agrupaciones coinciden en ponerlos juntos o separados,
+  corregido por azar: 1 es la misma agrupación, 0 es lo esperable por azar. Se
+  usa entre semillas de una corrida (estabilidad) y entre corridas.
+- Trade-off observado: al pasar de `k=3` a `k=5` bajan QE y TE pero suben las
+  unidades muertas. `k=4` usa casi todas sus neuronas con un error ya bajo.
+
+### Comparación 27 variables contra PC1..PC10
+
+- Script de análisis: `src/ej1/kohonen-comparacion.py`. Solo lee corridas
+  finales; no entrena.
+- Para tener media ± desvío sobre semillas sin reentrenar, `kohonen.py` guarda
+  además `pesos_semillas.csv` y `asignaciones_semillas.csv`. Las seis corridas
+  finales se volvieron a ejecutar con sus `config_optima.toml`; métricas y
+  asignaciones salieron idénticas a las anteriores.
+- La QE propia de cada corrida está en unidades de su espacio de entrada y no se
+  compara entre ambas. Se agrega una **QE común**: los pesos de las corridas
+  sobre PCs se retroproyectan a las 27 variables estandarizadas con las cargas
+  de 1.1 (`w = s Eᵀ`) y se mide la distancia de cada creador a la neurona que le
+  asignó su propio modelo. En las corridas con 27 variables coincide con la QE
+  propia.
+- El residuo medio que queda fuera de PC1..PC10 es 1,4587: es un piso para la
+  QE común de las corridas sobre PCs.
+- Salidas: `resultados/ej1/ej1.2-comparacion/`.
+
+| Corrida | k | Distancia | QE común | TE | Muertas | ARI entre semillas |
+|---|---:|---|---:|---:|---:|---:|
+| 27 variables | 3 | euclidiana | 3,479 ± 0,008 | 0,160 | 0,00 | 0,93 |
+| PC1..PC10 | 3 | euclidiana | 3,466 ± 0,014 | 0,093 | 0,00 | 0,62 |
+| 27 variables | 4 | euclidiana | 3,173 ± 0,014 | 0,047 | 1,00 | 0,58 |
+| PC1..PC10 | 4 | exponencial | 3,197 ± 0,015 | 0,107 | 0,67 | 0,60 |
+| PC1..PC10 | 4 | euclidiana | 3,186 ± 0,009 | 0,067 | 0,67 | 0,56 |
+| 27 variables | 5 | euclidiana | 2,808 ± 0,064 | 0,033 | 6,33 | 0,59 |
+| PC1..PC10 | 5 | euclidiana | 2,888 ± 0,017 | 0,027 | 4,33 | 0,57 |
+
+Concordancia entre 27 variables y PC1..PC10 para el mismo `k` (ARI medio sobre
+los 9 pares de semillas):
+
+| k | ARI cruzado | Estabilidad 27 var. | Estabilidad PC1..PC10 |
+|---:|---:|---:|---:|
+| 3 | 0,76 | 0,93 | 0,62 |
+| 4 (exponencial) | 0,45 | 0,58 | 0,60 |
+| 4 (euclidiana) | 0,65 | 0,58 | 0,56 |
+| 5 | 0,54 | 0,59 | 0,57 |
+
+Observaciones técnicas:
+
+- Medida en el mismo espacio, la QE con 10 PCs queda entre 0,4% por debajo y
+  2,9% por encima de la QE con 27 variables. Reducir a 10 componentes casi no
+  empeora el ajuste.
+- El ARI cruzado queda en el mismo orden que la estabilidad entre semillas de
+  cada corrida: las agrupaciones con 27 variables y con 10 PCs difieren
+  aproximadamente tanto como dos semillas de una misma corrida.
+- La estabilidad entre semillas es moderada para `k=4` y `k=5` (ARI ≈ 0,6): la
+  neurona exacta de cada creador cambia entre semillas.
+
+### Desglose del error topográfico
+
+- En grilla rectangular el TE cuenta como error a las neuronas vecinas en
+  diagonal (distancia √2), porque la vecindad inmediata es de 4 vecinos. La
+  comparación separa el TE en `diagonal` y `lejana` (dos casillas o más). Solo
+  la parte lejana indica un mapa plegado. `diagonal + lejana` reproduce el TE
+  del motor.
+- Figura: `resultados/ej1/ej1.2-comparacion/fig_topografia.png`.
+
+| Corrida | TE | Diagonal | Lejana |
+|---|---:|---:|---:|
+| 27 variables, k=3 | 0,160 | 0,153 | 0,007 |
+| 27 variables, k=4 | 0,047 | 0,027 | 0,020 |
+| 27 variables, k=5 | 0,033 | 0,020 | 0,013 |
+| PC1..PC10, k=3 | 0,093 | 0,080 | 0,013 |
+| PC1..PC10, k=4, exponencial | 0,107 | 0,073 | 0,033 |
+| PC1..PC10, k=4, euclidiana | 0,067 | 0,053 | 0,013 |
+| PC1..PC10, k=5 | 0,027 | 0,027 | 0,000 |
+
+- La parte lejana es como mucho 0,033 (menos de 2 creadores de 50): ningún mapa
+  está plegado, y las regiones, los planos de componentes y la matriz U se
+  pueden leer como estructura de los datos.
+- El TE alto de `k=3` con 27 variables es casi todo diagonal, esperable en una
+  grilla de 3 × 3.
+- El barrido elige por QE y no usa el TE como criterio; el TE se verifica
+  después.
+
+### k = 4 con distancia euclidiana sobre PC1..PC10
+
+- En el paso 2 del barrido de `k=4`, `exponencial` le ganó a `euclidiana` por
+  0,0066 de QE (2,8089 ± 0,0521 contra 2,8155 ± 0,0229), menos que el desvío,
+  con el doble de TE (0,107 contra 0,053).
+- La distancia exponencial normaliza los vectores a norma 1 para elegir la BMU,
+  así que descarta la magnitud del vector de scores, que en PC1 representa el
+  tamaño del creador.
+- Se corrió un barrido de control con la distancia fija en `euclidiana`
+  (`src/ej1/kohonen-sweep-pca10-euclidiana.toml`), reajustando los pasos 3 a 8
+  dada esa distancia. Salida:
+  `resultados/ej1/ej1.2-pca10/kohonen_sweep_euclidiana/sweep4/`.
+- Configuración final: rectangular, euclidiana, uniforme, radio 0,3 (R0 = 1,2),
+  constante, eta 0,3, exponencial, 10000 iteraciones. Se adoptó el acoplamiento
+  `eta_inicial × decaimiento_eta`.
+- `radio_inicial_relativo = 0,3` es el mínimo de la lista, pero en grilla
+  rectangular cualquier radio entre 1 y √2 incluye los mismos 4 vecinos, así
+  que ampliar la lista no cambia el resultado.
+- Corrida final: `resultados/ej1/ej1.2-pca10/kohonen_k4_euclidiana/`.
+- Resultado: QE propia 2,7978 ± 0,0108 (contra 2,8065 ± 0,0220 con
+  exponencial), QE común 3,186 contra 3,197, TE 0,067 ± 0,012 contra
+  0,107 ± 0,058, y mayor concordancia con la corrida de 27 variables
+  (ARI 0,65 contra 0,45).
+- En los barridos sobre PCs, `k=3` y `k=5` ya habían elegido `euclidiana`
+  con menor QE y TE (`k=3`: QE 3,137 contra 3,185; `k=5`: 2,491 contra 2,526),
+  y los tres tamaños con 27 variables también. Con esta corrida de control,
+  todos los tamaños quedan con distancia euclidiana.
+- Queda para decidir con el grupo cuál `k=4` sobre PCs se presenta.
+
 ### Pendientes de 1.2
 
 - Fase B: completada.
@@ -523,6 +653,9 @@ Observaciones técnicas:
 - Fase F: completada; las tres corridas finales se ejecutaron.
 - Corrida con 10 componentes principales: completada; barrido, corridas finales
   y figuras regeneradas en `resultados/ej1/ej1.2-pca10/`.
+- Comparación 27 variables contra PC1..PC10 y control de `k=4` con
+  euclidiana: completados; resultados en `resultados/ej1/ej1.2-comparacion/` y
+  `resultados/ej1/ej1.2-pca10/kohonen_k4_euclidiana/`.
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
 
@@ -965,7 +1098,7 @@ Accuracy por letra:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 132 tests en verde.
+- `python3 -m pytest -q`: 144 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.

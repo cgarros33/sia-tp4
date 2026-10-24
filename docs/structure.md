@@ -61,9 +61,13 @@ sia-tp4/
 │   │   │   │   ├── sweep3/
 │   │   │   │   ├── sweep4/
 │   │   │   │   └── sweep5/
+│   │   │   ├── kohonen_sweep_euclidiana/
+│   │   │   │   └── sweep4/
 │   │   │   ├── kohonen_k3/
 │   │   │   ├── kohonen_k4/
+│   │   │   ├── kohonen_k4_euclidiana/
 │   │   │   └── kohonen_k5/
+│   │   ├── ej1.2-comparacion/
 │   │   └── oja/
 │   │       ├── epocas_5/
 │   │       └── epocas_500/
@@ -93,6 +97,8 @@ sia-tp4/
 │   │   ├── kohonen-sweep.toml
 │   │   ├── kohonen-pca10.toml
 │   │   ├── kohonen-sweep-pca10.toml
+│   │   ├── kohonen-sweep-pca10-euclidiana.toml
+│   │   ├── kohonen-comparacion.py
 │   │   ├── oja.py
 │   │   └── oja.toml
 │   └── ej2/
@@ -105,6 +111,7 @@ sia-tp4/
     │   ├── test_eda_pca.py
     │   ├── test_kohonen.py
     │   ├── test_kohonen_sweep.py
+    │   ├── test_kohonen_comparacion.py
     │   └── test_oja.py
     └── ej2/
         ├── test_hopfield.py
@@ -194,6 +201,32 @@ python3 src/ej1/kohonen.py \
 
 Los hiperparámetros y las rutas se pueden pisar por línea de comandos. La
 precedencia es: CLI > archivo TOML > valores por defecto.
+
+Cada corrida final guarda, además de los archivos de la semilla
+representativa, `pesos_semillas.csv` y `asignaciones_semillas.csv` con los
+resultados de todas las semillas.
+
+### Control de k = 4 con distancia euclidiana
+
+```bash
+python3 src/ej1/kohonen-sweep.py \
+  --config src/ej1/kohonen-sweep-pca10-euclidiana.toml
+python3 src/ej1/kohonen.py \
+  --config resultados/ej1/ej1.2-pca10/kohonen_sweep_euclidiana/sweep4/config_optima.toml \
+  --salida resultados/ej1/ej1.2-pca10/kohonen_k4_euclidiana
+```
+
+### Comparación 27 variables contra PC1..PC10
+
+- Script: `src/ej1/kohonen-comparacion.py` (solo lee corridas finales).
+- Tests: `tests/ej1/test_kohonen_comparacion.py`.
+- Salida: `resultados/ej1/ej1.2-comparacion/` con `metricas_por_semilla.csv`,
+  `metricas_resumen.csv`, `concordancia.csv`, `resumen.txt`,
+  `fig_metricas.png`, `fig_concordancia.png` y `fig_topografia.png`.
+
+```bash
+python3 src/ej1/kohonen-comparacion.py
+```
 
 ### Tests y lint
 
