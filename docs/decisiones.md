@@ -24,6 +24,12 @@
 - El plan de 2.2 está en `docs/plan/ej2-2.md`.
 - Etapa actual: 2.2 implementado y ejecutado; resultados en
   `resultados/ej2/hopfield/letras_5x5/`. Queda la interpretación con el grupo.
+- Ejercicio 2.1: Recuperación de códigos QR deteriorados (Hopfield de 37 × 37).
+- El plan de 2.1 está en `docs/plan/ej2-1.md`.
+- Etapa actual: 2.1 implementado y ejecutado con las reglas de Hebb y de la
+  pseudo-inversa; resultados en `resultados/ej2/hopfield/qr_hebb/`,
+  `resultados/ej2/hopfield/qr_pseudoinversa/` y
+  `resultados/ej2/hopfield/analisis_qr/`. Queda la interpretación con el grupo.
 - Los tests actuales pasan con `python3 -m pytest -q tests/ej1 tests/ej2`.
 
 ## Datos
@@ -954,6 +960,186 @@ Observaciones técnicas:
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
 
+## Ejercicio 2.1 — Recuperación de códigos QR deteriorados
+
+### Alcance
+
+- El plan está en `docs/plan/ej2-1.md`.
+- Se reutiliza el motor de 2.2 con dos extensiones: la regla de la
+  pseudo-inversa y el registro opcional de energía por actualización.
+- El runner agrega tres tipos de deterioro: `ruido`, `esquina` y `manchas`.
+- Análisis de solo lectura: `src/ej2/hopfield-qr-analisis.py`.
+
+### Diagnóstico con la regla de Hebb
+
+- Los cinco QR de 37 × 37 (N = 1369) dan una carga `p/N = 0,0037`, muy por
+  debajo de `0,15`, pero **ninguno es punto fijo** con la regla de Hebb.
+- El 69,8% de los píxeles (955 de 1369) es idéntico en los cinco QR: comparten
+  los patrones de posición, las líneas de sincronismo y casi toda la URL
+  codificada. Los píxeles que difieren se concentran en la zona de datos de las
+  columnas izquierdas.
+- Solapamiento entre pares: 0,576 a 0,860. No hay pares ortogonales.
+- Toda consulta, limpia o deteriorada, termina en el mismo estado: el voto
+  mayoritario de los cinco QR (estado espurio de mezcla), a Hamming 225, 225,
+  71, 103 y 91 de cada QR. Su energía (−2172,9) es menor que la de cualquiera
+  de los QR almacenados, así que es un atractor más profundo que los patrones.
+- La regla del 15% supone patrones aleatorios e independientes; con patrones
+  correlacionados el término de crosstalk domina aunque la carga sea baja.
+
+### Regla de la pseudo-inversa
+
+- `W = Xᵀ (X Xᵀ)⁻¹ X` con diagonal nula (Personnaz et al., 1985; Kanter y
+  Sompolinsky, 1987). Es la proyección sobre el subespacio generado por los
+  patrones, así que cada patrón linealmente independiente es punto fijo aunque
+  estén correlacionados. Con patrones ortogonales coincide con Hebb.
+- Es simétrica y con diagonal nula, así que la energía de Lyapunov sigue
+  siendo válida y no crece durante la dinámica asincrónica.
+- No está en el apunte: se presenta como extensión.
+- Con esta regla los cinco QR son puntos fijos.
+
+### Deterioros
+
+- `nivel` es la fracción de píxeles afectados.
+- `ruido`: invierte exactamente `round(nivel · N)` píxeles al azar.
+- `esquina`: pone en blanco (`-1`) un bloque cuadrado de área `nivel · N` en
+  una de las cuatro esquinas, elegida al azar. Como cerca de la mitad del
+  bloque ya era blanco, los píxeles cambiados son menos que el área.
+- `manchas`: invierte exactamente `round(nivel · N)` píxeles agrupados en
+  bloques de 3 × 3 en posiciones al azar.
+- Cada consulta registra `hamming_inicial` (píxeles distintos del QR original).
+
+### Corridas
+
+- Redes: `resultados/ej2/hopfield/qr_hebb/` y
+  `resultados/ej2/hopfield/qr_pseudoinversa/`.
+- Consultas: `ruido` y `manchas` con niveles 0,05 a 0,5 cada 0,05; `esquina`
+  con 0,05, 0,1, 0,15, 0,2, 0,25, 0,3, 0,4 y 0,5. Semillas 0, 1 y 2; 5
+  repeticiones por QR (75 consultas por nivel).
+- Energía por actualización: `consultas/detalle_<deterioro>_<nivel>/` para
+  ruido 0,2 y 0,4, esquina 0,25 y manchas 0,25, semilla 0.
+- Las consultas de un mismo deterioro, nivel y semilla son idénticas para las
+  dos reglas: el análisis lo verifica antes de graficar.
+
+### Resultados
+
+Tasa de recuperación correcta (media sobre 3 semillas):
+
+| Deterioro | Hebb | Pseudo-inversa |
+|---|---|---|
+| Ruido ≤ 0,40 | 0 | 1,00 |
+| Ruido 0,45 | 0 | 0,75 ± 0,10 |
+| Ruido 0,50 | 0 | 0 |
+| Esquina ≤ 0,40 | 0 | 1,00 |
+| Esquina 0,50 | 0 | 0,88 ± 0,07 |
+| Manchas ≤ 0,30 | 0 | 1,00 |
+| Manchas 0,35 | 0 | 0,97 ± 0,02 |
+| Manchas 0,40 | 0 | 0,85 ± 0,05 |
+| Manchas 0,45 | 0 | 0,57 ± 0,10 |
+| Manchas 0,50 | 0 | 0 |
+
+- Con Hebb, el 100% de las consultas termina en el estado espurio de mezcla
+  para todos los deterioros y niveles.
+- Con la pseudo-inversa la recuperación es perfecta hasta niveles altos. Las
+  manchas degradan antes que el ruido al mismo nivel. Con 50% de píxeles
+  invertidos la consulta ya no tiene información del original y aparecen
+  estados espurios y patrones incorrectos.
+- Iteraciones: la red se estabiliza en 1 barrido con cambios más 1 barrido de
+  verificación (2 barridos) en casi todos los casos; solo cerca del límite de
+  recuperación se llega a 3. La energía baja en forma monótona en cada
+  actualización y se estabiliza al final del primer barrido.
+- El tamaño de la esquina rota casi no afecta: con la pseudo-inversa se
+  recupera hasta con el 40% del área borrada.
+
+### Barridos sobre la regla de Hebb
+
+No se hace un barrido de hiperparámetros para Hebb porque ninguno puede mejorar
+la recuperación:
+
+- La matriz de pesos tiene forma cerrada (`W = (1/N) Xᵀ X`): no hay tasa de
+  aprendizaje, épocas ni inicialización que ajustar.
+- Los parámetros restantes (`modo`, `orden`, `max_barridos`) solo cambian el
+  camino de la dinámica, no los puntos fijos. Un patrón que no es punto fijo
+  nunca puede ser el estado final. Chequeo exploratorio (no guardado): desde
+  cada QR limpio, con asincrónica secuencial, asincrónica aleatoria y
+  sincrónica, 0 de 15 recuperaciones correctas y ningún ciclo.
+- Variantes de representación, también exploratorias y no guardadas:
+  - usar solo los 414 píxeles que difieren entre los QR: siguen correlacionados
+    (solapamientos de −0,40 a 0,54) y ningún QR es punto fijo;
+  - regla de covarianza (Hebb sobre `ξ − media por píxel`): ningún QR es punto
+    fijo.
+
+El único barrido informativo es la cantidad de QR almacenados. Para cada
+subconjunto no vacío de los cinco QR, el motor calcula los pesos y verifica si
+todos sus patrones son puntos fijos. Tabla por subconjunto:
+`resultados/ej2/hopfield/qr_<regla>/capacidad_subconjuntos.csv`; resumen:
+`resultados/ej2/hopfield/analisis_qr/capacidad.csv` y `fig_capacidad.png`.
+
+| QR almacenados | Hebb: subconjuntos estables | Margen mínimo Hebb | Pseudo-inversa |
+|---:|---:|---:|---:|
+| 1 | 5 de 5 | 0,999 | 5 de 5 |
+| 2 | 10 de 10 | 0,139 | 10 de 10 |
+| 3 | 0 de 10 | −0,628 | 10 de 10 |
+| 4 | 0 de 5 | −1,229 | 5 de 5 |
+| 5 | 0 de 1 | −1,823 | 1 de 1 |
+
+- Con dos patrones el campo local es `h_i = ξ¹_i + m₁₂ ξ²_i` (con
+  `m₁₂ = ξ¹·ξ²/N`). Como `|m₁₂| < 1`, el signo es siempre el de `ξ¹_i`: dos
+  patrones distintos siempre son estables.
+- Con tres, en un píxel donde `ξ¹` difiere de `ξ²` y de `ξ³`, el campo es
+  `h_i = ξ¹_i (1 − m₁₂ − m₁₃)`. Si `m₁₂ + m₁₃ > 1` el píxel se invierte. Con
+  solapamientos de 0,58 a 0,86 entre los QR, cualquier terna cumple la
+  condición en algún píxel.
+- Con estos QR la capacidad práctica de Hebb es de dos patrones, aunque la
+  regla del 15% daría unos 205.
+
+### Relación con 2.2
+
+- Se siguió la recomendación de la cátedra: la red se probó primero con letras
+  de 5 × 5 (ejercicio 2.2, `resultados/ej2/hopfield/letras_5x5/`) antes de
+  pasar a los QR.
+- El mismo motor y el mismo runner sirven para los dos casos.
+- Las letras ya mostraban el efecto de la correlación en pequeño: el par más
+  solapado (`O`-`A`, 0,36) tiene los menores márgenes de estabilidad, y con
+  ruido aparecen estados espurios. En los QR el solapamiento es mucho mayor
+  (0,58–0,86) y el efecto llega a que ningún patrón sea estable.
+
+### Salidas
+
+`resultados/ej2/hopfield/analisis_qr/`:
+
+- `recuperacion_por_semilla.csv` y `recuperacion.csv`.
+- `correlacion.csv`.
+- `capacidad.csv` y `fig_capacidad.png`: subconjuntos con todos los QR
+  estables, por regla y cantidad.
+- `fig_correlacion.png`: solapamiento, píxeles comunes y estado mezcla.
+- `fig_recuperacion.png`: fracción correcta y espuria según el nivel.
+- `fig_barridos.png`: barridos hasta estabilizar.
+- `fig_energia.png`: energía en cada actualización.
+- `fig_ejemplos.png`: original, deteriorado y recuperado con cada regla.
+- `resumen.txt`.
+
+### Reproducibilidad
+
+- Los resultados del ejercicio 2.2 no cambian: con el motor nuevo, una
+  corrida de las letras en un directorio temporal dio pesos y tablas idénticos
+  y consultas idénticas salvo diferencias de redondeo de 1e-15 en la energía
+  inicial.
+- Cada consulta usa una semilla explícita; cada tasa se reporta como media ±
+  desvío sobre 3 semillas.
+- Todas las figuras se regeneran desde los CSV guardados con
+  `src/ej2/hopfield-qr-analisis.py`.
+
+### Estado
+
+- Fase 1: completada; plan y decisiones registrados.
+- Fase 2: completada; tests del motor, del runner y del análisis.
+- Fase 3: completada; regla de la pseudo-inversa, deterioros y energía por
+  actualización.
+- Fase 4: completada; redes, barrido de deterioros y análisis.
+- Fase 5: completada; tabla de capacidad por cantidad de QR almacenados.
+- Pendiente: interpretación de resultados con el grupo, fuera de los archivos
+  del proyecto.
+
 ## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
 
 ### Alcance
@@ -1131,7 +1317,7 @@ Accuracy por letra:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 150 tests en verde.
+- `python3 -m pytest -q`: 166 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.
@@ -1146,3 +1332,5 @@ Accuracy por letra:
 - Interpretar en el informe qué significa cada componente para las campañas.
 - Interpretar con el grupo los resultados de 2.2, incluida la aparición de
   estados espurios y la caída de accuracy con el ruido.
+- Interpretar con el grupo los resultados de 2.1 y las limitaciones del caso de
+  uso.

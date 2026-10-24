@@ -35,6 +35,7 @@ sia-tp4/
 │   │   ├── ej1-1.md
 │   │   ├── ej1-2.md
 │   │   ├── ej1-3.md
+│   │   ├── ej2-1.md
 │   │   └── ej2-2.md
 │   └── context/
 │       ├── gusslop.md
@@ -74,6 +75,9 @@ sia-tp4/
 │   │       └── epocas_500/
 │   └── ej2/
 │       └── hopfield/
+│           ├── qr_hebb/
+│           ├── qr_pseudoinversa/
+│           ├── analisis_qr/
 │           └── letras_5x5/
 │               ├── consultas/
 │               │   ├── limpias/
@@ -107,6 +111,7 @@ sia-tp4/
 │       ├── hopfield.py
 │       ├── hopfield.toml
 │       ├── hopfield-runner.py
+│       ├── hopfield-qr-analisis.py
 │       └── qr-to-matrix.py
 └── tests/
     ├── ej1/
@@ -119,6 +124,7 @@ sia-tp4/
     └── ej2/
         ├── test_hopfield.py
         ├── test_hopfield_runner.py
+        ├── test_hopfield_qr_analisis.py
         └── test_qr_to_matrix.py
 ```
 
@@ -347,6 +353,66 @@ En `resultados/ej1/oja/epocas_5/` (corrida final):
 En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
 épocas, con los mismos tipos de archivo y sus configuraciones resueltas.
 
+## Ejercicio 2.1 — Recuperación de QR deteriorados
+
+- Plan: `docs/plan/ej2-1.md`.
+- Motor y runner: los de 2.2, con `--regla {hebb,pseudoinversa}` en el motor y
+  `--deterioro {ruido,esquina,manchas}`, `--nivel` y `--energia-detallada` en
+  el runner.
+- Análisis: `src/ej2/hopfield-qr-analisis.py` (solo lectura).
+- Tests: `tests/ej2/test_hopfield.py`, `tests/ej2/test_hopfield_runner.py` y
+  `tests/ej2/test_hopfield_qr_analisis.py`.
+- Salidas: `resultados/ej2/hopfield/qr_hebb/`,
+  `resultados/ej2/hopfield/qr_pseudoinversa/` y
+  `resultados/ej2/hopfield/analisis_qr/`.
+- Cada red guarda además `capacidad_subconjuntos.csv`: estabilidad de los
+  patrones al almacenar cada subconjunto no vacío.
+- `analisis_qr/` contiene `recuperacion_por_semilla.csv`, `recuperacion.csv`,
+  `correlacion.csv`, `capacidad.csv`, `resumen.txt` y las figuras
+  `fig_correlacion.png`, `fig_capacidad.png`, `fig_recuperacion.png`,
+  `fig_barridos.png`, `fig_energia.png` y `fig_ejemplos.png`.
+
+### Ejecución
+
+```bash
+# Redes
+for regla in hebb pseudoinversa; do
+  python src/ej2/hopfield.py --datos datos/hopfield/qr_37x37.csv \
+    --regla "$regla" --salida "resultados/ej2/hopfield/qr_$regla"
+done
+
+# Barrido de deterioros: 3 semillas × 5 repeticiones por QR
+for regla in hebb pseudoinversa; do
+  red="resultados/ej2/hopfield/qr_$regla"
+  for det in ruido manchas esquina; do
+    if [ "$det" = esquina ]; then
+      niveles="0.05 0.1 0.15 0.2 0.25 0.3 0.4 0.5"
+    else
+      niveles="0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5"
+    fi
+    for nivel in $niveles; do
+      for semilla in 0 1 2; do
+        python src/ej2/hopfield-runner.py --red "$red" --deterioro "$det" \
+          --nivel "$nivel" --semilla "$semilla" --repeticiones 5 \
+          --salida "$red/consultas/${det}_${nivel}_semilla_${semilla}"
+      done
+    done
+  done
+  # Energía por actualización para las figuras
+  for caso in "ruido 0.2" "ruido 0.4" "esquina 0.25" "manchas 0.25"; do
+    set -- $caso
+    python src/ej2/hopfield-runner.py --red "$red" --deterioro "$1" \
+      --nivel "$2" --semilla 0 --energia-detallada \
+      --salida "$red/consultas/detalle_$1_$2"
+  done
+done
+
+# Tablas y figuras
+python src/ej2/hopfield-qr-analisis.py
+```
+
+El barrido completo tarda unos 3,5 minutos.
+
 ## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
 
 - Motor: `src/ej2/hopfield.py`.
@@ -417,5 +483,5 @@ Los resultados numéricos y la interpretación técnica están en
 | 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
 | 1 | 3. Índice de Oja | `src/ej1/oja.py` | Implementado |
 | 1 | 4. Decisión para las campañas | — | Pendiente |
-| 2 | 1. Recuperación de QR deteriorados | — | Pendiente |
+| 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` + `src/ej2/hopfield-runner.py` + `src/ej2/hopfield-qr-analisis.py` | Implementado |
 | 2 | 2. Recomendación (Hopfield 5×5) | `src/ej2/hopfield.py` + `src/ej2/hopfield-runner.py` | Implementado |
