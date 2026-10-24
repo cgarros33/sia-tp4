@@ -609,6 +609,39 @@ Observaciones técnicas:
 - El barrido elige por QE y no usa el TE como criterio; el TE se verifica
   después.
 
+### Perfiles de neuronas y mapa sobre el biplot
+
+- Script de análisis: `src/ej1/kohonen-perfiles.py`. Solo lee corridas finales
+  y resultados de 1.1; no entrena.
+- Salidas en `resultados/ej1/ej1.2-perfiles/<corrida>/`, con la semilla
+  representativa de cada corrida:
+  - `fig_mapa_biplot.png` y `neuronas_pcs.csv`: pesos de cada neurona
+    proyectados sobre PC1-PC2 (los de 27 variables con `s = w E`), aristas de
+    la grilla, creadores coloreados por su neurona y las 8 cargas más largas.
+  - `perfil_neuronas.csv`: promedio de las 31 variables originales, en sus
+    unidades, de los creadores de cada neurona, con sus nombres.
+  - `perfil_neuronas_z.csv` y `fig_perfil_neuronas.png`: el mismo perfil de las
+    27 variables del modelo en desvíos estándar respecto de los 50 creadores.
+- `alineacion_pcs.csv`: R² de `PC ~ fila + columna` sobre los pesos de las
+  neuronas, media sobre las 3 semillas. Mide cuánto de la variación de cada PC
+  entre neuronas sigue un gradiente lineal a lo largo de la grilla. Es
+  invariante a rotar o espejar la grilla. Con `k=3` hay solo 9 neuronas para 3
+  parámetros, así que el R² está inflado.
+
+| Corrida | PC1 | PC2 | PC3 | PC4 |
+|---|---:|---:|---:|---:|
+| 27 variables, k=3 | 0,990 | 0,677 | 0,603 | 0,941 |
+| 27 variables, k=4 | 0,932 | 0,618 | 0,150 | 0,199 |
+| 27 variables, k=5 | 0,922 | 0,571 | 0,069 | 0,058 |
+| PC1..PC10, k=3 | 0,972 | 0,791 | 0,437 | 0,905 |
+| PC1..PC10, k=4, exponencial | 0,873 | 0,630 | 0,057 | 0,473 |
+| PC1..PC10, k=4, euclidiana | 0,958 | 0,422 | 0,413 | 0,185 |
+| PC1..PC10, k=5 | 0,944 | 0,509 | 0,264 | 0,266 |
+
+- PC1 sigue un gradiente casi lineal de la grilla en todas las corridas
+  (R² 0,87–0,99). PC2 lo sigue en forma parcial (0,42–0,79); PC3 y PC4 no, salvo
+  en `k=3`.
+
 ### k = 4 con distancia euclidiana sobre PC1..PC10
 
 - En el paso 2 del barrido de `k=4`, `exponencial` le ganó a `euclidiana` por
@@ -1098,7 +1131,7 @@ Accuracy por letra:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 144 tests en verde.
+- `python3 -m pytest -q`: 150 tests en verde.
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.

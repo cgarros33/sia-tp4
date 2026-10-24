@@ -68,6 +68,7 @@ sia-tp4/
 │   │   │   ├── kohonen_k4_euclidiana/
 │   │   │   └── kohonen_k5/
 │   │   ├── ej1.2-comparacion/
+│   │   ├── ej1.2-perfiles/
 │   │   └── oja/
 │   │       ├── epocas_5/
 │   │       └── epocas_500/
@@ -99,6 +100,7 @@ sia-tp4/
 │   │   ├── kohonen-sweep-pca10.toml
 │   │   ├── kohonen-sweep-pca10-euclidiana.toml
 │   │   ├── kohonen-comparacion.py
+│   │   ├── kohonen-perfiles.py
 │   │   ├── oja.py
 │   │   └── oja.toml
 │   └── ej2/
@@ -112,6 +114,7 @@ sia-tp4/
     │   ├── test_kohonen.py
     │   ├── test_kohonen_sweep.py
     │   ├── test_kohonen_comparacion.py
+    │   ├── test_kohonen_perfiles.py
     │   └── test_oja.py
     └── ej2/
         ├── test_hopfield.py
@@ -226,6 +229,19 @@ python3 src/ej1/kohonen.py \
 
 ```bash
 python3 src/ej1/kohonen-comparacion.py
+```
+
+### Perfiles de neuronas y mapa sobre el biplot
+
+- Script: `src/ej1/kohonen-perfiles.py` (solo lee corridas finales).
+- Tests: `tests/ej1/test_kohonen_perfiles.py`.
+- Salida: `resultados/ej1/ej1.2-perfiles/` con `alineacion_pcs.csv`,
+  `alineacion_pcs_por_semilla.csv`, `resumen.txt` y una carpeta por corrida con
+  `neuronas_pcs.csv`, `perfil_neuronas.csv`, `perfil_neuronas_z.csv`,
+  `fig_mapa_biplot.png` y `fig_perfil_neuronas.png`.
+
+```bash
+python3 src/ej1/kohonen-perfiles.py
 ```
 
 ### Tests y lint
