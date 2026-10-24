@@ -20,6 +20,11 @@
 - Etapa actual: 1.3 implementado y ejecutado. La corrida final usa 5 épocas
   (`resultados/ej1/oja/epocas_5/`); la corrida de 500 épocas quedó archivada
   en `resultados/ej1/oja/epocas_500/`.
+- Ejercicio 2.1: Recuperación de códigos QR deteriorados.
+- El plan de 2.1 está en `docs/plan/ej2-1.md` y los modelos de ruido en
+  `docs/noise.md`.
+- Etapa actual: fase 0 completada; plan y decisiones registrados. La
+  implementación de las fases 1 a 10 queda pendiente.
 - Ejercicio 2.2: Recomendación (red de Hopfield de 5 × 5).
 - El plan de 2.2 está en `docs/plan/ej2-2.md`.
 - Etapa actual: 2.2 implementado y ejecutado; resultados en
@@ -788,6 +793,188 @@ Observaciones técnicas:
 - Pendiente: interpretación de resultados con el grupo, fuera de los archivos
   del proyecto.
 
+## Ejercicio 2.1 — Recuperación de códigos QR deteriorados
+
+### Alcance
+
+- El plan completo está en `docs/plan/ej2-1.md`.
+- Los modelos de ruido, niveles y decisiones están en `docs/noise.md`.
+- Los scripts van en `src/ej2/`: `hopfield.py` y `hopfield-runner.py` son
+  extensiones de los existentes; `hopfield-noise.py`, `hopfield-figures.py` y
+  `ruido.py` están previstos para las próximas fases.
+- Las configuraciones previstas son `src/ej2/hopfield-qr-hebb.toml`,
+  `src/ej2/hopfield-qr-personnaz.toml` y `src/ej2/hopfield-noise.toml`.
+- Los tests previstos son `tests/ej2/test_hopfield.py`,
+  `tests/ej2/test_hopfield_runner.py`, `tests/ej2/test_ruido.py`,
+  `tests/ej2/test_hopfield_noise.py` y `tests/ej2/test_hopfield_figures.py`.
+- Las salidas van en `resultados/ej2/hopfield/qr_37x37/`, con una carpeta por
+  regla de pesos, una carpeta por modelo de ruido y una carpeta consolidada.
+- Fase 0 completada. Las fases 1 a 10 se ejecutan una por vez, con una pausa
+  después de cada una.
+
+### Datos
+
+- `datos/hopfield/qr_37x37.csv` contiene los cinco QR: `beverages_menu_qr`,
+  `dessert_menu_qr`, `food_menu_qr`, `specials_menu_qr` y `wine_menu_qr`.
+- Cada patrón es una matriz de 37 × 37: `N = 1369`.
+- `1` representa negro y `-1` representa blanco.
+- El archivo es de solo lectura; ningún script de entrenamiento lo modifica.
+- `p/N = 0,003652` y el límite teórico `0,15N` es `205,35`. La capacidad no es
+  el problema del caso de uso.
+- El solapamiento absoluto medio entre pares es `0,670`; el máximo es `0,860`
+  para `food`–`wine`. La distancia de Hamming mínima es de 96 bits.
+
+### Pre-chequeo de las reglas de pesos
+
+Se ejecutó una verificación de solo lectura, en memoria, sin escribir archivos
+del proyecto.
+
+Con la regla de Hebb (`W = (1/N) Xᵀ X`, diagonal nula):
+
+- ninguno de los cinco patrones es punto fijo;
+- los cinco convergen en dos barridos al mismo estado espurio, que coincide con
+  el voto mayoritario `sign(Σ ξᵘ)`, con energía `−2172,8795`;
+- cualquier par de QR se almacena correctamente;
+- cualquier terna o conjunto mayor falla.
+
+Con la regla de Personnaz (`W = Xᵀ (X Xᵀ)⁻¹ X`, diagonal nula y matriz
+simetrizada):
+
+- los cinco patrones son puntos fijos;
+- con ruido aleatorio y 3 semillas × 5 repeticiones × 5 patrones, la exactitud
+  es 100% hasta el 40% de bits invertidos, 74,7% al 45% y 0% al 50%.
+
+El problema es el crosstalk entre patrones correlacionados, no la capacidad. La
+regla de Personnaz es una extensión documentada de la regla de Hebb: se usa para
+mostrar una recuperación viable y para comparar, no para reemplazar la línea de
+base teórica.
+
+### Modelo
+
+- Red de Hopfield discreta con estados `{-1, +1}`.
+- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
+- Energía `E(S) = -1/2 Sᵀ W S`.
+- Dinámica asincrónica secuencial por defecto; sincrónica disponible, pero no se
+  usa en esta corrida.
+- `max_barridos = 100`.
+- No se aplica normalización: los patrones ya son binarios. No hay split de
+  entrenamiento, validación y test; el ejercicio es una memoria asociativa. Los
+  cinco QR son los patrones almacenados y las versiones corruptas son la
+  evaluación. Es una excepción documentada al punto 2 de `CLAUDE.md`.
+- La regla del 15% es una guía para patrones poco correlacionados, no una
+  condición suficiente. La comparación entre Hebb y Personnaz separa capacidad
+  de ortogonalidad.
+
+### Regla de Personnaz
+
+- `W = Xᵀ (X Xᵀ)⁻¹ X`.
+- Diagonal nula y matriz simetrizada.
+- Es una regla cerrada, igual que Hebb; no hay aprendizaje iterativo.
+- Para este dataset, `X Xᵀ` tiene rango 5 y número de condición 26,4.
+- La diagonal nula es una aproximación: se verifica que los cinco patrones sigan
+  siendo puntos fijos después de anularla.
+- El límite práctico no es `0,15N`; el área de atracción se reduce al aumentar
+  la cantidad de patrones.
+- La configuración usa `modelo.regla_pesos = "hebb" | "personnaz"`. El valor por
+  defecto es `hebb`. La CLI agrega `--regla-pesos`. Las configuraciones viejas
+  sin esa clave se interpretan como `hebb` para no romper la corrida de 2.2.
+
+### Ruido
+
+Se ejecutan seis modelos individuales y una escalera de combinaciones. El
+detalle está en `docs/noise.md`.
+
+| # | Modelo | Parámetro nominal | Modo |
+|---|---|---|---|
+| 1 | `aleatorio` | fracción de bits invertidos | invierte |
+| 2 | `esquina` | lado del cuadrado en una esquina | borra a `-1` |
+| 3 | `finder` | borrado de patrón de localización | borra a `-1` |
+| 4 | `rayones` | cantidad de líneas completas | borra a `-1` |
+| 5 | `manchas` | cantidad y radio de discos | borra a `-1` |
+| 6 | `bloques` | fracción de bloques en una grilla 6 × 6 | borra a `-1` |
+
+Escalera de combinaciones:
+
+| Paso | Componentes activos | Nivel fijo |
+|---|---|---|
+| 1 | `aleatorio` | 5% de bits |
+| 2 | + `esquina` | 9 × 9 |
+| 3 | + `finder` | un finder de 7 × 7 |
+| 4 | + `rayones` | 2 líneas |
+| 5 | + `manchas` | 1 disco de radio 5 |
+| 6 | + `bloques` | 10% de bloques |
+
+- Se usan las semillas `[0, 1, 2]`, cinco repeticiones por patrón y los cinco
+  patrones.
+- Los niveles se fijan a priori y no se ajustan para mejorar la exactitud.
+- La consulta ruidosa es la misma para Hebb y Personnaz.
+- `fraccion_afectada` es la fracción de bits que efectivamente cambian respecto
+  del original, no el área nominal.
+- En las combinaciones, el borrado estructural tiene prioridad sobre un bit
+  invertido en la misma posición. Cada componente usa un flujo RNG derivado de
+  la semilla y del nombre del componente.
+
+### Métricas
+
+El runner actual ya guarda `barridos`, `actualizaciones`, `energia_inicial`,
+`energia_final`, `convergio`, `ciclo`, `motivo` y `energia.csv` por barrido. Se
+agregan, sin renombrar columnas existentes:
+
+- `hamming_inicial_origen`, `hamming_final_origen` y
+  `hamming_final_normalizado`;
+- `fraccion_afectada`;
+- `cambios_totales`;
+- `delta_energia` y `delta_energia_por_neurona`;
+- `monotona`.
+
+`distancia_hamming` se conserva como la distancia al patrón almacenado más
+cercano. Las columnas nuevas miden el error de reconstrucción respecto del
+origen. Se agrega `metricas.csv` por corrida con exactitud, tasas de
+incorrectos, espurios, ciclos y no convergencia, medias y desvíos de barridos,
+cambios y energía por neurona, y Hamming normalizado.
+
+La composición de errores distingue correcto, incorrecto, espurio, ciclo y no
+converge. La comparación entre Hebb y Personnaz usa exactitud, Hamming y
+barridos. La energía absoluta no se compara entre reglas porque la matriz de
+pesos cambia; se analiza dentro de cada regla con `E/N` y `ΔE/N`. Para Hebb, el
+estado espurio tiene menor energía que los cinco patrones almacenados, lo que
+explica la convergencia al voto mayoritario.
+
+### Figuras
+
+Todas las figuras se guardan y se regeneran desde los CSV con
+`src/ej2/hopfield-figures.py`, que solo lee resultados. Las principales son:
+
+- comparación de entrenamiento: solapamiento, Hamming, estado espurio, energía y
+  distribución de pesos;
+- por modelo: exactitud, composición de errores, iteraciones, energía, Hamming,
+  confusión, exactitud por patrón, boxplot de barridos y afectación real;
+- combinaciones: exactitud, iteraciones, energía, Hamming y mapa de calor por
+  paso;
+- globales: exactitud, iteraciones, energía, Hamming, comparación Hebb/Personnaz,
+  mapa de calor de exactitud, ejemplos cualitativos de QR, cuenca de atracción y
+  trayectorias de energía.
+
+### Reproducibilidad y reglas
+
+- Cada corrida usa semillas explícitas y guarda su configuración resuelta.
+- Cada resultado presentado es media ± desvío sobre tres semillas.
+- Las figuras se regeneran desde los CSV guardados.
+- No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
+  la biblioteca estándar.
+- Los scripts de entrenamiento escriben; los scripts de análisis y figuras solo
+  leen.
+- No se escribe en `datos/`.
+- No se commitea ni se pushea sin permiso explícito.
+
+### Estado
+
+- Fase 0: completada; plan, modelos de ruido y decisiones registrados.
+- Fases 1 a 10: pendientes de implementación, una por vez y con pausa después
+  de cada una.
+- Pendiente final: interpretación de resultados con el grupo, fuera de los
+  archivos del proyecto.
+
 ## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
 
 ### Alcance
@@ -797,7 +984,8 @@ Observaciones técnicas:
   `hopfield-runner.py`.
 - La configuración por defecto es `src/ej2/hopfield.toml`; la CLI pisa el TOML.
 - Las salidas van en `resultados/ej2/hopfield/<dataset>/`.
-- No se implementa todavía el análisis completo de 2.1.
+- El análisis de 2.1 se planifica por separado en `docs/plan/ej2-1.md` y sus
+  modelos de ruido en `docs/noise.md`.
 
 ### Datos
 
@@ -978,5 +1166,9 @@ Accuracy por letra:
 - Decidir el umbral definitivo comparando 90%, 95% y 99%.
 - Usar estos resultados como base para el resto de los subejercicios.
 - Interpretar en el informe qué significa cada componente para las campañas.
+- Ejecutar las fases 1 a 10 de 2.1: regla de Personnaz, métricas del runner,
+  seis modelos de ruido, combinaciones y figuras.
 - Interpretar con el grupo los resultados de 2.2, incluida la aparición de
   estados espurios y la caída de accuracy con el ruido.
+- Interpretar con el grupo las limitaciones de 2.1: correlación entre QR,
+  estados espurios y preprocesamiento de imágenes reales.
