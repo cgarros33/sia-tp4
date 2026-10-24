@@ -1,0 +1,3 @@
+parametro_a,parametro_b,mejor_valor_a,mejor_valor_b,qe_media,qe_base,adoptado
+eta_inicial,decaimiento_eta,0.30000000,exponencial,2.79781782,2.79799240,True
+radio_inicial_relativo,decaimiento_radio,0.30000000,constante,2.79781782,2.79781782,False
