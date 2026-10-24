@@ -1122,6 +1122,44 @@ def _guardar_resultados(
         float_format="%.8f",
     )
 
+    # Pesos y asignaciones de cada semilla, para que el análisis posterior
+    # pueda reportar media ± desvío sin volver a entrenar.
+    pesos_semillas = []
+    asignaciones_semillas = []
+    for resultado in resultados:
+        tabla_pesos = pd.DataFrame(resultado.pesos, columns=list(columnas))
+        tabla_pesos.insert(0, "columna", columnas_grilla)
+        tabla_pesos.insert(0, "fila", filas)
+        tabla_pesos.insert(0, "neurona", np.arange(k * k))
+        tabla_pesos.insert(0, "semilla", resultado.semilla)
+        pesos_semillas.append(tabla_pesos)
+
+        asignaciones_semillas.append(
+            pd.DataFrame(
+                {
+                    "semilla": resultado.semilla,
+                    "creator_id": datos["creator_id"].to_numpy(),
+                    "name": datos["name"].to_numpy(),
+                    "neurona": resultado.bmu,
+                    "fila": filas[resultado.bmu],
+                    "columna": columnas_grilla[resultado.bmu],
+                    "distancia_bmu": resultado.distancias_muestras[
+                        np.arange(len(datos)), resultado.bmu
+                    ],
+                }
+            )
+        )
+    pd.concat(pesos_semillas, ignore_index=True).to_csv(
+        ruta_salida / "pesos_semillas.csv",
+        index=False,
+        float_format="%.8f",
+    )
+    pd.concat(asignaciones_semillas, ignore_index=True).to_csv(
+        ruta_salida / "asignaciones_semillas.csv",
+        index=False,
+        float_format="%.8f",
+    )
+
     qes = np.array([resultado.qe for resultado in resultados], dtype=float)
     lineas = [
         "Resumen de ejecución — TP4, ejercicio 1.2 (Red de Kohonen)",
@@ -1151,6 +1189,8 @@ def _guardar_resultados(
         "  asignaciones.csv",
         "  matriz_u.csv",
         "  metricas.csv",
+        "  pesos_semillas.csv",
+        "  asignaciones_semillas.csv",
         "  fig_neuronas.png",
         "  fig_distribucion.png",
         "  fig_matriz_u.png",
