@@ -1,0 +1,5 @@
+regla,margen_positivo,consultas,exactitud,margen_medio
+hebb,False,171,0.0,-5.04093567251462
+hebb,True,1404,0.0,57.502849002849004
+pseudoinversa,False,171,0.011695906432748537,-5.04093567251462
+pseudoinversa,True,1404,0.9700854700854701,57.502849002849004

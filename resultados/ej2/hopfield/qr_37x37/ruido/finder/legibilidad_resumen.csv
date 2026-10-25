@@ -1,0 +1,7 @@
+modelo,orden_nivel,nivel,regla,legible_inicial_media,legible_inicial_desvio,lee_origen_inicial_media,lee_origen_inicial_desvio,legible_final_media,legible_final_desvio,lee_origen_final_media,lee_origen_final_desvio,semillas,consultas
+finder,0,1,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+finder,0,1,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+finder,1,2,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+finder,1,2,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+finder,2,3,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+finder,2,3,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
