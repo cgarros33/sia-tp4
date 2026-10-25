@@ -1,0 +1,12 @@
+[datos]
+ruta = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\datos\\hopfield\\qr_37x37.csv"
+
+[modelo]
+regla = "hebb"
+modo = "asincronica"
+orden = "secuencial"
+semilla = 0
+max_barridos = 100
+
+[salida]
+directorio = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\hebb"

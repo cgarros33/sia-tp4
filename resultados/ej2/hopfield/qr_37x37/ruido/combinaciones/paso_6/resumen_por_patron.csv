@@ -1,0 +1,11 @@
+modelo,orden_nivel,nivel,regla,nombre_origen,exactitud_media,exactitud_desvio
+combinaciones,5,paso_6,hebb,beverages_menu_qr,0.0,0.0
+combinaciones,5,paso_6,hebb,dessert_menu_qr,0.0,0.0
+combinaciones,5,paso_6,hebb,food_menu_qr,0.0,0.0
+combinaciones,5,paso_6,hebb,specials_menu_qr,0.0,0.0
+combinaciones,5,paso_6,hebb,wine_menu_qr,0.0,0.0
+combinaciones,5,paso_6,pseudoinversa,beverages_menu_qr,1.0,0.0
+combinaciones,5,paso_6,pseudoinversa,dessert_menu_qr,1.0,0.0
+combinaciones,5,paso_6,pseudoinversa,food_menu_qr,1.0,0.0
+combinaciones,5,paso_6,pseudoinversa,specials_menu_qr,1.0,0.0
+combinaciones,5,paso_6,pseudoinversa,wine_menu_qr,1.0,0.0

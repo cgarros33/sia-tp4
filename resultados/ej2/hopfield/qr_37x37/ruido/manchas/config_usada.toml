@@ -1,0 +1,22 @@
+[redes]
+hebb = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\hebb"
+pseudoinversa = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\pseudoinversa"
+
+[barrido]
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\ruido"
+
+[corrida]
+modelo = "manchas"
+etiquetas = ["1xr3", "1xr5", "1xr7", "1xr10", "2xr5", "3xr5"]
+componentes = ["manchas"]
+
+[niveles]
+1xr3 = [[1, 3]]
+1xr5 = [[1, 5]]
+1xr7 = [[1, 7]]
+1xr10 = [[1, 10]]
+2xr5 = [[2, 5]]
+3xr5 = [[3, 5]]

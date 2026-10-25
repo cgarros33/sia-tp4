@@ -1,0 +1,15 @@
+Ruido: esquina
+Media ± desvío muestral sobre semillas.
+
+  7        hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.31 | H/N 0.1045 | afectada 0.0225
+  7        pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0225
+  9        hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.44 | H/N 0.1045 | afectada 0.0322
+  9        pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0322
+  11       hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.40 | H/N 0.1045 | afectada 0.0471
+  11       pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0471
+  15       hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.43 | H/N 0.1045 | afectada 0.0867
+  15       pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0867
+  19       hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.43 | H/N 0.1045 | afectada 0.1347
+  19       pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.1347
+  23       hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.43 | H/N 0.1045 | afectada 0.1966
+  23       pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.08 | H/N 0.0000 | afectada 0.1966

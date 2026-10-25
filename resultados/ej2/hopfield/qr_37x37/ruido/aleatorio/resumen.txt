@@ -1,0 +1,25 @@
+Ruido: aleatorio
+Media ± desvío muestral sobre semillas.
+
+  0.02     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.03 | H/N 0.1045 | afectada 0.0197
+  0.02     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0197
+  0.05     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.03 | H/N 0.1045 | afectada 0.0497
+  0.05     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0497
+  0.1      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.17 | H/N 0.1045 | afectada 0.1001
+  0.1      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.1001
+  0.15     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.12 | H/N 0.1045 | afectada 0.1497
+  0.15     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.1497
+  0.2      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.21 | H/N 0.1045 | afectada 0.2001
+  0.2      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.2001
+  0.25     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.27 | H/N 0.1045 | afectada 0.2498
+  0.25     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.2498
+  0.3      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.29 | H/N 0.1045 | afectada 0.3002
+  0.3      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.3002
+  0.35     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.27 | H/N 0.1045 | afectada 0.3499
+  0.35     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.3499
+  0.4      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.28 | H/N 0.1045 | afectada 0.4003
+  0.4      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.09 | H/N 0.0000 | afectada 0.4003
+  0.45     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.35 | H/N 0.1045 | afectada 0.4500
+  0.45     pseudoinversa  exactitud 0.747 ± 0.101 | incorrecto 0.213 | espurio 0.040 | barridos 2.60 | H/N 0.0309 | afectada 0.4500
+  0.5      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.91 | H/N 0.5456 | afectada 0.4996
+  0.5      pseudoinversa  exactitud 0.000 ± 0.000 | incorrecto 0.413 | espurio 0.587 | barridos 2.80 | H/N 0.5322 | afectada 0.4996

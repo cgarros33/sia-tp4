@@ -1,0 +1,34 @@
+Red de Hopfield
+Dataset: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\datos\hopfield\qr_37x37.csv
+Regla: hebb
+Patrones: beverages_menu_qr, dessert_menu_qr, food_menu_qr, specials_menu_qr, wine_menu_qr
+Filas: 37
+Columnas: 37
+Neuronas: 1369
+Cantidad de patrones: 5
+Modo: asincronica
+Orden: secuencial
+Semilla: 0
+Máximo de barridos: 100
+
+Capacidad:
+  carga p/N = 0.003652
+  límite teórico = 205.350000
+  excede límite = False
+
+Ortogonalidad:
+  solapamiento absoluto medio = 0.670124
+  solapamiento absoluto máximo = 0.859752
+  Hamming mínimo = 96
+  Hamming medio = 225.800000
+  pares ortogonales = 0
+
+Puntos fijos: 0 de 5
+Tipos de resultado: {'espurio': 5}
+
+Detalle por patrón:
+  beverages_menu_qr: espurio, punto_fijo=False, barridos=2, energía_final=-2172.879474, margen_mínimo=-1.531045
+  dessert_menu_qr: espurio, punto_fijo=False, barridos=2, energía_final=-2172.879474, margen_mínimo=-1.545654
+  food_menu_qr: espurio, punto_fijo=False, barridos=2, energía_final=-2172.879474, margen_mínimo=-1.823229
+  specials_menu_qr: espurio, punto_fijo=False, barridos=2, energía_final=-2172.879474, margen_mínimo=-1.741417
+  wine_menu_qr: espurio, punto_fijo=False, barridos=2, energía_final=-2172.879474, margen_mínimo=-1.779401

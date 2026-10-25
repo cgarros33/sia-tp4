@@ -1,0 +1,9 @@
+Ruido: finder
+Media ± desvío muestral sobre semillas.
+
+  1        hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.40 | H/N 0.1045 | afectada 0.0241
+  1        pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0241
+  2        hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.60 | H/N 0.1045 | afectada 0.0482
+  2        pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0482
+  3        hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.80 | H/N 0.1045 | afectada 0.0723
+  3        pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0723

@@ -1,0 +1,15 @@
+Ruido: manchas
+Media ± desvío muestral sobre semillas.
+
+  1xr3     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.08 | H/N 0.1045 | afectada 0.0102
+  1xr3     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0102
+  1xr5     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.25 | H/N 0.1045 | afectada 0.0266
+  1xr5     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0266
+  1xr7     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.36 | H/N 0.1045 | afectada 0.0474
+  1xr7     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0474
+  1xr10    hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.36 | H/N 0.1045 | afectada 0.0933
+  1xr10    pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.01 | H/N 0.0000 | afectada 0.0933
+  2xr5     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.27 | H/N 0.1045 | afectada 0.0530
+  2xr5     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0530
+  3xr5     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.32 | H/N 0.1045 | afectada 0.0775
+  3xr5     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0775
