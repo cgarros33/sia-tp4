@@ -1,0 +1,36 @@
+# Barrido de ruido del ejercicio 2.1. Los niveles se fijaron a priori en
+# docs/noise.md y no se ajustan con los resultados.
+
+[redes]
+hebb = "resultados/ej2/hopfield/qr_37x37/hebb"
+pseudoinversa = "resultados/ej2/hopfield/qr_37x37/pseudoinversa"
+
+[barrido]
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "resultados/ej2/hopfield/qr_37x37/ruido"
+
+[niveles]
+# Fracción de bits invertidos.
+aleatorio = [0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
+# Lado del cuadrado borrado en una esquina.
+esquina = [7, 9, 11, 15, 19, 23]
+# Cantidad de finders de 7 × 7 borrados.
+finder = [1, 2, 3]
+# Cantidad de líneas completas.
+rayones = [1, 2, 4, 8, 12]
+# [cantidad, radio] de los discos.
+manchas = [[1, 3], [1, 5], [1, 7], [1, 10], [2, 5], [3, 5]]
+# Fracción de los 36 bloques completos de 6 × 6.
+bloques = [0.05, 0.10, 0.20, 0.30, 0.40]
+
+[combinaciones]
+# El paso k activa los primeros k componentes, cada uno en su nivel fijo.
+componentes = ["aleatorio", "esquina", "finder", "rayones", "manchas", "bloques"]
+aleatorio = 0.05
+esquina = 9
+finder = 1
+rayones = 2
+manchas = [1, 5]
+bloques = 0.10

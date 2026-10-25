@@ -800,3 +800,97 @@ def test_main_guarda_capacidad_por_subconjuntos(
     assert modulo.main(["--datos", str(RUTA_LETRAS), "--salida", str(salida)]) == 0
     tabla = pd.read_csv(salida / "capacidad_subconjuntos.csv")
     assert len(tabla) == 2**4 - 1
+
+
+RUTA_QR = RAIZ / "datos" / "hopfield" / "qr_37x37.csv"
+
+
+@pytest.fixture(scope="module")
+def dataset_qr(modulo: ModuleType):
+    """Los cinco QR reales del ejercicio 2.1."""
+    return modulo.cargar_dataset(RUTA_QR)
+
+
+def test_qr_reales_pseudoinversa_almacena_y_hebb_no(
+    modulo: ModuleType, dataset_qr
+) -> None:
+    """Con los cinco QR, la pseudo-inversa los fija y Hebb cae al voto mayoritario."""
+    pseudo = modulo.calcular_pesos(dataset_qr.patrones, "pseudoinversa")
+    hebb = modulo.calcular_pesos(dataset_qr.patrones, "hebb")
+    mezcla = modulo.estado_mezcla(dataset_qr.patrones)
+
+    for patron in dataset_qr.patrones:
+        assert modulo.calcular_margenes_estabilidad(pseudo, patron).min() > 0
+        assert modulo.calcular_margenes_estabilidad(hebb, patron).min() < 0
+        resultado = modulo.recuperar(hebb, patron)
+        assert resultado.convergio
+        assert np.array_equal(resultado.estado_final, mezcla)
+
+
+def test_calcular_condicion(modulo: ModuleType, dataset_qr) -> None:
+    """Rango y número de condición de X Xᵀ."""
+    ortogonales = np.array([[1, 1, 1, 1], [1, -1, 1, -1]])
+    condicion = modulo.calcular_condicion(ortogonales)
+    assert condicion == {"patrones": 2, "rango": 2, "numero_condicion": 1.0}
+
+    repetidos = np.array([[1, 1, -1, 1], [1, 1, -1, 1]])
+    assert modulo.calcular_condicion(repetidos)["rango"] == 1
+
+    qr = modulo.calcular_condicion(dataset_qr.patrones)
+    assert qr["rango"] == 5
+    assert qr["numero_condicion"] == pytest.approx(26.39, abs=0.01)
+
+
+def test_estado_mezcla(modulo: ModuleType) -> None:
+    """El estado mezcla es el voto mayoritario; un empate vale 1."""
+    patrones = np.array([[1, 1, -1, 1], [1, -1, -1, 1], [1, 1, -1, -1]])
+    assert modulo.estado_mezcla(patrones).tolist() == [1, 1, -1, 1]
+    assert modulo.estado_mezcla(patrones[:2]).tolist() == [1, 1, -1, 1]
+
+
+def test_calcular_energia_estados(modulo: ModuleType) -> None:
+    """Energía, energía por neurona y estabilidad de los patrones y la mezcla."""
+    patrones = np.array([[1, 1, 1, 1], [1, -1, 1, -1]])
+    pesos = modulo.calcular_pesos(patrones)
+    tabla = modulo.calcular_energia_estados(pesos, patrones, ("a", "b"))
+
+    assert tabla["estado"].tolist() == ["a", "b", "mezcla"]
+    for fila, estado in zip(
+        tabla.itertuples(), [*patrones, modulo.estado_mezcla(patrones)], strict=True
+    ):
+        energia = modulo.calcular_energia(pesos, estado)
+        assert fila.energia == pytest.approx(energia)
+        assert fila.energia_por_neurona == pytest.approx(energia / 4)
+    assert tabla["punto_fijo"].tolist()[:2] == [True, True]
+
+
+def test_main_guarda_condicion_y_energia_estados(
+    modulo: ModuleType, tmp_path: Path
+) -> None:
+    """El entrenamiento guarda la condición de X Xᵀ, las energías y la regla."""
+    salida = tmp_path / "red"
+    argumentos = ["--datos", str(RUTA_LETRAS), "--salida", str(salida)]
+    assert modulo.main(argumentos + ["--regla", "pseudoinversa"]) == 0
+
+    condicion = pd.read_csv(salida / "condicion.csv")
+    assert condicion.loc[0, "rango"] == 4
+    energias = pd.read_csv(salida / "energia_estados.csv")
+    assert energias["estado"].tolist() == ["J", "O", "T", "A", "mezcla"]
+    assert energias["punto_fijo"].tolist()[:4] == [True] * 4
+    resumen = (salida / "resumen.txt").read_text(encoding="utf-8")
+    assert "Regla: pseudoinversa" in resumen
+
+
+@pytest.mark.parametrize("regla", ["hebb", "pseudoinversa"])
+def test_configuraciones_qr(modulo: ModuleType, regla: str) -> None:
+    """Los TOML de QR fijan la regla, los datos y la carpeta de salida."""
+    cli = argparse.Namespace(config=RAIZ / "src" / "ej2" / f"hopfield-qr-{regla}.toml")
+    config = modulo.resolver_config(cli)
+
+    assert config["modelo"]["regla"] == regla
+    assert config["modelo"]["modo"] == "asincronica"
+    assert config["modelo"]["orden"] == "secuencial"
+    assert config["modelo"]["max_barridos"] == 100
+    assert Path(config["datos"]["ruta"]) == RUTA_QR
+    salida = Path(config["salida"]["directorio"]).as_posix()
+    assert salida.endswith(f"resultados/ej2/hopfield/qr_37x37/{regla}")

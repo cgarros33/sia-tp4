@@ -446,6 +446,146 @@ def test_main_deterioro_y_energia_detallada(
     assert len(detalle) == 1 + consultas["actualizaciones"].item()
 
 
+COLUMNAS_VIEJAS = [
+    "consulta",
+    "nombre_origen",
+    "indice_patron",
+    "repeticion",
+    "deterioro",
+    "ruido",
+    "semilla",
+    "hamming_inicial",
+    "tipo_resultado",
+    "nombre_final",
+    "distancia_hamming",
+    "nombre_mas_cercano",
+    "barridos",
+    "actualizaciones",
+    "energia_inicial",
+    "energia_final",
+    "convergio",
+    "ciclo",
+    "motivo",
+]
+COLUMNAS_NUEVAS = [
+    "hamming_final_origen",
+    "hamming_final_normalizado",
+    "fraccion_afectada",
+    "cambios_totales",
+    "delta_energia",
+    "delta_energia_por_neurona",
+    "monotona",
+]
+
+
+def _resultado_con_historial(
+    motor: ModuleType, energias: list[float], cambios: list[int]
+) -> object:
+    """Resultado sintético de 4 neuronas con la energía y los cambios dados."""
+    historial = [
+        motor.PasoEnergia(barrido=barrido, energia=energia, cambios=cambio)
+        for barrido, (energia, cambio) in enumerate(zip(energias, cambios, strict=True))
+    ]
+    return motor.ResultadoRecuperacion(
+        estado_inicial=np.array([1, -1, -1, 1]),
+        estado_final=np.array([1, 1, -1, -1]),
+        barridos=len(energias) - 1,
+        actualizaciones=4 * (len(energias) - 1),
+        energia_inicial=energias[0],
+        energia_final=energias[-1],
+        historial=historial,
+        convergio=True,
+        ciclo=False,
+        motivo="estable",
+    )
+
+
+def test_metricas_consulta(modulo: ModuleType, motor: ModuleType) -> None:
+    """Hamming respecto del origen, cambios y energía de una consulta."""
+    resultado = _resultado_con_historial(motor, [0.0, -2.0, -3.0, -3.0], [0, 2, 1, 0])
+    patron = np.array([1, 1, 1, 1])
+
+    metricas = modulo.metricas_consulta(resultado, patron)
+
+    assert list(metricas) == COLUMNAS_NUEVAS
+    assert metricas["hamming_final_origen"] == 2
+    assert metricas["hamming_final_normalizado"] == pytest.approx(0.5)
+    assert metricas["fraccion_afectada"] == pytest.approx(0.5)
+    assert metricas["cambios_totales"] == 3
+    assert metricas["delta_energia"] == pytest.approx(-3.0)
+    assert metricas["delta_energia_por_neurona"] == pytest.approx(-0.75)
+    assert metricas["monotona"] is True
+
+
+def test_metricas_consulta_no_monotona(modulo: ModuleType, motor: ModuleType) -> None:
+    """Una energía que sube entre barridos no es monotónica."""
+    resultado = _resultado_con_historial(motor, [0.0, -1.0, 0.5], [0, 1, 1])
+    assert modulo.metricas_consulta(resultado, np.ones(4))["monotona"] is False
+
+
+def test_resumir_metricas(modulo: ModuleType) -> None:
+    """Tasas por tipo de resultado y medias y desvíos de las métricas."""
+    consultas = pd.DataFrame(
+        {
+            "tipo_resultado": [
+                "almacenado_correcto",
+                "almacenado_correcto",
+                "espurio",
+                "almacenado_incorrecto",
+            ],
+            "barridos": [1, 2, 3, 2],
+            "actualizaciones": [4, 8, 12, 8],
+            "cambios_totales": [0, 1, 5, 2],
+            "delta_energia_por_neurona": [0.0, -0.5, -1.0, -0.5],
+            "hamming_final_normalizado": [0.0, 0.0, 0.5, 0.25],
+            "monotona": [True, True, True, False],
+        }
+    )
+
+    metricas = modulo.resumir_metricas(consultas)
+
+    assert metricas["consultas"] == 4
+    assert metricas["exactitud"] == pytest.approx(0.5)
+    assert metricas["tasa_incorrecto"] == pytest.approx(0.25)
+    assert metricas["tasa_espurio"] == pytest.approx(0.25)
+    assert metricas["tasa_ciclo"] == 0.0
+    assert metricas["tasa_no_converge"] == 0.0
+    assert metricas["barridos_media"] == pytest.approx(2.0)
+    assert metricas["barridos_desvio"] == pytest.approx(np.std([1, 2, 3, 2], ddof=1))
+    assert metricas["cambios_totales_media"] == pytest.approx(2.0)
+    assert metricas["hamming_final_normalizado_media"] == pytest.approx(0.1875)
+    assert metricas["proporcion_monotona"] == pytest.approx(0.75)
+
+
+def test_main_metricas_letras(modulo: ModuleType, tmp_path: Path) -> None:
+    """Las columnas nuevas se agregan al final y son coherentes con energia.csv."""
+    salida = tmp_path / "salida"
+    argumentos = ["--red", str(RAIZ / "resultados" / "ej2" / "hopfield" / "letras_5x5")]
+    argumentos += ["--ruido", "0.3", "--semilla", "0", "--repeticiones", "5"]
+    assert modulo.main(argumentos + ["--salida", str(salida)]) == 0
+
+    consultas = pd.read_csv(salida / "consultas.csv", keep_default_na=False)
+    assert list(consultas.columns) == COLUMNAS_VIEJAS + COLUMNAS_NUEVAS
+    assert consultas["monotona"].all()
+    assert (consultas["fraccion_afectada"] == consultas["hamming_inicial"] / 25).all()
+
+    energia = pd.read_csv(salida / "energia.csv").groupby("consulta", sort=False)
+    por_consulta = consultas.set_index("consulta")
+    np.testing.assert_array_equal(
+        energia["cambios"].sum()[por_consulta.index], por_consulta["cambios_totales"]
+    )
+    delta = energia["energia"].last() - energia["energia"].first()
+    np.testing.assert_allclose(delta[por_consulta.index], por_consulta["delta_energia"])
+    correctos = por_consulta["tipo_resultado"] == "almacenado_correcto"
+    assert (por_consulta.loc[correctos, "hamming_final_origen"] == 0).all()
+
+    metricas = pd.read_csv(salida / "metricas.csv")
+    assert len(metricas) == 1
+    assert metricas.loc[0, "consultas"] == 20
+    assert metricas.loc[0, "exactitud"] == pytest.approx(correctos.mean())
+    assert "Métricas agregadas:" in (salida / "resumen.txt").read_text(encoding="utf-8")
+
+
 RUTA_LETRAS_5X5 = RAIZ / "resultados" / "ej2" / "hopfield" / "letras_5x5"
 CORRIDAS_2_2 = [("limpias", 0.0, 0, 1)] + [
     (f"ruido_{nivel}_semilla_{semilla}", nivel, semilla, 5)

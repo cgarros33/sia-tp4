@@ -524,6 +524,28 @@ def calcular_capacidad(n_neuronas: int, n_patrones: int) -> dict[str, object]:
     }
 
 
+def calcular_condicion(patrones: np.ndarray) -> dict[str, object]:
+    """Rango y número de condición de la matriz de Gram ``X Xᵀ``.
+
+    La pseudo-inversa invierte ``X Xᵀ``: con rango completo y condición baja la
+    inversa es estable numéricamente.
+    """
+    arreglo = np.asarray(patrones, dtype=float)
+    if arreglo.ndim != 2 or arreglo.shape[0] == 0:
+        raise ValueError("Los patrones deben ser una matriz no vacía (p, N).")
+    gram = arreglo @ arreglo.T
+    return {
+        "patrones": int(arreglo.shape[0]),
+        "rango": int(np.linalg.matrix_rank(gram)),
+        "numero_condicion": float(np.linalg.cond(gram)),
+    }
+
+
+def estado_mezcla(patrones: np.ndarray) -> np.ndarray:
+    """Voto mayoritario ``sign(Σ ξᵘ)`` de los patrones; un empate vale 1."""
+    return np.where(np.asarray(patrones).sum(axis=0) >= 0, 1, -1).astype(np.int8)
+
+
 def calcular_margenes_estabilidad(
     pesos: np.ndarray,
     patron: np.ndarray,
@@ -532,6 +554,33 @@ def calcular_margenes_estabilidad(
     campos = calcular_campo_local(pesos, patron)
     vector = _validar_estado(patron, pesos.shape[0])
     return vector.astype(float) * campos
+
+
+def calcular_energia_estados(
+    pesos: np.ndarray, patrones: np.ndarray, nombres: Sequence[str]
+) -> pd.DataFrame:
+    """Energía y estabilidad de cada patrón almacenado y del estado mezcla.
+
+    Con patrones correlacionados y la regla de Hebb, el estado mezcla puede
+    tener menos energía que los patrones y atraer todas las consultas.
+    """
+    n_neuronas = pesos.shape[0]
+    estados = [*zip(nombres, patrones, strict=True)]
+    estados.append(("mezcla", estado_mezcla(patrones)))
+    filas = []
+    for nombre, estado in estados:
+        energia = calcular_energia(pesos, estado)
+        margen = float(calcular_margenes_estabilidad(pesos, estado).min())
+        filas.append(
+            {
+                "estado": nombre,
+                "energia": energia,
+                "energia_por_neurona": energia / n_neuronas,
+                "margen_minimo": margen,
+                "punto_fijo": margen >= -TOLERANCIA_EMPATE,
+            }
+        )
+    return pd.DataFrame(filas)
 
 
 def capacidad_por_subconjuntos(
@@ -1013,6 +1062,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     capacidad_por_subconjuntos(
         dataset.patrones, dataset.nombres, config["modelo"]["regla"]
     ).to_csv(directorio / "capacidad_subconjuntos.csv", index=False)
+    pd.DataFrame([calcular_condicion(dataset.patrones)]).to_csv(
+        directorio / "condicion.csv", index=False
+    )
+    calcular_energia_estados(pesos, dataset.patrones, dataset.nombres).to_csv(
+        directorio / "energia_estados.csv", index=False
+    )
     (directorio / "resumen.txt").write_text(
         construir_resumen(config, dataset, analisis),
         encoding="utf-8",

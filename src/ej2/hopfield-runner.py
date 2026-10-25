@@ -30,6 +30,22 @@ import pandas as pd
 RUTA_RED_POR_DEFECTO = Path("resultados") / "ej2" / "hopfield"
 DETERIOROS = ("ruido", "esquina", "manchas")
 LADO_MANCHA = 3
+# Margen para el redondeo al comparar energías de barridos consecutivos.
+TOLERANCIA_ENERGIA = 1e-9
+TASAS = {
+    "exactitud": "almacenado_correcto",
+    "tasa_incorrecto": "almacenado_incorrecto",
+    "tasa_espurio": "espurio",
+    "tasa_ciclo": "ciclo",
+    "tasa_no_converge": "no_converge",
+}
+METRICAS_RESUMIDAS = (
+    "barridos",
+    "actualizaciones",
+    "cambios_totales",
+    "delta_energia_por_neurona",
+    "hamming_final_normalizado",
+)
 
 
 def _cargar_motor() -> ModuleType:
@@ -221,6 +237,43 @@ def clasificar_consulta(
     )
 
 
+def metricas_consulta(resultado: Any, patron_origen: np.ndarray) -> dict[str, object]:
+    """Error de reconstrucción respecto del origen, cambios y energía de una consulta.
+
+    A diferencia de ``distancia_hamming`` (al patrón almacenado más cercano),
+    las distancias se miden contra el patrón del que salió la consulta.
+    """
+    origen = np.asarray(patron_origen)
+    n_neuronas = origen.size
+    hamming_inicial = int(np.count_nonzero(resultado.estado_inicial != origen))
+    hamming_final = int(np.count_nonzero(resultado.estado_final != origen))
+    energias = np.array([paso.energia for paso in resultado.historial])
+    delta = float(resultado.energia_final - resultado.energia_inicial)
+    return {
+        "hamming_final_origen": hamming_final,
+        "hamming_final_normalizado": hamming_final / n_neuronas,
+        "fraccion_afectada": hamming_inicial / n_neuronas,
+        "cambios_totales": int(sum(paso.cambios for paso in resultado.historial)),
+        "delta_energia": delta,
+        "delta_energia_por_neurona": delta / n_neuronas,
+        "monotona": bool(np.all(np.diff(energias) <= TOLERANCIA_ENERGIA)),
+    }
+
+
+def resumir_metricas(consultas: pd.DataFrame) -> dict[str, object]:
+    """Tasas por tipo de resultado y media y desvío muestral de las métricas."""
+    tipos = consultas["tipo_resultado"]
+    resumen: dict[str, object] = {"consultas": len(consultas)}
+    resumen.update(
+        {nombre: float(np.mean(tipos == tipo)) for nombre, tipo in TASAS.items()}
+    )
+    for metrica in METRICAS_RESUMIDAS:
+        resumen[f"{metrica}_media"] = float(consultas[metrica].mean())
+        resumen[f"{metrica}_desvio"] = float(consultas[metrica].std(ddof=1))
+    resumen["proporcion_monotona"] = float(consultas["monotona"].mean())
+    return resumen
+
+
 def _dataframe_estados(
     registros: list[tuple[str, np.ndarray]],
     filas: int,
@@ -269,6 +322,7 @@ def construir_resumen(
     ruido: float,
     semilla: int,
     repeticiones: int,
+    metricas: dict[str, object],
 ) -> str:
     """Construye el resumen textual de una corrida del runner."""
     tipos = consultas["tipo_resultado"].value_counts().to_dict()
@@ -286,6 +340,9 @@ def construir_resumen(
         f"Repeticiones: {repeticiones}",
         f"Cantidad de consultas: {len(consultas)}",
         f"Tipos de resultado: {tipos}",
+        "",
+        "Métricas agregadas:",
+        *(f"  {clave} = {valor:.6g}" for clave, valor in metricas.items()),
         "",
         "Detalle por consulta:",
     ]
@@ -457,6 +514,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "convergio": resultado.convergio,
                     "ciclo": resultado.ciclo,
                     "motivo": resultado.motivo,
+                    **metricas_consulta(resultado, patron),
                 }
             )
 
@@ -501,7 +559,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     tabla_iniciales = _dataframe_estados(estados_iniciales, red.filas, red.columnas)
     tabla_finales = _dataframe_estados(estados_finales, red.filas, red.columnas)
 
+    metricas = resumir_metricas(tabla_consultas)
+
     tabla_consultas.to_csv(salida / "consultas.csv", index=False)
+    pd.DataFrame([metricas]).to_csv(salida / "metricas.csv", index=False)
     tabla_energia.to_csv(salida / "energia.csv", index=False)
     tabla_iniciales.to_csv(salida / "estados_iniciales.csv", index=False)
     tabla_finales.to_csv(salida / "estados_finales.csv", index=False)
@@ -519,6 +580,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             argumentos.ruido,
             argumentos.semilla,
             argumentos.repeticiones,
+            metricas,
         ),
         encoding="utf-8",
     )
