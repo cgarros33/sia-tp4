@@ -1,10 +1,12 @@
-Consultas de Hopfield — Ejercicio 2.2
-Red: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5
-Dataset de consulta: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5/patrones.csv
+Consultas de Hopfield
+Red: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5
+Dataset de consulta: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5\patrones.csv
+Regla: hebb
 Modo: asincronica
 Orden: secuencial
 Máximo de barridos: 100
-Ruido: 0.3
+Deterioro: ruido
+Nivel: 0.3
 Semilla: 2
 Repeticiones: 5
 Cantidad de consultas: 20
@@ -23,10 +25,10 @@ Detalle por consulta:
   O_rep4: almacenado_correcto, nombre_final=O, distancia_hamming=0, barridos=2, energía_final=-12.160000
   T_rep0: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=3, energía_final=-12.000000
   T_rep1: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=2, energía_final=-12.000000
-  T_rep2: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=4, energía_final=-12.000000
+  T_rep2: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=2, energía_final=-12.000000
   T_rep3: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=2, energía_final=-12.000000
   T_rep4: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=2, energía_final=-12.000000
-  A_rep0: espurio, nombre_final=-, distancia_hamming=10, barridos=3, energía_final=-12.000000
+  A_rep0: espurio, nombre_final=-, distancia_hamming=8, barridos=2, energía_final=-11.360000
   A_rep1: almacenado_correcto, nombre_final=A, distancia_hamming=0, barridos=2, energía_final=-12.800000
   A_rep2: almacenado_correcto, nombre_final=A, distancia_hamming=0, barridos=3, energía_final=-12.800000
   A_rep3: almacenado_correcto, nombre_final=A, distancia_hamming=0, barridos=2, energía_final=-12.800000

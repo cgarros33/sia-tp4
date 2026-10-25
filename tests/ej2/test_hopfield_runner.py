@@ -444,3 +444,41 @@ def test_main_deterioro_y_energia_detallada(
     detalle = pd.read_csv(salida / "energia_actualizaciones.csv")
     assert list(detalle.columns) == ["consulta", "actualizacion", "energia"]
     assert len(detalle) == 1 + consultas["actualizaciones"].item()
+
+
+RUTA_LETRAS_5X5 = RAIZ / "resultados" / "ej2" / "hopfield" / "letras_5x5"
+CORRIDAS_2_2 = [("limpias", 0.0, 0, 1)] + [
+    (f"ruido_{nivel}_semilla_{semilla}", nivel, semilla, 5)
+    for nivel in (0.1, 0.2, 0.3, 0.4, 0.5)
+    for semilla in (0, 1, 2)
+]
+
+
+@pytest.mark.parametrize(("carpeta", "ruido", "semilla", "repeticiones"), CORRIDAS_2_2)
+def test_regresion_letras_5x5(
+    modulo: ModuleType,
+    tmp_path: Path,
+    carpeta: str,
+    ruido: float,
+    semilla: int,
+    repeticiones: int,
+) -> None:
+    """El runner reproduce las consultas guardadas de 2.2 sin escribir en resultados/."""
+    guardada = RUTA_LETRAS_5X5 / "consultas" / carpeta
+    salida = tmp_path / carpeta
+    argumentos = ["--red", str(RUTA_LETRAS_5X5), "--salida", str(salida)]
+    argumentos += ["--ruido", str(ruido), "--semilla", str(semilla)]
+    argumentos += ["--repeticiones", str(repeticiones)]
+    assert modulo.main(argumentos) == 0
+
+    esperada = pd.read_csv(guardada / "consultas.csv", keep_default_na=False)
+    obtenida = pd.read_csv(salida / "consultas.csv", keep_default_na=False)
+    for columna in esperada.columns:
+        if esperada[columna].dtype.kind == "f":
+            np.testing.assert_allclose(obtenida[columna], esperada[columna], atol=1e-9)
+        else:
+            assert obtenida[columna].tolist() == esperada[columna].tolist(), columna
+    pd.testing.assert_frame_equal(
+        pd.read_csv(salida / "estados_finales.csv"),
+        pd.read_csv(guardada / "estados_finales.csv"),
+    )

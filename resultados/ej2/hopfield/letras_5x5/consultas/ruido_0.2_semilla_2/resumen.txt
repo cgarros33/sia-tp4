@@ -1,10 +1,12 @@
-Consultas de Hopfield — Ejercicio 2.2
-Red: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5
-Dataset de consulta: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5/patrones.csv
+Consultas de Hopfield
+Red: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5
+Dataset de consulta: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5\patrones.csv
+Regla: hebb
 Modo: asincronica
 Orden: secuencial
 Máximo de barridos: 100
-Ruido: 0.2
+Deterioro: ruido
+Nivel: 0.2
 Semilla: 2
 Repeticiones: 5
 Cantidad de consultas: 20

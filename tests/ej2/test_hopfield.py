@@ -291,6 +291,66 @@ def test_empate_conserva_estado(modulo: ModuleType) -> None:
     assert all(paso.energia == 0.0 for paso in resultado.historial)
 
 
+def _pesos_con_empate() -> tuple[np.ndarray, np.ndarray]:
+    """Red de 4 neuronas donde h_0 = 0,1 + 0,2 - 0,3 = 0 en aritmética exacta.
+
+    Las neuronas 1, 2 y 3 están ancladas por acoplamientos fuertes, así que el
+    estado es punto fijo solo si el empate de la neurona 0 conserva su valor.
+    """
+    pesos = np.array(
+        [
+            [0.0, 0.1, 0.2, -0.3],
+            [0.1, 0.0, 1.0, 1.0],
+            [0.2, 1.0, 0.0, 1.0],
+            [-0.3, 1.0, 1.0, 0.0],
+        ]
+    )
+    return pesos, np.array([-1, 1, 1, 1], dtype=int)
+
+
+def test_empate_numerico_conserva_estado(modulo: ModuleType) -> None:
+    """Un campo nulo con residuo de redondeo cuenta como empate en ambos modos."""
+    campo = 0.1 + 0.2 - 0.3
+    assert campo != 0.0
+    assert modulo.actualizar_neurona(campo, -1) == -1
+    assert modulo.actualizar_neurona(-campo, 1) == 1
+    assert modulo.actualizar_neurona(10 * modulo.TOLERANCIA_EMPATE, -1) == 1
+
+    pesos, estado = _pesos_con_empate()
+    for modo in modulo.MODOS:
+        resultado = modulo.recuperar(pesos, estado, modo=modo, max_barridos=5)
+        assert resultado.convergio, modo
+        assert resultado.barridos == 1, modo
+        assert np.array_equal(resultado.estado_final, estado), modo
+
+
+def test_empate_cuenta_como_punto_fijo(modulo: ModuleType) -> None:
+    """Un margen nulo es punto fijo en el análisis y en la capacidad."""
+    pesos, estado = _pesos_con_empate()
+    dataset = modulo.Dataset(
+        nombres=("a",), patrones=estado[None, :].astype(np.int8), filas=2, columnas=2
+    )
+    analisis = modulo.analizar_red(
+        dataset,
+        pesos,
+        modo="asincronica",
+        orden="secuencial",
+        max_barridos=5,
+        semilla=0,
+    )
+    fila = analisis.estabilidad.iloc[0]
+    assert fila["punto_fijo"]
+    assert fila["neuronas_empate"] == 1
+    assert fila["neuronas_inestables"] == 0
+
+    # Con Hebb, la cuarta neurona de ambos patrones tiene margen exactamente 0.
+    patrones = np.array([[1, 1, 1, 1], [1, 1, 1, -1]])
+    tabla = modulo.capacidad_por_subconjuntos(patrones, ("a", "b"), "hebb")
+    par = tabla[tabla["cantidad"] == 2].iloc[0]
+    assert par["margen_minimo"] == 0.0
+    assert par["todos_estables"]
+
+
 def test_ciclo_sincronico(modulo: ModuleType) -> None:
     """La dinámica sincrónica debe detectar un ciclo de dos estados."""
     pesos = np.array([[0.0, 1.0], [1.0, 0.0]])

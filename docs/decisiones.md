@@ -1192,7 +1192,10 @@ Todas las figuras se guardan y se regeneran desde los CSV con
 
 - Hopfield discreto con estados `{-1, +1}`.
 - Pesos `W = (1/N) Xᵀ X`, diagonal nula y matriz simétrica.
-- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
+- Campo local `h_i = Σ_j W_ij S_j`; un empate `|h_i| ≤ 1e-9` conserva el estado,
+  en los dos modos. La tolerancia absorbe los residuos de redondeo (del orden de
+  `1e-17`) que aparecen donde la aritmética exacta da 0: con letras, los pesos
+  son múltiplos de `0.04` y los empates exactos son frecuentes.
 - Energía `E(S) = -1/2 Sᵀ W S`.
 - Actualización asincrónica secuencial por defecto; sincrónica opcional.
 - El almacenamiento es Hebbiano en forma cerrada; la iteración hasta el estado
@@ -1264,24 +1267,31 @@ las 3 semillas.
 | Ruido | Bits invertidos | Accuracy media ± std | Correctos | Incorrectos | Espurios |
 |---:|---:|---:|---:|---:|---:|
 | 0.1 | 2 | 0.983333 ± 0.028868 | 59 | 0 | 1 |
-| 0.2 | 5 | 0.783333 ± 0.125831 | 47 | 4 | 9 |
-| 0.3 | 8 | 0.600000 ± 0.132288 | 36 | 11 | 13 |
-| 0.4 | 10 | 0.250000 ± 0.050000 | 15 | 18 | 27 |
-| 0.5 | 12 | 0.083333 ± 0.028868 | 5 | 28 | 27 |
+| 0.2 | 5 | 0.783333 ± 0.104083 | 47 | 3 | 10 |
+| 0.3 | 8 | 0.566667 ± 0.160728 | 34 | 10 | 16 |
+| 0.4 | 10 | 0.233333 ± 0.028868 | 14 | 17 | 29 |
+| 0.5 | 12 | 0.050000 ± 0.000000 | 3 | 26 | 31 |
 
 Accuracy por letra:
 
 | Ruido | A | J | O | T |
 |---:|---:|---:|---:|---:|
 | 0.1 | 0.933333 | 1.000000 | 1.000000 | 1.000000 |
-| 0.2 | 0.733333 | 0.733333 | 0.733333 | 0.933333 |
-| 0.3 | 0.533333 | 0.466667 | 0.666667 | 0.733333 |
-| 0.4 | 0.266667 | 0.200000 | 0.333333 | 0.200000 |
-| 0.5 | 0.133333 | 0.000000 | 0.066667 | 0.133333 |
+| 0.2 | 0.733333 | 0.800000 | 0.733333 | 0.866667 |
+| 0.3 | 0.533333 | 0.400000 | 0.666667 | 0.666667 |
+| 0.4 | 0.266667 | 0.266667 | 0.333333 | 0.066667 |
+| 0.5 | 0.133333 | 0.000000 | 0.066667 | 0.000000 |
 
 - La recuperación cae rápido con el ruido. A partir de 0.4 dominan los estados
   espurios y las asociaciones incorrectas.
-- `T` es la letra más robusta entre 0.1 y 0.3; `A` es la más frágil.
+- `T` es la letra más robusta en 0.2 y empata con `O` en 0.3, pero es la que
+  más cae en 0.4. `A` es la única que falla con ruido 0.1 y `J` es la más
+  frágil en 0.3.
+- Las consultas se regeneraron con la tolerancia de empate `|h_i| ≤ 1e-9`. Los
+  estados iniciales no cambiaron; 14 de las 300 consultas ruidosas cambiaron de
+  tipo de resultado. Las 304 consultas (limpias y ruidosas) coinciden ahora, en
+  estado final y barridos, con la dinámica en aritmética exacta. La versión
+  anterior de esta tabla queda en el historial de git.
 
 ### Estado espurio
 
@@ -1301,6 +1311,8 @@ Accuracy por letra:
 
 - En el mismo nivel aparecen otros espurios; con ruido `0.1` ya hay uno en la
   semilla `2`.
+- El caso no cambia al regenerar las consultas con la tolerancia de empate:
+  mismo estado final, mismos barridos y misma energía.
 
 ### Reproducibilidad
 

@@ -33,6 +33,10 @@ RUTA_CONFIG = RAIZ / "src" / "ej2" / "hopfield.toml"
 MODOS = ("asincronica", "sincronica")
 ORDENES = ("secuencial", "aleatorio")
 REGLAS = ("hebb", "pseudoinversa")
+# Un campo local con |h| <= TOLERANCIA_EMPATE es un empate: el redondeo de punto
+# flotante deja residuos del orden de 1e-17 donde la aritmética exacta da 0, y
+# su signo depende del orden de suma (de la plataforma).
+TOLERANCIA_EMPATE = 1e-9
 
 CONFIG_POR_DEFECTO: dict = {
     "datos": {
@@ -270,9 +274,9 @@ def actualizar_neurona(campo: float, estado_actual: int) -> int:
     """Aplica la función de activación con empate conservador."""
     if estado_actual not in (-1, 1):
         raise ValueError("El estado de una neurona debe ser 1 o -1.")
-    if campo > 0.0:
+    if campo > TOLERANCIA_EMPATE:
         return 1
-    if campo < 0.0:
+    if campo < -TOLERANCIA_EMPATE:
         return -1
     return int(estado_actual)
 
@@ -353,9 +357,9 @@ def recuperar(
         else:
             campos = pesos @ estado.astype(float)
             nuevo_estado = np.where(
-                campos > 0.0,
+                campos > TOLERANCIA_EMPATE,
                 1,
-                np.where(campos < 0.0, -1, estado),
+                np.where(campos < -TOLERANCIA_EMPATE, -1, estado),
             ).astype(np.int8)
             cambios = int(np.count_nonzero(nuevo_estado != estado))
             estado = nuevo_estado
@@ -549,7 +553,7 @@ def capacidad_por_subconjuntos(
                 float(calcular_margenes_estabilidad(pesos, patron).min())
                 for patron in subconjunto
             ]
-            estables = sum(margen > 0.0 for margen in margenes)
+            estables = sum(margen >= -TOLERANCIA_EMPATE for margen in margenes)
             filas.append(
                 {
                     "cantidad": cantidad,
@@ -590,7 +594,7 @@ def analizar_red(
         )
         margenes = calcular_margenes_estabilidad(pesos, patron)
         campos = calcular_campo_local(pesos, patron)
-        punto_fijo = bool(np.all(margenes >= 0.0))
+        punto_fijo = bool(np.all(margenes >= -TOLERANCIA_EMPATE))
         clasificacion = clasificar_estado(
             resultado.estado_final,
             dataset.patrones,
@@ -618,8 +622,8 @@ def analizar_red(
                 "nombre_final": nombre_final,
                 "distancia_hamming": clasificacion.distancia_minima,
                 "margen_minimo": float(margenes.min()),
-                "neuronas_inestables": int((margenes < 0.0).sum()),
-                "neuronas_empate": int((margenes == 0.0).sum()),
+                "neuronas_inestables": int((margenes < -TOLERANCIA_EMPATE).sum()),
+                "neuronas_empate": int((np.abs(margenes) <= TOLERANCIA_EMPATE).sum()),
                 "barridos": resultado.barridos,
                 "actualizaciones": resultado.actualizaciones,
                 "energia_inicial": resultado.energia_inicial,
