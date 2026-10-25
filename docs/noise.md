@@ -16,10 +16,11 @@ antes de ejecutar el barrido. Los resultados numéricos van a
   `food_menu_qr`, `specials_menu_qr` y `wine_menu_qr`.
 - El archivo de entrada es de solo lectura.
 - La consulta ruidosa se genera a partir del patrón original y se usa con las
-  dos reglas de pesos, Hebb y Personnaz, para que la comparación sea justa.
+  dos reglas de pesos, Hebb y pseudo-inversa (regla de Personnaz), para que la
+  comparación sea justa.
 - `fraccion_afectada` es la fracción de bits que efectivamente cambian respecto
   del original. No es el área nominal del cuadrado, el disco o la línea.
-- `hamming_inicial_origen` es la cantidad de bits cambiados por el ruido.
+- `hamming_inicial` es la cantidad de bits cambiados por el ruido.
 - `hamming_final_origen` es la cantidad de bits que quedan distintos del
   original después de la recuperación.
 
@@ -27,13 +28,17 @@ antes de ejecutar el barrido. Los resultados numéricos van a
 
 1. **Reproducibilidad:** cada consulta usa una semilla explícita y un
    `numpy.random.Generator`. La misma semilla y el mismo nivel producen la
-   misma consulta.
+   misma consulta. `aleatorio` usa `default_rng(semilla)` y cada modelo
+   estructural usa `default_rng([semilla, código])`, con `esquina = 1`,
+   `finder = 2`, `rayones = 3`, `manchas = 4` y `bloques = 5`. Cada flujo se
+   recorre en orden patrón → repetición. `aleatorio` usa el mismo flujo que el
+   runner, así que reproduce la corrida preliminar de `ruido`.
 2. **Comparabilidad:** todos los modelos registran la fracción afectada real.
    Las figuras globales usan esa fracción, no solo el parámetro nominal.
 3. **Realismo:** los modelos cubren desgaste genérico, esquina rota, borrado de
    un finder, rayones, manchas y faltantes grandes.
 4. **Independencia del modelo:** la consulta ruidosa no depende de la regla de
-   pesos. Hebb y Personnaz reciben exactamente el mismo estado inicial.
+   pesos. Hebb y pseudo-inversa reciben exactamente el mismo estado inicial.
 5. **Niveles fijados a priori:** los niveles se eligen antes de ver los
    resultados y no se ajustan para mejorar la exactitud.
 6. **Media ± desvío:** se usan tres semillas, cinco repeticiones por patrón y
@@ -89,7 +94,7 @@ invierte su bit.
 | 0.20 | 274 |
 | 0.30 | 411 |
 | 0.40 | 548 |
-| 0.50 | 685 |
+| 0.50 | 684 |
 
 **Qué mide:** el tamaño del área de atracción de cada patrón almacenado. Es la
 línea de base del ejercicio y la única que usa inversión de bits.
@@ -115,7 +120,9 @@ Original        Consulta con 5% de bits invertidos
 
 **Definición:** se elige una esquina y se borra un cuadrado de lado `L`,
 poniendo sus píxeles en `-1` (blanco). La esquina se elige al azar entre las
-cuatro en cada repetición. La elección se registra.
+cuatro, con igual probabilidad, en cada repetición. La elección se registra.
+Tres de las cuatro esquinas tienen un finder: con `L = 7` en esas esquinas el
+borrado coincide con el del finder.
 
 **Parámetros:**
 
@@ -164,28 +171,33 @@ Original        Esquina inferior derecha borrada
 
 ### 4.4 Borrado de finder
 
-**Definición:** se elige uno de los tres patrones de localización del QR
-(superior izquierda, superior derecha o inferior izquierda) y se borra a
-blanco. El nivel puede incluir solo el finder de 7 × 7 o también su separador,
-con un cuadrado de 9 × 9. También se prueban dos y tres finders.
+**Definición:** se eligen al azar `cantidad` de los tres patrones de
+localización del QR (superior izquierda, superior derecha o inferior izquierda)
+y se borra a blanco su cuadrado de 7 × 7.
+
+Los QR son de versión 5 (37 × 37 módulos) y no tienen zona de silencio: los
+finders ocupan las filas y columnas `0–6`, con esquinas en `(0, 0)`, `(0, 30)` y
+`(30, 0)`. Cada uno tiene 33 píxeles negros y los tres son idénticos en los
+cinco QR. El separador que rodea al finder ya es blanco, así que borrarlo no
+agrega daño; un cuadrado de 9 × 9 anclado en la esquina coincide con `esquina`
+con `L = 9`. Por eso no hay nivel de 9 × 9.
 
 **Parámetros:**
 
-- `tamano`: `7` (finder) o `9` (finder + separador).
-- `cantidad`: 1, 2 o 3 finders.
-- `finder`: posición elegida al azar entre las disponibles.
+- `cantidad`: 1, 2 o 3 finders de 7 × 7.
+- `finders`: posiciones elegidas al azar, sin repetición, y registradas.
 
 **Niveles:**
 
 ```text
 1 finder de 7x7
-1 finder de 9x9
 2 finders de 7x7
 3 finders de 7x7
 ```
 
-**Fracción nominal aproximada:** 3,6% (7 × 7), 5,9% (9 × 9), 7,2% (dos de
-7 × 7) y 10,8% (tres de 7 × 7), antes de descontar píxeles que ya eran blancos.
+**Fracción nominal:** 3,6% (uno), 7,2% (dos) y 10,7% (tres). Como los finders
+tienen siempre 33 píxeles negros, la fracción real es exacta: 2,41%, 4,82% y
+7,23%.
 
 **Qué mide:** el caso central de la consigna: una esquina rota que afecta un
 patrón de localización. Es el daño estructural más específico de un QR.
@@ -209,17 +221,20 @@ Original        Finder superior izquierdo borrado
 
 ### 4.5 Rayones
 
-**Definición:** se trazan líneas rectas completas sobre la imagen, con
-orientación horizontal, vertical o diagonal, y se borran a blanco los píxeles
-que caen sobre ellas. El grosor es de un píxel. La posición y la orientación se
-eligen al azar y se registran.
+**Definición:** se trazan líneas rectas completas sobre la imagen y se borran a
+blanco los píxeles que caen sobre ellas. El grosor es de un píxel. Cada línea
+elige una orientación entre cuatro, con igual probabilidad (horizontal,
+vertical, diagonal descendente `↘` o diagonal ascendente `↗`), pasa por un
+píxel elegido al azar entre los 1369 y se extiende de borde a borde. Las
+diagonales que pasan cerca de una esquina son más cortas. Las líneas son
+independientes y pueden cruzarse. La orientación y el píxel se registran.
 
 **Parámetros:**
 
 - `cantidad`: número de líneas.
 - `grosor`: 1 píxel.
 - `largo`: completo, de borde a borde.
-- `orientacion`: horizontal, vertical o diagonal.
+- `orientacion`: horizontal, vertical, diagonal `↘` o diagonal `↗`.
 
 **Niveles:**
 
@@ -252,8 +267,10 @@ Original        Dos rayones
 
 ### 4.6 Manchas
 
-**Definición:** se eligen uno o más centros al azar y se borra un disco de
-radio `r`, poniendo sus píxeles en `-1` (blanco). Los centros y radios se
+**Definición:** se eligen uno o más centros al azar entre los 1369 píxeles y
+se borra un disco de radio `r`, poniendo en `-1` (blanco) los píxeles con
+`(i − ci)² + (j − cj)² ≤ r²`. El disco se recorta en el borde de la imagen.
+Las manchas son independientes y pueden solaparse. Los centros y radios se
 registran.
 
 **Parámetros:**
@@ -279,7 +296,7 @@ registran.
 |---|---:|---:|
 | 1 × r3 | 29 | 2,1% |
 | 1 × r5 | 81 | 5,9% |
-| 1 × r7 | 154 | 11,2% |
+| 1 × r7 | 149 | 10,9% |
 | 1 × r10 | 317 | 23,2% |
 | 2 × r5 | 162 | 11,8% |
 | 3 × r5 | 243 | 17,7% |
@@ -305,13 +322,14 @@ Original        Mancha de radio 5
 
 ### 4.7 Bloques borrados
 
-**Definición:** se divide la imagen en una grilla de bloques de 6 × 6 píxeles
-(la última fila y la última columna pueden quedar parciales). Se elige una
-fracción de bloques al azar y se borran completos a `-1` (blanco).
+**Definición:** se divide la imagen en una grilla de bloques de 6 × 6 píxeles.
+Como `37 = 6 · 6 + 1`, hay 36 bloques completos (filas y columnas `0–35`); la
+última fila y la última columna, de 1 píxel, no se usan. Se eligen al azar, sin
+repetición, `round(f · 36)` bloques completos y se borran a `-1` (blanco).
 
 **Parámetros:**
 
-- `fraccion`: fracción de bloques a borrar.
+- `fraccion`: fracción de los 36 bloques a borrar.
 - `tamano_bloque`: 6 × 6.
 - `bloques`: índices elegidos, registrados.
 
@@ -320,6 +338,10 @@ fracción de bloques al azar y se borran completos a `-1` (blanco).
 ```text
 5%, 10%, 20%, 30%, 40%
 ```
+
+**Bloques borrados:** 2, 4, 7, 11 y 14 de 36, es decir 72, 144, 252, 396 y
+504 píxeles (5,3%, 10,5%, 18,4%, 28,9% y 36,8% de `N`, antes de descontar los
+que ya eran blancos).
 
 **Qué mide:** faltantes grandes y rectangulares, como un papel rasgado o una
 zona ilegible. Es el modelo estructural más severo.
@@ -341,6 +363,26 @@ Original        Bloques borrados
 #######         ###....
 ```
 
+### 4.8 Deterioros preliminares (archivados)
+
+Antes de este documento se hizo una corrida preliminar con los deterioros del
+runner (`src/ej2/hopfield-runner.py --deterioro … --nivel …`). El runner los
+conserva sin cambios porque de ellos dependen sus tests, el test del análisis
+preliminar y los resultados archivados en `resultados/ej2/hopfield/qr_hebb/`,
+`qr_pseudoinversa/` y `analisis_qr/`.
+
+| Deterioro del runner | Definición | Relación con los modelos de este documento |
+|---|---|---|
+| `ruido` | invierte `round(nivel · N)` bits distintos | es el mismo modelo que `aleatorio` |
+| `esquina` | borra a `-1` un cuadrado de lado `round(√nivel · 37)` en una esquina al azar; no registra la esquina | preliminar: parametriza por área, no por lado |
+| `manchas` | **invierte** bloques de 3 × 3 al azar hasta afectar exactamente `round(nivel · N)` píxeles | preliminar: es otro modelo; las `manchas` de la sección 4.6 son discos borrados a blanco |
+
+Los seis modelos de este documento se ejecutan solo con
+`src/ej2/hopfield-noise.py --modelo`, guardan la columna `modelo` (no
+`deterioro`) y escriben en `resultados/ej2/hopfield/qr_37x37/ruido/<modelo>/`.
+Cuando se mencionan los preliminares se los llama «esquina preliminar» y
+«manchas preliminares».
+
 ## 5. Combinaciones
 
 La escalera agrega un componente por paso, con un nivel moderado fijado de
@@ -354,7 +396,7 @@ cada paso con el anterior.
 | 3 | + `finder` | un finder de 7 × 7 |
 | 4 | + `rayones` | 2 líneas |
 | 5 | + `manchas` | 1 disco de radio 5 |
-| 6 | + `bloques` | 10% de bloques |
+| 6 | + `bloques` | 10% de bloques (4 de 36) |
 
 Reglas de aplicación:
 
@@ -364,8 +406,10 @@ Reglas de aplicación:
    `finder`, `rayones`, `manchas`, `bloques`.
 4. El borrado estructural tiene prioridad sobre un bit invertido en la misma
    posición.
-5. Cada componente usa un flujo RNG derivado de la semilla y del nombre del
-   componente, para que agregar un componente no cambie los anteriores.
+5. Cada componente usa su propio flujo RNG, el mismo que en su modelo
+   individual (criterio 1 de la sección 3), para que agregar un componente no
+   cambie los anteriores. Así, el componente de cada paso coincide con la
+   consulta de su modelo individual en ese nivel.
 6. Se registra la lista de componentes activos, sus parámetros y la fracción
    afectada final.
 
@@ -376,8 +420,8 @@ los niveles para forzar una curva más linda.
 ## 6. Niveles y comparabilidad
 
 - Cada modelo tiene su parámetro nominal: fracción de bits, lado del cuadrado,
-  cantidad de finders, cantidad de líneas, radio de la mancha o fracción de
-  bloques.
+  cantidad de finders, cantidad de líneas, cantidad y radio de las manchas o
+  fracción de bloques.
 - La figura específica de cada modelo usa el parámetro nominal en el eje x.
 - La figura global usa la fracción afectada real, agrupada en intervalos de 5%.
 - Los intervalos propuestos son: 0–5%, 5–10%, 10–15%, 15–20%, 20–25%, 25–30%,
@@ -396,10 +440,10 @@ Para cada consulta se registra:
 | `tipo_resultado` | `almacenado_correcto`, `almacenado_incorrecto`, `espurio`, `ciclo` o `no_converge` |
 | `exactitud` | 1 si el estado final es exactamente el patrón de origen; 0 si no |
 | `tasa_error` | `1 - exactitud` |
-| `hamming_inicial_origen` | bits distintos entre la consulta y el origen |
+| `hamming_inicial` | bits distintos entre la consulta y el origen |
 | `hamming_final_origen` | bits distintos entre el estado final y el origen |
 | `hamming_final_normalizado` | `hamming_final_origen / N` |
-| `fraccion_afectada` | `hamming_inicial_origen / N` |
+| `fraccion_afectada` | `hamming_inicial / N` |
 | `barridos` | barridos completos hasta la convergencia |
 | `cambios_totales` | cantidad de bits que cambiaron durante la recuperación |
 | `delta_energia` | `energia_final - energia_inicial` |
@@ -411,10 +455,11 @@ Composición de errores:
 - **correcto:** el estado final coincide con el patrón de origen;
 - **incorrecto:** el estado final coincide con otro patrón almacenado;
 - **espurio:** el estado final es estable pero no es ninguno de los cinco;
-- **ciclo:** la dinámica entra en un ciclo;
+- **ciclo:** la dinámica entra en un ciclo (solo se detecta en modo sincrónico;
+  con la dinámica asincrónica de este ejercicio queda en 0);
 - **no converge:** se alcanza `max_barridos`.
 
-La comparación entre Hebb y Personnaz usa exactitud, Hamming y barridos. La
+La comparación entre Hebb y pseudo-inversa usa exactitud, Hamming y barridos. La
 energía absoluta no se compara entre reglas porque la matriz de pesos cambia; se
 analiza dentro de cada regla con `E/N` y `ΔE/N`.
 
@@ -465,8 +510,8 @@ En `ruido/consolidado/figuras/`:
 - `fig_afectacion_real_global.png`
 
 El nivel de referencia para `fig_confusion.png` es el menor nivel en el que la
-exactitud media de Personnaz cae por debajo de 0,95. Si no cae, se usa el nivel
-central. Es una decisión de presentación.
+exactitud media de la pseudo-inversa cae por debajo de 0,95. Si no cae, se usa
+el nivel central. Es una decisión de presentación.
 
 ## 9. Reproducibilidad
 
@@ -476,9 +521,12 @@ central. Es una decisión de presentación.
 - Dinámica: asincrónica secuencial, `max_barridos = 100`.
 - Cada consulta guarda: modelo, nivel, parámetros efectivos, semilla,
   repetición, patrón de origen, fracción afectada y resultado.
-- La misma consulta ruidosa se usa para Hebb y Personnaz.
-- No se guardan las matrices completas de estado de todas las consultas; solo
-  ejemplos seleccionados para las figuras cualitativas.
+- La misma consulta ruidosa se usa para Hebb y pseudo-inversa.
+- La energía por barrido se guarda para todas las consultas (`energia.csv`).
+- No se guardan las matrices completas de estado de todas las consultas. Solo
+  se guarda, por modelo y nivel, la consulta de ejemplo (`food_menu_qr`,
+  semilla 0, repetición 0) en `ejemplos.npz`: estado inicial, estado final de
+  cada regla y energía después de cada actualización.
 - La configuración resuelta de cada corrida se guarda en `config_usada.toml`.
 - Las figuras se pueden regenerar sin volver a ejecutar la red.
 
@@ -492,8 +540,8 @@ central. Es una decisión de presentación.
 5. Los rayones, manchas y bloques se eligen al azar y se registran.
 6. Se usan tres semillas, cinco repeticiones y los cinco patrones.
 7. Los niveles se fijan a priori y no se ajustan con los resultados.
-8. Cada modelo se implementa, ejecuta y revisa por separado, con una pausa
-   después de cada uno.
+8. Cada modelo se implementa, ejecuta y revisa por separado, en su propia fase,
+   sin pausa entre fases.
 9. La escalera de combinaciones se ejecuta completa y se revisa al final.
 10. Todas las figuras se guardan; las principales son exactitud, composición de
     errores, iteraciones, energía, Hamming, comparación global y mapa de calor
@@ -515,3 +563,39 @@ solo se resuelven cuestiones de presentación:
 
 Si aparece una decisión que cambie los modelos, los niveles o la métrica
 principal, se para y se consulta antes de continuar.
+
+## 12. Barrido exploratorio del quiebre (posterior a los resultados)
+
+Este barrido se definió **después de ver los resultados** del barrido a priori.
+Con los niveles de las secciones 4 y 5, el daño real de los modelos
+estructurales no pasa de ~20% y la pseudo-inversa recupera todas las consultas,
+así que no se ve dónde falla. El objetivo es **encontrar el punto de quiebre**,
+no mejorar la exactitud. No reemplaza ni modifica el barrido a priori: los
+niveles, las corridas y las conclusiones de las secciones anteriores siguen
+siendo los de referencia.
+
+- Configuración: `src/ej2/hopfield-noise-quiebre.toml`.
+- Salida: `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/<modelo>/` y su
+  `consolidado/`.
+- Mismas redes, semillas `[0, 1, 2]`, 5 repeticiones, 5 patrones, flujos
+  aleatorios y definiciones de los generadores que el barrido a priori; cada
+  consulta se recupera con las dos reglas.
+
+| Modelo | Niveles exploratorios |
+|---|---|
+| `esquina` | `L = 25, 27, 29, 31, 33, 35, 37` (`L = 37` borra la imagen entera) |
+| `bloques` | 50%, 60%, 70%, 80%, 90% y 100% de los 36 bloques (18 a 36 bloques) |
+| `manchas` | un disco de radio 12, 15, 18 y 21 |
+| `rayones` | 16, 24, 32 y 48 líneas |
+
+Como los flujos solo dependen de la semilla y del modelo, cada consulta usa la
+misma esquina, los mismos centros y las mismas líneas que en el barrido a
+priori; solo cambia el tamaño del daño.
+
+Para explicar las fallas, cada consulta registra el QR almacenado más cercano a
+la consulta dañada (`nombre_inicial_mas_cercano`) y el margen
+`margen_inicial = d(otro QR más cercano) − d(origen)`. Un margen negativo
+significa que el daño dejó la consulta más cerca de otro QR que del suyo.
+
+Los resultados están en `docs/decisiones.md`, subsección «Barrido exploratorio
+del quiebre».

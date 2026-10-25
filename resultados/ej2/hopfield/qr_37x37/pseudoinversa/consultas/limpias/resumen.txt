@@ -1,0 +1,39 @@
+Consultas de Hopfield
+Red: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\qr_37x37\pseudoinversa
+Dataset de consulta: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\qr_37x37\pseudoinversa\patrones.csv
+Regla: pseudoinversa
+Modo: asincronica
+Orden: secuencial
+Máximo de barridos: 100
+Deterioro: ruido
+Nivel: 0.0
+Semilla: 0
+Repeticiones: 1
+Cantidad de consultas: 5
+Tipos de resultado: {'almacenado_correcto': 5}
+
+Métricas agregadas:
+  consultas = 5
+  exactitud = 1
+  tasa_incorrecto = 0
+  tasa_espurio = 0
+  tasa_ciclo = 0
+  tasa_no_converge = 0
+  barridos_media = 1
+  barridos_desvio = 0
+  actualizaciones_media = 1369
+  actualizaciones_desvio = 0
+  cambios_totales_media = 0
+  cambios_totales_desvio = 0
+  delta_energia_por_neurona_media = 0
+  delta_energia_por_neurona_desvio = 0
+  hamming_final_normalizado_media = 0
+  hamming_final_normalizado_desvio = 0
+  proporcion_monotona = 1
+
+Detalle por consulta:
+  beverages_menu_qr: almacenado_correcto, nombre_final=beverages_menu_qr, distancia_hamming=0, barridos=1, energía_final=-682.000000
+  dessert_menu_qr: almacenado_correcto, nombre_final=dessert_menu_qr, distancia_hamming=0, barridos=1, energía_final=-682.000000
+  food_menu_qr: almacenado_correcto, nombre_final=food_menu_qr, distancia_hamming=0, barridos=1, energía_final=-682.000000
+  specials_menu_qr: almacenado_correcto, nombre_final=specials_menu_qr, distancia_hamming=0, barridos=1, energía_final=-682.000000
+  wine_menu_qr: almacenado_correcto, nombre_final=wine_menu_qr, distancia_hamming=0, barridos=1, energía_final=-682.000000

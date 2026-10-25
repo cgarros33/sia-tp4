@@ -1,0 +1,5 @@
+Ruido: paso_4
+Media ± desvío muestral sobre semillas.
+
+  paso_4   hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.53 | H/N 0.1045 | afectada 0.1140
+  paso_4   pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.1140

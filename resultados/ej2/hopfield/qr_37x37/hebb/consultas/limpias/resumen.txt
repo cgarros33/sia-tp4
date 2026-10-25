@@ -1,0 +1,39 @@
+Consultas de Hopfield
+Red: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\qr_37x37\hebb
+Dataset de consulta: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\qr_37x37\hebb\patrones.csv
+Regla: hebb
+Modo: asincronica
+Orden: secuencial
+Máximo de barridos: 100
+Deterioro: ruido
+Nivel: 0.0
+Semilla: 0
+Repeticiones: 1
+Cantidad de consultas: 5
+Tipos de resultado: {'espurio': 5}
+
+Métricas agregadas:
+  consultas = 5
+  exactitud = 0
+  tasa_incorrecto = 0
+  tasa_espurio = 1
+  tasa_ciclo = 0
+  tasa_no_converge = 0
+  barridos_media = 2
+  barridos_desvio = 0
+  actualizaciones_media = 2738
+  actualizaciones_desvio = 0
+  cambios_totales_media = 143
+  cambios_totales_desvio = 75.7232
+  delta_energia_por_neurona_media = -0.171132
+  delta_energia_por_neurona_desvio = 0.0984557
+  hamming_final_normalizado_media = 0.104456
+  hamming_final_normalizado_desvio = 0.0553128
+  proporcion_monotona = 1
+
+Detalle por consulta:
+  beverages_menu_qr: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  dessert_menu_qr: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  food_menu_qr: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  specials_menu_qr: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474
+  wine_menu_qr: espurio, nombre_final=-, distancia_hamming=71, barridos=2, energía_final=-2172.879474

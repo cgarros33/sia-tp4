@@ -1,0 +1,4 @@
+modelo,orden_nivel,nivel,exactitud_media_hebb,exactitud_media_pseudoinversa,exactitud_desvio_hebb,exactitud_desvio_pseudoinversa,hamming_final_normalizado_media_hebb,hamming_final_normalizado_media_pseudoinversa,hamming_final_normalizado_desvio_hebb,hamming_final_normalizado_desvio_pseudoinversa,barridos_media_hebb,barridos_media_pseudoinversa,barridos_desvio_hebb,barridos_desvio_pseudoinversa,exactitud_diferencia,hamming_final_normalizado_diferencia,barridos_diferencia
+finder,0,1,0.0,1.0,0.0,0.0,0.10445580715850984,0.0,1.6996749443881478e-17,0.0,2.4,2.0,0.0,0.0,1.0,-0.10445580715850984,-0.3999999999999999
+finder,1,2,0.0,1.0,0.0,0.0,0.10445580715850984,0.0,1.6996749443881478e-17,0.0,2.6,2.0,0.0,0.0,1.0,-0.10445580715850984,-0.6000000000000001
+finder,2,3,0.0,1.0,0.0,0.0,0.10445580715850984,0.0,1.6996749443881478e-17,0.0,2.7999999999999994,2.0,5.438959822042073e-16,0.0,1.0,-0.10445580715850984,-0.7999999999999994

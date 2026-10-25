@@ -1,14 +1,16 @@
-Consultas de Hopfield — Ejercicio 2.2
-Red: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5
-Dataset de consulta: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej2/hopfield/letras_5x5/patrones.csv
+Consultas de Hopfield
+Red: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5
+Dataset de consulta: C:\Proyectos_de_Programacion_ITBA\4to\SIA\TP4\sia-tp4\resultados\ej2\hopfield\letras_5x5\patrones.csv
+Regla: hebb
 Modo: asincronica
 Orden: secuencial
 Máximo de barridos: 100
-Ruido: 0.5
+Deterioro: ruido
+Nivel: 0.5
 Semilla: 2
 Repeticiones: 5
 Cantidad de consultas: 20
-Tipos de resultado: {'almacenado_incorrecto': 10, 'espurio': 8, 'almacenado_correcto': 2}
+Tipos de resultado: {'espurio': 10, 'almacenado_incorrecto': 9, 'almacenado_correcto': 1}
 
 Detalle por consulta:
   J_rep0: almacenado_incorrecto, nombre_final=T, distancia_hamming=0, barridos=2, energía_final=-12.000000
@@ -16,15 +18,15 @@ Detalle por consulta:
   J_rep2: espurio, nombre_final=-, distancia_hamming=12, barridos=2, energía_final=-12.160000
   J_rep3: almacenado_incorrecto, nombre_final=O, distancia_hamming=0, barridos=2, energía_final=-12.160000
   J_rep4: espurio, nombre_final=-, distancia_hamming=10, barridos=3, energía_final=-12.800000
-  O_rep0: espurio, nombre_final=-, distancia_hamming=10, barridos=3, energía_final=-12.000000
-  O_rep1: almacenado_incorrecto, nombre_final=T, distancia_hamming=0, barridos=3, energía_final=-12.000000
+  O_rep0: espurio, nombre_final=-, distancia_hamming=10, barridos=2, energía_final=-12.000000
+  O_rep1: espurio, nombre_final=-, distancia_hamming=2, barridos=2, energía_final=-11.360000
   O_rep2: espurio, nombre_final=-, distancia_hamming=11, barridos=2, energía_final=-11.680000
   O_rep3: almacenado_incorrecto, nombre_final=A, distancia_hamming=0, barridos=2, energía_final=-12.800000
   O_rep4: almacenado_incorrecto, nombre_final=J, distancia_hamming=0, barridos=3, energía_final=-11.680000
   T_rep0: almacenado_incorrecto, nombre_final=J, distancia_hamming=0, barridos=2, energía_final=-11.680000
   T_rep1: almacenado_incorrecto, nombre_final=O, distancia_hamming=0, barridos=4, energía_final=-12.160000
   T_rep2: espurio, nombre_final=-, distancia_hamming=10, barridos=2, energía_final=-12.800000
-  T_rep3: almacenado_correcto, nombre_final=T, distancia_hamming=0, barridos=5, energía_final=-12.000000
+  T_rep3: espurio, nombre_final=-, distancia_hamming=2, barridos=3, energía_final=-11.360000
   T_rep4: espurio, nombre_final=-, distancia_hamming=6, barridos=3, energía_final=-11.680000
   A_rep0: espurio, nombre_final=-, distancia_hamming=11, barridos=3, energía_final=-11.680000
   A_rep1: almacenado_incorrecto, nombre_final=O, distancia_hamming=0, barridos=2, energía_final=-12.160000

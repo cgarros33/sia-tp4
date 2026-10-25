@@ -23,13 +23,10 @@
 - Ejercicio 2.1: Recuperación de códigos QR deteriorados.
 - El plan de 2.1 está en `docs/plan/ej2-1.md` y los modelos de ruido en
   `docs/noise.md`.
-- Etapa actual: fase 0 completada; plan y decisiones registrados. La
-  implementación de las fases 1 a 10 queda pendiente.
-- Ejercicio 2.1: Recuperación de códigos QR deteriorados.
-- El plan de 2.1 está en `docs/plan/ej2-1.md` y los modelos de ruido en
-  `docs/noise.md`.
-- Etapa actual: fase 0 completada; plan y decisiones registrados. La
-  implementación de las fases 1 a 10 queda pendiente.
+- Etapa actual: 2.1 implementado y ejecutado (fases 1 a 10); resultados en
+  `resultados/ej2/hopfield/qr_37x37/`. La corrida preliminar queda archivada en
+  `qr_hebb/`, `qr_pseudoinversa/` y `analisis_qr/`. Queda la interpretación con
+  el grupo.
 - Ejercicio 2.2: Recomendación (red de Hopfield de 5 × 5).
 - El plan de 2.2 está en `docs/plan/ej2-2.md`.
 - Etapa actual: 2.2 implementado y ejecutado; resultados en
@@ -804,18 +801,19 @@ Observaciones técnicas:
 
 - El plan completo está en `docs/plan/ej2-1.md`.
 - Los modelos de ruido, niveles y decisiones están en `docs/noise.md`.
-- Los scripts van en `src/ej2/`: `hopfield.py` y `hopfield-runner.py` son
-  extensiones de los existentes; `hopfield-noise.py`, `hopfield-figures.py` y
-  `ruido.py` están previstos para las próximas fases.
-- Las configuraciones previstas son `src/ej2/hopfield-qr-hebb.toml`,
-  `src/ej2/hopfield-qr-personnaz.toml` y `src/ej2/hopfield-noise.toml`.
-- Los tests previstos son `tests/ej2/test_hopfield.py`,
+- Los scripts van en `src/ej2/`: `hopfield.py` (motor, que ya tiene la regla
+  de la pseudo-inversa), `hopfield-runner.py`, `hopfield-noise.py`, `ruido.py`
+  y `hopfield-figures.py`.
+- Las configuraciones son `src/ej2/hopfield-qr-hebb.toml`,
+  `src/ej2/hopfield-qr-pseudoinversa.toml` y `src/ej2/hopfield-noise.toml`.
+- Los tests son `tests/ej2/test_hopfield.py`,
   `tests/ej2/test_hopfield_runner.py`, `tests/ej2/test_ruido.py`,
   `tests/ej2/test_hopfield_noise.py` y `tests/ej2/test_hopfield_figures.py`.
-- Las salidas van en `resultados/ej2/hopfield/qr_37x37/`, con una carpeta por
-  regla de pesos, una carpeta por modelo de ruido y una carpeta consolidada.
-- Fase 0 completada. Las fases 1 a 10 se ejecutan una por vez, con una pausa
-  después de cada una.
+- Las salidas definitivas van en `resultados/ej2/hopfield/qr_37x37/`, con una
+  carpeta por regla de pesos, una carpeta por modelo de ruido y una carpeta
+  consolidada.
+- La corrida preliminar queda archivada en `qr_hebb/`, `qr_pseudoinversa/` y
+  `analisis_qr/` (ver «Corrida preliminar (archivada)»).
 
 ### Datos
 
@@ -828,6 +826,9 @@ Observaciones técnicas:
   el problema del caso de uso.
 - El solapamiento absoluto medio entre pares es `0,670`; el máximo es `0,860`
   para `food`–`wine`. La distancia de Hamming mínima es de 96 bits.
+- 955 de los 1369 píxeles (69,8%) valen lo mismo en los cinco QR. Son QR de
+  versión 5 sin zona de silencio: los tres finders de 7 × 7 están en las
+  esquinas `(0, 0)`, `(0, 30)` y `(30, 0)` y son idénticos en los cinco.
 
 ### Pre-chequeo de las reglas de pesos
 
@@ -842,7 +843,7 @@ Con la regla de Hebb (`W = (1/N) Xᵀ X`, diagonal nula):
 - cualquier par de QR se almacena correctamente;
 - cualquier terna o conjunto mayor falla.
 
-Con la regla de Personnaz (`W = Xᵀ (X Xᵀ)⁻¹ X`, diagonal nula y matriz
+Con la regla de la pseudo-inversa (`W = Xᵀ (X Xᵀ)⁻¹ X`, diagonal nula y matriz
 simetrizada):
 
 - los cinco patrones son puntos fijos;
@@ -850,14 +851,45 @@ simetrizada):
   es 100% hasta el 40% de bits invertidos, 74,7% al 45% y 0% al 50%.
 
 El problema es el crosstalk entre patrones correlacionados, no la capacidad. La
-regla de Personnaz es una extensión documentada de la regla de Hebb: se usa para
+pseudo-inversa es una extensión documentada de la regla de Hebb: se usa para
 mostrar una recuperación viable y para comparar, no para reemplazar la línea de
 base teórica.
+
+### Corrida preliminar (archivada)
+
+Antes de este plan se hizo una versión previa de 2.1. Sus carpetas no se borran
+ni se regeneran.
+
+- Redes: `resultados/ej2/hopfield/qr_hebb/` y `qr_pseudoinversa/`, entrenadas
+  con `hopfield.py --regla`. Sus `config_usada.toml` tienen rutas absolutas de
+  la máquina en que se corrieron.
+- Consultas: deterioros preliminares del runner, 3 semillas × 5 repeticiones ×
+  5 QR por nivel. `ruido` de 0,05 a 0,50 en pasos de 0,05; `esquina`
+  preliminar (cuadrado de área `nivel · N`) en 0,05; 0,10; 0,15; 0,20; 0,25;
+  0,30; 0,40 y 0,50; `manchas` preliminares (bloques de 3 × 3 invertidos) de
+  0,05 a 0,50. Las carpetas `detalle_*` guardan la energía por actualización de
+  cuatro casos. Son 88 corridas por regla.
+- Análisis: `analisis_qr/`, generado con `src/ej2/hopfield-qr-analisis.py`.
+- Hebb: 0/5 puntos fijos; todas las consultas de todos los niveles terminan en
+  el estado espurio (exactitud 0).
+- Pseudo-inversa: 5/5 puntos fijos. `ruido`: 1,000 hasta 0,40,
+  0,747 ± 0,101 en 0,45 y 0 en 0,50. `esquina` preliminar: 1,000 hasta 0,40 y
+  0,880 ± 0,069 en 0,50. `manchas` preliminares: 1,000 hasta 0,30,
+  0,973 ± 0,023 en 0,35, 0,853 ± 0,046 en 0,40, 0,573 ± 0,101 en 0,45 y 0 en
+  0,50.
+- Capacidad por subconjuntos: con Hebb se almacenan los 5 QR sueltos y los 10
+  pares, pero ninguna terna, ninguna cuaterna ni el conjunto completo; con la
+  pseudo-inversa se almacenan todos.
+- `ruido` es el mismo modelo que `aleatorio`. La `esquina` preliminar y las
+  `manchas` preliminares no son los modelos de `docs/noise.md` (ver su sección
+  4.8).
+- Se generó con el motor anterior al arreglo de empates; ver «Empates».
 
 ### Modelo
 
 - Red de Hopfield discreta con estados `{-1, +1}`.
-- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
+- Campo local `h_i = Σ_j W_ij S_j`; un empate `|h_i| ≤ 1e-9` conserva el
+  estado.
 - Energía `E(S) = -1/2 Sᵀ W S`.
 - Dinámica asincrónica secuencial por defecto; sincrónica disponible, pero no se
   usa en esta corrida.
@@ -867,22 +899,68 @@ base teórica.
   cinco QR son los patrones almacenados y las versiones corruptas son la
   evaluación. Es una excepción documentada al punto 2 de `CLAUDE.md`.
 - La regla del 15% es una guía para patrones poco correlacionados, no una
-  condición suficiente. La comparación entre Hebb y Personnaz separa capacidad
-  de ortogonalidad.
+  condición suficiente. La comparación entre Hebb y pseudo-inversa separa
+  capacidad de ortogonalidad.
 
-### Regla de Personnaz
+### Empates
 
-- `W = Xᵀ (X Xᵀ)⁻¹ X`.
+- **Problema.** `recuperar` comparaba el campo local con 0 en punto flotante.
+  Donde la aritmética exacta da 0, el redondeo deja residuos del orden de
+  `1e-17` cuyo signo depende del orden de suma, es decir, de la plataforma. En
+  las consultas guardadas de 2.2 (pesos múltiplos de 0,04), 22 de 300 no
+  respetaban la regla «el empate conserva el estado», y en Windows 3 de 300
+  estados finales diferían de los generados en Linux.
+- **Decisión.** `|h_i| ≤ 1e-9` es un empate y conserva el estado, en los dos
+  modos (`TOLERANCIA_EMPATE` en `hopfield.py`). El análisis usa el mismo
+  criterio: un patrón es punto fijo si todos sus márgenes `ξ_i h_i` son
+  `≥ −1e-9`, una neurona está en empate si `|ξ_i h_i| ≤ 1e-9` y, en
+  `capacidad_por_subconjuntos`, un margen nulo cuenta como estable (antes se
+  exigía margen `> 0`).
+- **Por qué `1e-9`.** Con Hebb, `h_i` es múltiplo de `1/N`: un campo no nulo
+  vale al menos `0,04` en letras y `1/1369 ≈ 7,3e-4` en QR. La tolerancia nunca
+  oculta un campo real. Con la pseudo-inversa no apareció ningún `|h_i| < 1e-9`
+  en las consultas revisadas.
+- **Tests.** Empate numérico (`0,1 + 0,2 − 0,3`) en los dos modos, punto fijo
+  con margen nulo en el análisis y en la capacidad, y regresión de las 16
+  corridas de 2.2 contra los CSV regenerados.
+- **2.2.** Se regeneraron `consultas/limpias/` y los 15 barridos de ruido de
+  `resultados/ej2/hopfield/letras_5x5/`. Los estados iniciales y el
+  entrenamiento no cambian; 14 de las 300 consultas ruidosas cambiaron de tipo
+  de resultado y las 304 coinciden ahora con la dinámica en aritmética exacta.
+  El ejemplo de estado espurio no cambia.
+
+  | Ruido | Accuracy antes | Accuracy después | C/I/E antes | C/I/E después |
+  |---:|---:|---:|---:|---:|
+  | 0.1 | 0.983333 ± 0.028868 | 0.983333 ± 0.028868 | 59/0/1 | 59/0/1 |
+  | 0.2 | 0.783333 ± 0.125831 | 0.783333 ± 0.104083 | 47/4/9 | 47/3/10 |
+  | 0.3 | 0.600000 ± 0.132288 | 0.566667 ± 0.160728 | 36/11/13 | 34/10/16 |
+  | 0.4 | 0.250000 ± 0.050000 | 0.233333 ± 0.028868 | 15/18/27 | 14/17/29 |
+  | 0.5 | 0.083333 ± 0.028868 | 0.050000 ± 0.000000 | 5/28/27 | 3/26/31 |
+
+  C/I/E: consultas correctas, incorrectas y espurias sobre 60.
+- **QR preliminar.** Se repitieron en el scratchpad, sin pisar nada, el
+  entrenamiento y las 88 corridas de cada regla con el motor corregido. Con la
+  pseudo-inversa todo es idéntico. Con Hebb, los estados finales y los tipos de
+  resultado son idénticos en las 88 corridas; solo 8 de las 2120 consultas, en 7
+  corridas, cambian la cantidad de barridos (de 2 a 3 o de 3 a 2), y
+  `estabilidad.csv` difiere por redondeo (`1e-12`). Las conclusiones de la
+  corrida preliminar no cambian.
+
+### Regla de la pseudo-inversa (Personnaz)
+
+- `W = Xᵀ (X Xᵀ)⁻¹ X`, la regla de proyección de Personnaz, Guyon y Dreyfus
+  (1985). El código la llama `pseudoinversa` y usa `numpy.linalg.pinv(X Xᵀ)`,
+  que coincide con la inversa porque `X Xᵀ` tiene rango completo.
 - Diagonal nula y matriz simetrizada.
 - Es una regla cerrada, igual que Hebb; no hay aprendizaje iterativo.
-- Para este dataset, `X Xᵀ` tiene rango 5 y número de condición 26,4.
+- Para este dataset, `X Xᵀ` tiene rango 5 y número de condición 26,39.
 - La diagonal nula es una aproximación: se verifica que los cinco patrones sigan
   siendo puntos fijos después de anularla.
 - El límite práctico no es `0,15N`; el área de atracción se reduce al aumentar
   la cantidad de patrones.
-- La configuración usa `modelo.regla_pesos = "hebb" | "personnaz"`. El valor por
-  defecto es `hebb`. La CLI agrega `--regla-pesos`. Las configuraciones viejas
-  sin esa clave se interpretan como `hebb` para no romper la corrida de 2.2.
+- La configuración usa `modelo.regla = "hebb" | "pseudoinversa"`. El valor por
+  defecto es `hebb`. La CLI tiene `--regla`. Las configuraciones viejas sin esa
+  clave se interpretan como `hebb`, como la de 2.2.
 
 ### Ruido
 
@@ -893,10 +971,10 @@ detalle está en `docs/noise.md`.
 |---|---|---|---|
 | 1 | `aleatorio` | fracción de bits invertidos | invierte |
 | 2 | `esquina` | lado del cuadrado en una esquina | borra a `-1` |
-| 3 | `finder` | borrado de patrón de localización | borra a `-1` |
+| 3 | `finder` | cantidad de finders de 7 × 7 (1, 2 o 3) | borra a `-1` |
 | 4 | `rayones` | cantidad de líneas completas | borra a `-1` |
 | 5 | `manchas` | cantidad y radio de discos | borra a `-1` |
-| 6 | `bloques` | fracción de bloques en una grilla 6 × 6 | borra a `-1` |
+| 6 | `bloques` | fracción de los 36 bloques completos de 6 × 6 | borra a `-1` |
 
 Escalera de combinaciones:
 
@@ -907,27 +985,34 @@ Escalera de combinaciones:
 | 3 | + `finder` | un finder de 7 × 7 |
 | 4 | + `rayones` | 2 líneas |
 | 5 | + `manchas` | 1 disco de radio 5 |
-| 6 | + `bloques` | 10% de bloques |
+| 6 | + `bloques` | 10% de bloques (4 de 36) |
 
 - Se usan las semillas `[0, 1, 2]`, cinco repeticiones por patrón y los cinco
   patrones.
 - Los niveles se fijan a priori y no se ajustan para mejorar la exactitud.
-- La consulta ruidosa es la misma para Hebb y Personnaz.
+- La consulta ruidosa es la misma para Hebb y pseudo-inversa.
 - `fraccion_afectada` es la fracción de bits que efectivamente cambian respecto
   del original, no el área nominal.
 - En las combinaciones, el borrado estructural tiene prioridad sobre un bit
-  invertido en la misma posición. Cada componente usa un flujo RNG derivado de
-  la semilla y del nombre del componente.
+  invertido en la misma posición.
+- Flujos aleatorios: `aleatorio` usa `default_rng(semilla)`, como el runner, y
+  reproduce la corrida preliminar de `ruido`; cada modelo estructural usa
+  `default_rng([semilla, código])`. En las combinaciones cada componente
+  conserva su flujo.
+- El nivel «1 finder de 9 × 9» se descartó porque coincide con `esquina` con
+  `L = 9`. Los bloques se eligen solo entre los 36 completos de 6 × 6.
+- Los deterioros preliminares del runner (`--deterioro ruido|esquina|manchas`)
+  se conservan sin cambios; los modelos definitivos se ejecutan solo con
+  `hopfield-noise.py --modelo`.
 
 ### Métricas
 
-El runner actual ya guarda `barridos`, `actualizaciones`, `energia_inicial`,
-`energia_final`, `convergio`, `ciclo`, `motivo` y `energia.csv` por barrido. Se
-agregan, sin renombrar columnas existentes:
+El runner ya guarda `barridos`, `actualizaciones`, `energia_inicial`,
+`energia_final`, `convergio`, `ciclo`, `motivo`, `hamming_inicial` y
+`energia.csv` por barrido. Se agregan, sin renombrar columnas existentes:
 
-- `hamming_inicial_origen`, `hamming_final_origen` y
-  `hamming_final_normalizado`;
-- `fraccion_afectada`;
+- `hamming_final_origen` y `hamming_final_normalizado`;
+- `fraccion_afectada` (`hamming_inicial / N`);
 - `cambios_totales`;
 - `delta_energia` y `delta_energia_por_neurona`;
 - `monotona`.
@@ -939,7 +1024,7 @@ incorrectos, espurios, ciclos y no convergencia, medias y desvíos de barridos,
 cambios y energía por neurona, y Hamming normalizado.
 
 La composición de errores distingue correcto, incorrecto, espurio, ciclo y no
-converge. La comparación entre Hebb y Personnaz usa exactitud, Hamming y
+converge. La comparación entre Hebb y pseudo-inversa usa exactitud, Hamming y
 barridos. La energía absoluta no se compara entre reglas porque la matriz de
 pesos cambia; se analiza dentro de cada regla con `E/N` y `ΔE/N`. Para Hebb, el
 estado espurio tiene menor energía que los cinco patrones almacenados, lo que
@@ -950,21 +1035,23 @@ explica la convergencia al voto mayoritario.
 Todas las figuras se guardan y se regeneran desde los CSV con
 `src/ej2/hopfield-figures.py`, que solo lee resultados. Las principales son:
 
-- comparación de entrenamiento: solapamiento, Hamming, estado espurio, energía y
-  distribución de pesos;
+- comparación de entrenamiento: solapamiento, Hamming, estado espurio, energía,
+  distribución de pesos y capacidad por subconjuntos;
 - por modelo: exactitud, composición de errores, iteraciones, energía, Hamming,
   confusión, exactitud por patrón, boxplot de barridos y afectación real;
 - combinaciones: exactitud, iteraciones, energía, Hamming y mapa de calor por
   paso;
-- globales: exactitud, iteraciones, energía, Hamming, comparación Hebb/Personnaz,
-  mapa de calor de exactitud, ejemplos cualitativos de QR, cuenca de atracción y
-  trayectorias de energía.
+- globales: exactitud, iteraciones, energía, Hamming, comparación
+  Hebb/pseudo-inversa, mapa de calor de exactitud, ejemplos cualitativos de QR,
+  cuenca de atracción y trayectorias de energía.
 
 ### Reproducibilidad y reglas
 
 - Cada corrida usa semillas explícitas y guarda su configuración resuelta.
 - Cada resultado presentado es media ± desvío sobre tres semillas.
 - Las figuras se regeneran desde los CSV guardados.
+- La energía por barrido se guarda para todas las consultas; los estados
+  completos, solo para las consultas de ejemplo (`ejemplos.npz`).
 - No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
   la biblioteca estándar.
 - Los scripts de entrenamiento escriben; los scripts de análisis y figuras solo
@@ -972,193 +1059,377 @@ Todas las figuras se guardan y se regeneran desde los CSV con
 - No se escribe en `datos/`.
 - No se commitea ni se pushea sin permiso explícito.
 
+### Resultados de entrenamiento (fase 1)
+
+- Redes: `resultados/ej2/hopfield/qr_37x37/hebb/` y `pseudoinversa/`,
+  entrenadas con `src/ej2/hopfield-qr-hebb.toml` y
+  `src/ej2/hopfield-qr-pseudoinversa.toml`.
+- `capacidad.csv`: `p/N = 0,003652`, límite `0,15N = 205,35`; no se excede.
+- `condicion.csv`: `X Xᵀ` tiene rango 5 y número de condición 26,3904.
+- Hebb: 0/5 puntos fijos. Las cinco consultas limpias convergen en 2 barridos
+  al estado mezcla `sign(Σ ξᵘ)`, que es punto fijo (margen mínimo 0,4251).
+- Energías con Hebb (`energia_estados.csv`): los patrones tienen entre
+  −2077,45 (`food`) y −1789,71 (`beverages`), es decir, `E/N` entre −1,5175 y
+  −1,3073. La mezcla tiene −2172,88 (`E/N = −1,5872`), menos que cualquiera de
+  ellos: por eso atrae todas las consultas.
+- Pseudo-inversa: 5/5 puntos fijos con margen mínimo 0,9808; cada patrón tiene
+  energía −682,00 (`E/N = −0,4982`), que es `−(N − p)/2`. Las cinco consultas
+  limpias se recuperan en 1 barrido. Con esta regla la mezcla no es punto fijo
+  (margen mínimo −0,3247) y tiene más energía (−607,89).
+- `capacidad_subconjuntos.csv` reproduce la corrida preliminar: Hebb sostiene
+  los 10 pares y ninguna terna; la pseudo-inversa sostiene todos los
+  subconjuntos.
+
+### Métricas del runner (fase 2)
+
+- `consultas.csv` agrega al final `hamming_final_origen`,
+  `hamming_final_normalizado`, `fraccion_afectada`, `cambios_totales`,
+  `delta_energia`, `delta_energia_por_neurona` y `monotona`; las columnas
+  viejas no cambian de nombre, orden ni valor (la regresión de 2.2 pasa).
+- Cada corrida guarda `metricas.csv` y un bloque «Métricas agregadas» en
+  `resumen.txt`.
+- Verificación sobre las redes QR (consultas limpias en
+  `qr_37x37/<regla>/consultas/limpias/`; la ruidosa, con ruido 0,4 y semilla 0,
+  se corrió fuera del repo para no guardar estados completos). En las cuatro
+  corridas las métricas coinciden con los estados guardados y con
+  `energia.csv`, y la energía es monotónica en todas las consultas.
+- Hebb, limpias: exactitud 0, 2 barridos, 143 cambios en promedio,
+  `ΔE/N = −0,1711` y `H/N = 0,1045`. Con ruido 0,4: exactitud 0,
+  2,28 barridos, 580 cambios, `ΔE/N = −1,5308` y el mismo `H/N = 0,1045`,
+  porque siempre termina en el estado mezcla.
+- Pseudo-inversa, limpias: exactitud 1, 1 barrido y 0 cambios. Con ruido 0,4:
+  exactitud 1, 2,12 barridos, 548,2 cambios (casi exactamente los 548 bits
+  invertidos) y `ΔE/N = −0,4789`.
+
+### Barrido de ruido (fases 3 a 9)
+
+- Orquestador: `src/ej2/hopfield-noise.py` con `src/ej2/hopfield-noise.toml`.
+  Cada invocación genera cada consulta una vez y la recupera con las dos redes.
+  Salida por modelo en `resultados/ej2/hopfield/qr_37x37/ruido/<modelo>/`:
+  `config_usada.toml`, `consultas.csv` (una fila por consulta y regla, con los
+  parámetros efectivos en JSON), `energia.csv` (energía por barrido de todas las
+  consultas), `metricas_por_semilla.csv`, `resumen_niveles.csv`,
+  `comparacion_reglas.csv`, `resumen_por_patron.csv`, `resumen_energia.csv`,
+  `ejemplos.npz`, `resumen.txt` y `figuras/`.
+- `resumen_energia.csv` promedia `E` por barrido; una consulta que ya se
+  estabilizó conserva su energía final en los barridos siguientes.
+- Figuras: `src/ej2/hopfield-figures.py`, que solo lee resultados; las nueve
+  figuras por modelo se regeneran byte a byte.
+- Todos los resultados son media ± desvío muestral sobre las semillas 0, 1 y 2,
+  con 25 consultas por semilla y regla (5 QR × 5 repeticiones).
+
+#### Ruido aleatorio (fase 3)
+
+- 11 niveles, de 0,02 a 0,50. Tardó 46 s.
+- La consulta es idéntica para las dos reglas, y en los niveles comunes
+  (0,05 a 0,50) el modelo reproduce consulta por consulta la corrida
+  preliminar repetida con el motor corregido (750 consultas por regla, sin
+  diferencias). Contra la corrida preliminar original solo cambian 3 conteos
+  de barridos de Hebb, por el arreglo de empates.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 desde 0,02 hasta 0,40,
+  0,747 ± 0,101 en 0,45 (21,3% incorrectos, 4,0% espurios) y 0,000 en 0,50
+  (41,3% incorrectos, 58,7% espurios). Hasta 0,35 recupera en 2 barridos
+  exactos y cambia exactamente los bits invertidos (27, 68, …, 479); en 0,40
+  usa 2,09 barridos y en 0,45, 2,60.
+- Hebb: exactitud 0 en todos los niveles; todas las consultas terminan en el
+  estado mezcla (`H/N = 0,1045`) salvo en 0,50, donde `H/N = 0,5456`. Necesita
+  entre 2,03 y 2,35 barridos (2,91 en 0,50) y cambia más bits que los invertidos
+  (164 con 2% de ruido) porque también reescribe los píxeles en que el patrón
+  difiere de la mezcla.
+- `ΔE/N` pasa de −0,039 a −0,495 con la pseudo-inversa y de −0,280 a −1,588
+  con Hebb; la energía es monotónica en todas las consultas.
+- Con 50% de bits invertidos la consulta queda a la misma distancia del origen
+  que de su negativo: el 56,0% (Hebb) y el 54,7% (pseudo-inversa) de las
+  consultas terminan a más de `N/2` del origen, coherente con atractores
+  negados (`−ξ`, `−mezcla`), que son estables por la simetría `S → −S`.
+- Nivel de referencia de la confusión: 0,45. Las confusiones de la
+  pseudo-inversa van sobre todo de `dessert` a `beverages` (4 de 15).
+
+#### Esquina rota (fase 4)
+
+- Lados 7, 9, 11, 15, 19 y 23; 18 s. La esquina se registra en `parametros`;
+  como el flujo no depende del lado, cada consulta usa la misma esquina en
+  todos los niveles. En las 75 consultas de cada nivel salieron 24 inferior
+  derecha, 23 superior izquierda, 16 superior derecha y 12 inferior izquierda.
+- Fracción afectada real media: 2,25%, 3,22%, 4,71%, 8,67%, 13,47% y 19,66%,
+  alrededor de la mitad de la zona borrada (3,58% a 38,64%), porque solo
+  cambian los píxeles negros. Ninguna consulta tiene daño nulo (mínimo 1,83%).
+  Con `L = 7`, las tres esquinas con finder pierden exactamente 33 píxeles y la
+  inferior derecha, 26,3 en promedio.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 en todos los lados; 2 barridos
+  (2,08 con `L = 23`).
+- Hebb: exactitud 0 en todos los lados; siempre termina en el estado mezcla
+  (`H/N = 0,1045`), con 2,31 a 2,44 barridos.
+
+#### Finder borrado (fase 5)
+
+- 1, 2 y 3 finders de 7 × 7; 13 s. Los finders borrados se registran en
+  `parametros`; con un finder salieron 28 superior izquierda, 28 superior
+  derecha y 19 inferior izquierda.
+- La fracción afectada es exacta en todas las consultas: 33, 66 y 99 píxeles
+  (2,41%, 4,82% y 7,23%), porque los tres finders son idénticos en los cinco QR.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 con 1, 2 y 3 finders, en 2 barridos.
+- Hebb: exactitud 0; termina en el estado mezcla, y los barridos suben con la
+  cantidad de finders (2,40; 2,60 y 2,80).
+- Como los finders son comunes a los cinco patrones, la red los reconstruye
+  igual que cualquier otro píxel compartido: no usa la estructura del QR.
+
+#### Rayones (fase 6)
+
+- 1, 2, 4, 8 y 12 líneas; 17 s. Cada línea registra su orientación y el píxel
+  por el que pasa. Sobre las 2025 líneas trazadas salieron 551 verticales, 509
+  diagonales ascendentes, 486 descendentes y 479 horizontales.
+- Fracción afectada real media: 1,15%, 2,26%, 4,57%, 8,49% y 12,38%. La zona
+  dañada va de 2,16% a 23,75%. El mínimo (4 píxeles con una línea) es una
+  diagonal corta cerca de una esquina, como prevé la definición.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 en todos los niveles, en 2 barridos.
+- Hebb: exactitud 0; termina en el estado mezcla, con 2,05 a 2,21 barridos.
+
+#### Manchas (fase 7)
+
+- 1 × r3, 1 × r5, 1 × r7, 1 × r10, 2 × r5 y 3 × r5; 24 s. Se registran los
+  centros y el radio.
+- Fracción afectada real media: 1,02%, 2,66%, 4,74%, 9,33%, 5,30% y 7,75%
+  (máximo 12,42% con 1 × r10). La zona dañada media va de 1,97% a 18,08%;
+  queda por debajo del área del disco cuando la mancha se recorta en el borde.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 en todos los niveles (2,01 barridos
+  con 1 × r10).
+- Hebb: exactitud 0; termina en el estado mezcla, con 2,08 a 2,36 barridos.
+- A diferencia de las `manchas` preliminares (bloques de 3 × 3 invertidos, que
+  con la pseudo-inversa caían desde 35% de píxeles invertidos), las manchas
+  borran a blanco y su daño real no pasa del 12,4%.
+
+#### Bloques borrados (fase 8)
+
+- 5%, 10%, 20%, 30% y 40% de los 36 bloques completos (2, 4, 7, 11 y 14
+  bloques); 19 s. Se registran los índices de los bloques; la última fila y la
+  última columna nunca se borran.
+- Zona dañada exacta: 5,26%, 10,52%, 18,41%, 28,93% y 36,82%. Fracción
+  afectada real media: 2,68%, 5,35%, 9,47%, 14,64% y 18,80% (máximo 20,23%).
+- Pseudo-inversa: exactitud 1,000 ± 0,000 en todos los niveles (2,01 barridos
+  con 40%).
+- Hebb: exactitud 0; termina en el estado mezcla, con 2,13 a 2,24 barridos.
+- Con los niveles fijados a priori, ningún modelo estructural supera el 20,2%
+  de píxeles cambiados. La pseudo-inversa los recupera todos, igual que al
+  ruido aleatorio de hasta 40%. Los niveles no se ajustan para buscar el punto
+  de quiebre.
+
+#### Combinaciones (fase 9)
+
+- Escalera de 6 pasos, uno por invocación (`--combinaciones --paso k`), en
+  `ruido/combinaciones/paso_<k>/`; consolidada en
+  `ruido/combinaciones/consolidado/`.
+- Cada paso contiene exactamente sus componentes y cada componente usa el
+  mismo flujo que su modelo individual: la esquina del paso 6 es idéntica a la
+  del modelo `esquina` con `L = 9` (test).
+- Fracción afectada real media por paso: 4,97%, 7,90%, 9,59%, 11,40%, 13,57%
+  y 17,48% (máximo 20,23%). La zona dañada crece de 4,97% a 29,54%. En el
+  paso 3, 18 de las 75 consultas borran un finder que ya estaba dentro de la
+  esquina del paso 2 y no suman daño.
+- Pseudo-inversa: exactitud 1,000 ± 0,000 en los seis pasos, en 2 barridos; los
+  bits cambiados crecen de 68 a 239,3 y `ΔE/N` de −0,094 a −0,285.
+- Hebb: exactitud 0 en los seis pasos (estado mezcla), con 2,03 a 2,59
+  barridos.
+- La escalera no hace caer a la pseudo-inversa en ningún paso: queda saturada
+  en 1. Se reporta así; los niveles fijados a priori no se cambian.
+
+### Figuras y resultados globales (fase 10)
+
+- `src/ej2/hopfield-figures.py` genera 129 figuras: 5 de entrenamiento en
+  `qr_37x37/comparacion_entrenamiento/` (con `comparacion_entrenamiento.csv`),
+  9 por cada modelo y cada paso de la escalera, 5 de la escalera consolidada y
+  11 globales en `ruido/consolidado/figuras/`. Una segunda corrida produce los
+  129 PNG idénticos byte a byte, y el script no modifica ningún CSV ni NPZ.
+- Consolidado: `ruido/consolidado/` une los seis modelos (5400 consultas, 2700
+  por regla) y agrega `exactitud_por_intervalo.csv` con intervalos de 5% de
+  fracción afectada real, de 0 a 50%. El nivel 0,50 del ruido aleatorio
+  invierte 684 bits (`round(684,5)` redondea al par), es decir 49,96%.
+- Todas las consultas de los modelos y de la escalera (900) convergen, ninguna
+  llega a `max_barridos` (máximo 5 barridos) y la energía es monotónica en
+  todas.
+- Pesos: con Hebb toman 6 valores distintos, entre `±5/1369 = ±0,00365`; con la
+  pseudo-inversa, valores entre `±0,0192`.
+- Daño real contra zona dañada en los modelos estructurales: entre 0,51 y 0,67
+  (media 0,54), porque solo cambian los píxeles negros (alrededor del 52% del
+  QR). El daño estructural máximo es 19,66% (esquina con `L = 23`).
+- `fig_comparacion_reglas.png` compara las reglas en el nivel de cada modelo
+  más cercano a 10% de píxeles cambiados (decisión de presentación): aleatorio
+  0,1 (10,0%), esquina 15 (8,7%), finder 3 (7,2%), rayones 8 (8,5%), manchas
+  1 × r10 (9,3%) y bloques 0,2 (9,5%). La pseudo-inversa da 1 en todos y Hebb, 0.
+- `fig_mapa_calor_exactitud.png`: la única celda por debajo de 1 con la
+  pseudo-inversa está en el ruido aleatorio, 40–45% (0,873, mezcla de los
+  niveles 0,40 y 0,45) y 45–50% (0). Los modelos estructurales no llegan más
+  allá del intervalo 20–25%.
+- `fig_ejemplos_qr.png` usa el nivel de referencia de cada modelo (el mismo
+  criterio que la confusión): con ruido 0,45 el ejemplo de `food` termina en
+  `wine` (Hamming 96, la distancia mínima entre QR); en los demás modelos la
+  pseudo-inversa lo recupera y Hebb cae al estado mezcla (Hamming 71).
+- Tamaño de `qr_37x37/`: 304 archivos, 9,5 MB de datos y 8,6 MB de figuras. Solo
+  `consultas/limpias/` guarda estados completos (5 filas por red); el resto,
+  solo las consultas de ejemplo en `ejemplos.npz`.
+
+### Barrido exploratorio del quiebre (posterior a los resultados)
+
+- Se definió **después de ver los resultados** del barrido a priori, para
+  encontrar dónde falla la pseudo-inversa ante daño estructural, no para mejorar
+  la exactitud. No modifica los niveles ni las corridas a priori. Definición en
+  `docs/noise.md`, sección 12; configuración en
+  `src/ej2/hopfield-noise-quiebre.toml`; salida en
+  `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/` (93 s).
+- Mismas redes, semillas, repeticiones y flujos: cada consulta usa la misma
+  esquina, los mismos centros y las mismas líneas que en el barrido a priori.
+- Pseudo-inversa (exactitud media ± desvío sobre semillas; entre paréntesis, la
+  fracción afectada real media):
+
+  | Modelo | Niveles y exactitud |
+  |---|---|
+  | `esquina` | L = 25: 0,973 ± 0,046 (23,2%); 27: 0,947 ± 0,092 (27,2%); 29: 0,947 ± 0,092 (31,7%); 31: 0,893 ± 0,046 (36,3%); 33: 0,813 ± 0,023 (40,9%); 35: 0,800 ± 0,040 (45,9%); 37: 0 (51,9%, imagen entera en blanco) |
+  | `bloques` | 50%: 1,000 (24,0%); 60%: 1,000 (29,4%); 70%: 1,000 (33,5%); 80%: 0,933 ± 0,046 (38,8%); 90%: 0,787 ± 0,162 (42,8%); 100%: 0,400 ± 0,000 (48,1%) |
+  | `manchas` | r = 12: 1,000 (12,4%); 15: 0,987 ± 0,023 (18,3%); 18: 0,907 ± 0,061 (23,9%); 21: 0,800 ± 0,106 (29,7%) |
+  | `rayones` | 16: 1,000 (16,0%); 24: 1,000 (21,9%); 32: 1,000 (26,9%); 48: 1,000 (34,3%) |
+
+- Hebb: exactitud 0 en todos los niveles.
+- Con los rayones no se encontró quiebre: con 48 líneas (34,3% de píxeles
+  cambiados, repartidos en toda la imagen) la pseudo-inversa sigue en 1, igual
+  que con ruido aleatorio de hasta 40%.
+- Con `bloques = 100%` solo queda visible la última fila y la última columna
+  (73 píxeles): la consulta es la misma en todas las semillas, por eso el
+  desvío es 0. Se recuperan `specials` y `wine`; `beverages` y `dessert` caen en
+  `specials` y `food` en un espurio.
+- `fig_quiebre_exactitud_vs_afectada.png` muestra todos los modelos, a priori y
+  exploratorios, contra la fracción afectada real.
+
+#### Por qué la caída depende de qué zona se borra
+
+- La fracción afectada no alcanza para predecir el resultado: con esquinas de
+  `L = 31` a `35` la exactitud depende de cuál esquina se borra. Las esquinas
+  derechas dan 1,000 en todos los lados hasta `L = 35`; la inferior izquierda
+  da entre 0,67 y 0,83 desde `L = 25` y la superior izquierda cae a 0,74, 0,48
+  y 0,43 en `L = 31`, `33` y `35` (`exactitud_por_esquina.csv`).
+- Por patrón y esquina (L = 25 a 35): `dessert` falla siempre que se borra la
+  esquina inferior izquierda (0,00) y acierta 0,67 con la superior izquierda;
+  `food` acierta 0,50 con la superior izquierda; `beverages`, 0,83. Los errores
+  son siempre hacia el QR más parecido: `food → wine` (18), `dessert →
+  beverages` (18) y `dessert → specials` (6).
+- La razón es dónde están los píxeles que distinguen cada QR de su vecino más
+  parecido. `food` y `wine` difieren en solo 96 píxeles, todos en las columnas
+  0 a 18. Una esquina superior izquierda de `L = 31` deja visibles 6 de esos
+  píxeles y una inferior izquierda, 0; una esquina derecha deja 49 a 55.
+  `dessert` y `beverages` difieren en 166 píxeles; la esquina inferior izquierda
+  deja visibles 7 y las derechas, 73 a 87.
+- Lo mismo con las manchas: las 23 que fallan tienen el centro en la columna
+  10,1 en promedio, contra 19,7 de las que aciertan.
+- El margen inicial (`d(otro QR más cercano) − d(origen)` de la consulta
+  dañada) predice el resultado: de las 1404 consultas exploratorias con margen
+  positivo, la pseudo-inversa recupera el 97,0%; de las 171 con margen nulo o
+  negativo, el 1,2% (`exactitud_por_margen.csv`, `fig_quiebre_zonas.png`).
+  Borrar a blanco solo quita información: cuando lo que queda visible ya está
+  más cerca de otro QR, la red converge a ese QR.
+
+### Lectura con un lector de QR
+
+- `src/ej2/lector_qr.py` decodifica un estado como lo haría un lector: zona de
+  silencio de 4 módulos en blanco, escala ×10 con vecino más cercano y
+  `cv2.QRCodeDetector` (`opencv-python-headless==4.14.0.94`, usado solo para
+  leer, no como modelo).
+- Forma elegida, la más simple que respeta la regla 6 de `CLAUDE.md`:
+  `hopfield-noise.py --legibilidad` (con `--modelo` o `--combinaciones`)
+  regenera las mismas consultas con los mismos flujos, las recupera de nuevo,
+  verifica que coincidan con el `consultas.csv` guardado (hamming inicial, tipo
+  de resultado y barridos) y escribe solo `legibilidad.csv` y
+  `legibilidad_resumen.csv` en la carpeta del modelo; no toca ningún otro
+  archivo. `legibilidad_patrones.csv` guarda el texto de cada QR y del estado
+  mezcla. Las figuras salen de `hopfield-figures.py`, que no importa OpenCV.
+  Las corridas de lectura de los tres barridos tardaron 5,5 min.
+- Los cinco originales se leen: cada uno es una URL distinta que termina en
+  `<menu>_menu.png`. El estado mezcla de Hebb no se lee.
+- Consulta dañada: con ruido aleatorio no se lee ninguna, ni siquiera con 2% de
+  bits invertidos. Con daño estructural chico se leen algunas: esquina `L = 7`
+  y `9`, 0,32 (son exactamente las 24 de 75 que borran la esquina inferior
+  derecha, la única sin finder); un rayón, 0,467; manchas 1 × r3, 0,773 y
+  1 × r5, 0,520; bloques 5%, 0,200. En total se leen 204 de las 2700
+  consultas dañadas a priori, todas con a lo sumo 4,2% de píxeles cambiados;
+  no se lee ninguna de la escalera ni del barrido exploratorio.
+- Pseudo-inversa: toda recuperación correcta se lee como el QR de origen
+  (`lee_origen_final` = exactitud en todos los niveles de los tres barridos).
+  Cuando la red converge a otro QR, el lector lee **otro menú válido**: con ruido
+  0,45 se lee el 96,0% pero solo el 74,7% es el correcto; con `bloques = 100%`,
+  80% contra 40%; con esquina `L = 35`, 98,7% contra 80,0%. Nunca se leyó un
+  texto que no fuera de alguno de los cinco QR.
+- Hebb: ningún estado final se lee, en ningún nivel.
+- `fig_lectura_ejemplos.png` muestra, por modelo, el primer nivel en que la
+  consulta de ejemplo (`food`, semilla 0) no se lee y la recuperada sí: ruido
+  0,02, esquina 7, finder 1, rayones 2, manchas 1 × r3 y bloques 10%.
+  `fig_legibilidad.png` compara la consulta dañada, la pseudo-inversa y Hebb
+  contra la fracción afectada real, a priori y exploratorio.
+
+### Limitaciones del caso de uso
+
+1. **Correlación, no capacidad.** Con `p/N = 0,0037` Hebb falla porque el
+   69,8% de los píxeles es igual en los cinco QR y el solapamiento entre pares
+   va de 0,58 a 0,86: sostiene pares pero ninguna terna, y todas las consultas
+   caen en el estado mezcla, que ningún lector puede leer.
+2. **La pseudo-inversa no es local.** Necesita invertir `X Xᵀ` con todos los
+   patrones a la vez; agregar un sexto menú obliga a recalcular la matriz.
+3. **Identifica, no decodifica.** La red elige entre cinco QR conocidos; no
+   recupera un QR que no esté almacenado. Un vecino más cercano por Hamming
+   sobre los píxeles visibles haría lo mismo, y el margen inicial predice el
+   resultado en el 97% de los casos.
+4. **Falla con seguridad.** Cuando se equivoca, converge a otro QR válido y el
+   lector lee una URL correcta de otro menú (21,3% de las consultas con ruido
+   0,45; 40% con `bloques = 100%`). Para el comensal es peor que no leer nada.
+5. **Depende de la zona, no solo de cuánto.** Borrar la mitad izquierda, donde
+   están las diferencias entre `food` y `wine` o entre `dessert` y
+   `beverages`, hace fallar con 36% de daño; borrar la derecha no, aun con 46%.
+   El 15% de la teoría o un porcentaje de daño no alcanzan para predecirlo.
+6. **Quiebre.** Con ruido aleatorio el borde está entre 40% y 45% de bits
+   invertidos. Con daño estructural la primera caída aparece con 18%
+   (manchas de radio 15), 23% (esquinas) y 39% (bloques); los rayones no lo
+   alcanzan con 34%. Con 50% de ruido aparecen atractores negados (`−ξ`,
+   `−mezcla`).
+7. **El lector de QR es más frágil que la red, pero no es la solución.**
+   OpenCV no lee ninguna consulta con 2% de ruido aleatorio ni con un finder
+   borrado, y la red las recupera a todas; la corrección de errores propia del
+   QR no alcanza en estos casos. Pero la red solo sirve porque los cinco menús
+   están almacenados.
+8. **Modelo de daño.** Borrar a blanco solo cambia los píxeles negros (la mitad
+   de la zona, cociente 0,54) y está sesgado hacia los QR más blancos en la zona
+   borrada; no se modelaron manchas oscuras, desenfoque ni cambios de
+   iluminación.
+9. **Preprocesamiento.** Las imágenes están alineadas módulo a módulo. Una
+   foto real necesita recorte, corrección de perspectiva, binarización y
+   llevarla a la grilla de 37 × 37; la red no tolera corrimientos, rotaciones
+   ni escalas. Con más píxeles los pesos crecen como `N²` (una foto de
+   300 × 300 daría 8,1·10⁹ pesos).
+10. **Componentes comunes.** Los finders, críticos para un lector real, son
+    triviales para la red porque son iguales en los cinco QR; el daño que
+    importa es el que cae sobre las diferencias entre menús.
+11. **Alcance experimental.** Solo dinámica asincrónica en orden fijo; tres
+    semillas con 25 consultas por semilla (el desvío es 0 en casi todos los
+    niveles por saturación); la energía no es comparable entre reglas; el
+    arreglo de empates cambió los números de 2.2.
+
 ### Estado
 
-- Fase 0: completada; plan, modelos de ruido y decisiones registrados.
-- Fases 1 a 10: pendientes de implementación, una por vez y con pausa después
-  de cada una.
-- Pendiente final: interpretación de resultados con el grupo, fuera de los
-  archivos del proyecto.
-
-## Ejercicio 2.1 — Recuperación de códigos QR deteriorados
-
-### Alcance
-
-- El plan completo está en `docs/plan/ej2-1.md`.
-- Los modelos de ruido, niveles y decisiones están en `docs/noise.md`.
-- Los scripts van en `src/ej2/`: `hopfield.py` y `hopfield-runner.py` son
-  extensiones de los existentes; `hopfield-noise.py`, `hopfield-figures.py` y
-  `ruido.py` están previstos para las próximas fases.
-- Las configuraciones previstas son `src/ej2/hopfield-qr-hebb.toml`,
-  `src/ej2/hopfield-qr-personnaz.toml` y `src/ej2/hopfield-noise.toml`.
-- Los tests previstos son `tests/ej2/test_hopfield.py`,
-  `tests/ej2/test_hopfield_runner.py`, `tests/ej2/test_ruido.py`,
-  `tests/ej2/test_hopfield_noise.py` y `tests/ej2/test_hopfield_figures.py`.
-- Las salidas van en `resultados/ej2/hopfield/qr_37x37/`, con una carpeta por
-  regla de pesos, una carpeta por modelo de ruido y una carpeta consolidada.
-- Fase 0 completada. Las fases 1 a 10 se ejecutan una por vez, con una pausa
-  después de cada una.
-
-### Datos
-
-- `datos/hopfield/qr_37x37.csv` contiene los cinco QR: `beverages_menu_qr`,
-  `dessert_menu_qr`, `food_menu_qr`, `specials_menu_qr` y `wine_menu_qr`.
-- Cada patrón es una matriz de 37 × 37: `N = 1369`.
-- `1` representa negro y `-1` representa blanco.
-- El archivo es de solo lectura; ningún script de entrenamiento lo modifica.
-- `p/N = 0,003652` y el límite teórico `0,15N` es `205,35`. La capacidad no es
-  el problema del caso de uso.
-- El solapamiento absoluto medio entre pares es `0,670`; el máximo es `0,860`
-  para `food`–`wine`. La distancia de Hamming mínima es de 96 bits.
-
-### Pre-chequeo de las reglas de pesos
-
-Se ejecutó una verificación de solo lectura, en memoria, sin escribir archivos
-del proyecto.
-
-Con la regla de Hebb (`W = (1/N) Xᵀ X`, diagonal nula):
-
-- ninguno de los cinco patrones es punto fijo;
-- los cinco convergen en dos barridos al mismo estado espurio, que coincide con
-  el voto mayoritario `sign(Σ ξᵘ)`, con energía `−2172,8795`;
-- cualquier par de QR se almacena correctamente;
-- cualquier terna o conjunto mayor falla.
-
-Con la regla de Personnaz (`W = Xᵀ (X Xᵀ)⁻¹ X`, diagonal nula y matriz
-simetrizada):
-
-- los cinco patrones son puntos fijos;
-- con ruido aleatorio y 3 semillas × 5 repeticiones × 5 patrones, la exactitud
-  es 100% hasta el 40% de bits invertidos, 74,7% al 45% y 0% al 50%.
-
-El problema es el crosstalk entre patrones correlacionados, no la capacidad. La
-regla de Personnaz es una extensión documentada de la regla de Hebb: se usa para
-mostrar una recuperación viable y para comparar, no para reemplazar la línea de
-base teórica.
-
-### Modelo
-
-- Red de Hopfield discreta con estados `{-1, +1}`.
-- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
-- Energía `E(S) = -1/2 Sᵀ W S`.
-- Dinámica asincrónica secuencial por defecto; sincrónica disponible, pero no se
-  usa en esta corrida.
-- `max_barridos = 100`.
-- No se aplica normalización: los patrones ya son binarios. No hay split de
-  entrenamiento, validación y test; el ejercicio es una memoria asociativa. Los
-  cinco QR son los patrones almacenados y las versiones corruptas son la
-  evaluación. Es una excepción documentada al punto 2 de `CLAUDE.md`.
-- La regla del 15% es una guía para patrones poco correlacionados, no una
-  condición suficiente. La comparación entre Hebb y Personnaz separa capacidad
-  de ortogonalidad.
-
-### Regla de Personnaz
-
-- `W = Xᵀ (X Xᵀ)⁻¹ X`.
-- Diagonal nula y matriz simetrizada.
-- Es una regla cerrada, igual que Hebb; no hay aprendizaje iterativo.
-- Para este dataset, `X Xᵀ` tiene rango 5 y número de condición 26,4.
-- La diagonal nula es una aproximación: se verifica que los cinco patrones sigan
-  siendo puntos fijos después de anularla.
-- El límite práctico no es `0,15N`; el área de atracción se reduce al aumentar
-  la cantidad de patrones.
-- La configuración usa `modelo.regla_pesos = "hebb" | "personnaz"`. El valor por
-  defecto es `hebb`. La CLI agrega `--regla-pesos`. Las configuraciones viejas
-  sin esa clave se interpretan como `hebb` para no romper la corrida de 2.2.
-
-### Ruido
-
-Se ejecutan seis modelos individuales y una escalera de combinaciones. El
-detalle está en `docs/noise.md`.
-
-| # | Modelo | Parámetro nominal | Modo |
-|---|---|---|---|
-| 1 | `aleatorio` | fracción de bits invertidos | invierte |
-| 2 | `esquina` | lado del cuadrado en una esquina | borra a `-1` |
-| 3 | `finder` | borrado de patrón de localización | borra a `-1` |
-| 4 | `rayones` | cantidad de líneas completas | borra a `-1` |
-| 5 | `manchas` | cantidad y radio de discos | borra a `-1` |
-| 6 | `bloques` | fracción de bloques en una grilla 6 × 6 | borra a `-1` |
-
-Escalera de combinaciones:
-
-| Paso | Componentes activos | Nivel fijo |
-|---|---|---|
-| 1 | `aleatorio` | 5% de bits |
-| 2 | + `esquina` | 9 × 9 |
-| 3 | + `finder` | un finder de 7 × 7 |
-| 4 | + `rayones` | 2 líneas |
-| 5 | + `manchas` | 1 disco de radio 5 |
-| 6 | + `bloques` | 10% de bloques |
-
-- Se usan las semillas `[0, 1, 2]`, cinco repeticiones por patrón y los cinco
-  patrones.
-- Los niveles se fijan a priori y no se ajustan para mejorar la exactitud.
-- La consulta ruidosa es la misma para Hebb y Personnaz.
-- `fraccion_afectada` es la fracción de bits que efectivamente cambian respecto
-  del original, no el área nominal.
-- En las combinaciones, el borrado estructural tiene prioridad sobre un bit
-  invertido en la misma posición. Cada componente usa un flujo RNG derivado de
-  la semilla y del nombre del componente.
-
-### Métricas
-
-El runner actual ya guarda `barridos`, `actualizaciones`, `energia_inicial`,
-`energia_final`, `convergio`, `ciclo`, `motivo` y `energia.csv` por barrido. Se
-agregan, sin renombrar columnas existentes:
-
-- `hamming_inicial_origen`, `hamming_final_origen` y
-  `hamming_final_normalizado`;
-- `fraccion_afectada`;
-- `cambios_totales`;
-- `delta_energia` y `delta_energia_por_neurona`;
-- `monotona`.
-
-`distancia_hamming` se conserva como la distancia al patrón almacenado más
-cercano. Las columnas nuevas miden el error de reconstrucción respecto del
-origen. Se agrega `metricas.csv` por corrida con exactitud, tasas de
-incorrectos, espurios, ciclos y no convergencia, medias y desvíos de barridos,
-cambios y energía por neurona, y Hamming normalizado.
-
-La composición de errores distingue correcto, incorrecto, espurio, ciclo y no
-converge. La comparación entre Hebb y Personnaz usa exactitud, Hamming y
-barridos. La energía absoluta no se compara entre reglas porque la matriz de
-pesos cambia; se analiza dentro de cada regla con `E/N` y `ΔE/N`. Para Hebb, el
-estado espurio tiene menor energía que los cinco patrones almacenados, lo que
-explica la convergencia al voto mayoritario.
-
-### Figuras
-
-Todas las figuras se guardan y se regeneran desde los CSV con
-`src/ej2/hopfield-figures.py`, que solo lee resultados. Las principales son:
-
-- comparación de entrenamiento: solapamiento, Hamming, estado espurio, energía y
-  distribución de pesos;
-- por modelo: exactitud, composición de errores, iteraciones, energía, Hamming,
-  confusión, exactitud por patrón, boxplot de barridos y afectación real;
-- combinaciones: exactitud, iteraciones, energía, Hamming y mapa de calor por
-  paso;
-- globales: exactitud, iteraciones, energía, Hamming, comparación Hebb/Personnaz,
-  mapa de calor de exactitud, ejemplos cualitativos de QR, cuenca de atracción y
-  trayectorias de energía.
-
-### Reproducibilidad y reglas
-
-- Cada corrida usa semillas explícitas y guarda su configuración resuelta.
-- Cada resultado presentado es media ± desvío sobre tres semillas.
-- Las figuras se regeneran desde los CSV guardados.
-- No se usan bibliotecas de machine learning; solo NumPy, pandas, matplotlib y
-  la biblioteca estándar.
-- Los scripts de entrenamiento escriben; los scripts de análisis y figuras solo
-  leen.
-- No se escribe en `datos/`.
-- No se commitea ni se pushea sin permiso explícito.
-
-### Estado
-
-- Fase 0: completada; plan, modelos de ruido y decisiones registrados.
-- Fases 1 a 10: pendientes de implementación, una por vez y con pausa después
-  de cada una.
+- Fase 0: completada; plan, modelos de ruido y decisiones registrados, y
+  ajustados después del diagnóstico de la corrida preliminar.
+- Antes de la fase 1: tests de Windows corregidos y arreglo de empates con la
+  regeneración de 2.2.
+- Fase 1: completada; TOML de QR, `condicion.csv`, `energia_estados.csv`,
+  redes entrenadas y consultas limpias.
+- Fase 2: completada; métricas por consulta, `metricas.csv` y resumen.
+- Fase 3: completada; orquestador, figuras por modelo y ruido aleatorio.
+- Fase 4: completada; generador y corrida de `esquina`.
+- Fase 5: completada; generador y corrida de `finder`.
+- Fase 6: completada; generador y corrida de `rayones`.
+- Fase 7: completada; generador y corrida de `manchas`.
+- Fase 8: completada; generador y corrida de `bloques`.
+- Fase 9: completada; escalera de combinaciones, consolidación y figuras.
+- Fase 10: completada; figuras de entrenamiento y globales, consolidación,
+  documentación y `check-cicd.py`.
+- Posterior a los resultados: barrido exploratorio del quiebre
+  (`ruido_quiebre/`) y lectura de los estados con un lector de QR
+  (`legibilidad*.csv` y dos figuras).
 - Pendiente final: interpretación de resultados con el grupo, fuera de los
   archivos del proyecto.
 
@@ -1171,8 +1442,6 @@ Todas las figuras se guardan y se regeneran desde los CSV con
   `hopfield-runner.py`.
 - La configuración por defecto es `src/ej2/hopfield.toml`; la CLI pisa el TOML.
 - Las salidas van en `resultados/ej2/hopfield/<dataset>/`.
-- El análisis de 2.1 se planifica por separado en `docs/plan/ej2-1.md` y sus
-  modelos de ruido en `docs/noise.md`.
 - El análisis de 2.1 se planifica por separado en `docs/plan/ej2-1.md` y sus
   modelos de ruido en `docs/noise.md`.
 
@@ -1192,7 +1461,10 @@ Todas las figuras se guardan y se regeneran desde los CSV con
 
 - Hopfield discreto con estados `{-1, +1}`.
 - Pesos `W = (1/N) Xᵀ X`, diagonal nula y matriz simétrica.
-- Campo local `h_i = Σ_j W_ij S_j`; empate en cero conserva el estado.
+- Campo local `h_i = Σ_j W_ij S_j`; un empate `|h_i| ≤ 1e-9` conserva el estado,
+  en los dos modos. La tolerancia absorbe los residuos de redondeo (del orden de
+  `1e-17`) que aparecen donde la aritmética exacta da 0: con letras, los pesos
+  son múltiplos de `0.04` y los empates exactos son frecuentes.
 - Energía `E(S) = -1/2 Sᵀ W S`.
 - Actualización asincrónica secuencial por defecto; sincrónica opcional.
 - El almacenamiento es Hebbiano en forma cerrada; la iteración hasta el estado
@@ -1264,24 +1536,31 @@ las 3 semillas.
 | Ruido | Bits invertidos | Accuracy media ± std | Correctos | Incorrectos | Espurios |
 |---:|---:|---:|---:|---:|---:|
 | 0.1 | 2 | 0.983333 ± 0.028868 | 59 | 0 | 1 |
-| 0.2 | 5 | 0.783333 ± 0.125831 | 47 | 4 | 9 |
-| 0.3 | 8 | 0.600000 ± 0.132288 | 36 | 11 | 13 |
-| 0.4 | 10 | 0.250000 ± 0.050000 | 15 | 18 | 27 |
-| 0.5 | 12 | 0.083333 ± 0.028868 | 5 | 28 | 27 |
+| 0.2 | 5 | 0.783333 ± 0.104083 | 47 | 3 | 10 |
+| 0.3 | 8 | 0.566667 ± 0.160728 | 34 | 10 | 16 |
+| 0.4 | 10 | 0.233333 ± 0.028868 | 14 | 17 | 29 |
+| 0.5 | 12 | 0.050000 ± 0.000000 | 3 | 26 | 31 |
 
 Accuracy por letra:
 
 | Ruido | A | J | O | T |
 |---:|---:|---:|---:|---:|
 | 0.1 | 0.933333 | 1.000000 | 1.000000 | 1.000000 |
-| 0.2 | 0.733333 | 0.733333 | 0.733333 | 0.933333 |
-| 0.3 | 0.533333 | 0.466667 | 0.666667 | 0.733333 |
-| 0.4 | 0.266667 | 0.200000 | 0.333333 | 0.200000 |
-| 0.5 | 0.133333 | 0.000000 | 0.066667 | 0.133333 |
+| 0.2 | 0.733333 | 0.800000 | 0.733333 | 0.866667 |
+| 0.3 | 0.533333 | 0.400000 | 0.666667 | 0.666667 |
+| 0.4 | 0.266667 | 0.266667 | 0.333333 | 0.066667 |
+| 0.5 | 0.133333 | 0.000000 | 0.066667 | 0.000000 |
 
 - La recuperación cae rápido con el ruido. A partir de 0.4 dominan los estados
   espurios y las asociaciones incorrectas.
-- `T` es la letra más robusta entre 0.1 y 0.3; `A` es la más frágil.
+- `T` es la letra más robusta en 0.2 y empata con `O` en 0.3, pero es la que
+  más cae en 0.4. `A` es la única que falla con ruido 0.1 y `J` es la más
+  frágil en 0.3.
+- Las consultas se regeneraron con la tolerancia de empate `|h_i| ≤ 1e-9`. Los
+  estados iniciales no cambiaron; 14 de las 300 consultas ruidosas cambiaron de
+  tipo de resultado. Las 304 consultas (limpias y ruidosas) coinciden ahora, en
+  estado final y barridos, con la dinámica en aritmética exacta. La versión
+  anterior de esta tabla queda en el historial de git.
 
 ### Estado espurio
 
@@ -1301,6 +1580,8 @@ Accuracy por letra:
 
 - En el mismo nivel aparecen otros espurios; con ruido `0.1` ya hay uno en la
   semilla `2`.
+- El caso no cambia al regenerar las consultas con la tolerancia de empate:
+  mismo estado final, mismos barridos y misma energía.
 
 ### Reproducibilidad
 
@@ -1342,7 +1623,8 @@ Accuracy por letra:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 132 tests en verde.
+- `python3 -m pytest -q`: 249 tests en verde (también en Windows, después de
+  corregir la lectura de archivos y las rutas en dos tests).
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.
 - La configuración de pytest y ruff está en `pyproject.toml`.
@@ -1355,13 +1637,7 @@ Accuracy por letra:
 - Decidir el umbral definitivo comparando 90%, 95% y 99%.
 - Usar estos resultados como base para el resto de los subejercicios.
 - Interpretar en el informe qué significa cada componente para las campañas.
-- Ejecutar las fases 1 a 10 de 2.1: regla de Personnaz, métricas del runner,
-  seis modelos de ruido, combinaciones y figuras.
-- Ejecutar las fases 1 a 10 de 2.1: regla de Personnaz, métricas del runner,
-  seis modelos de ruido, combinaciones y figuras.
 - Interpretar con el grupo los resultados de 2.2, incluida la aparición de
   estados espurios y la caída de accuracy con el ruido.
-- Interpretar con el grupo las limitaciones de 2.1: correlación entre QR,
-  estados espurios y preprocesamiento de imágenes reales.
 - Interpretar con el grupo las limitaciones de 2.1: correlación entre QR,
   estados espurios y preprocesamiento de imágenes reales.

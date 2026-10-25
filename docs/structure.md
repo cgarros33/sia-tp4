@@ -32,12 +32,10 @@ sia-tp4/
 │   ├── decisiones.md
 │   ├── sweep.md
 │   ├── noise.md
-│   ├── noise.md
 │   ├── plan/
 │   │   ├── ej1-1.md
 │   │   ├── ej1-2.md
 │   │   ├── ej1-3.md
-│   │   ├── ej2-1.md
 │   │   ├── ej2-1.md
 │   │   └── ej2-2.md
 │   └── context/
@@ -73,21 +71,38 @@ sia-tp4/
 │   │       └── epocas_500/
 │   └── ej2/
 │       └── hopfield/
-│           └── letras_5x5/
-│               ├── consultas/
-│               │   ├── limpias/
-│               │   └── ruido_<nivel>_semilla_<semilla>/
-│               ├── config_usada.toml
-│               ├── patrones.csv
-│               ├── pesos.npz
-│               ├── estabilidad.csv
-│               ├── estabilidad_neuronas.csv
-│               ├── solapamiento.csv
-│               ├── hamming.csv
-│               ├── ortogonalidad_resumen.csv
-│               ├── capacidad.csv
-│               ├── energia_entrenamiento.csv
-│               └── resumen.txt
+│           ├── letras_5x5/
+│           │   ├── consultas/
+│           │   │   ├── limpias/
+│           │   │   └── ruido_<nivel>_semilla_<semilla>/
+│           │   ├── config_usada.toml
+│           │   ├── patrones.csv
+│           │   ├── pesos.npz
+│           │   ├── estabilidad.csv
+│           │   ├── estabilidad_neuronas.csv
+│           │   ├── solapamiento.csv
+│           │   ├── hamming.csv
+│           │   ├── ortogonalidad_resumen.csv
+│           │   ├── capacidad.csv
+│           │   ├── energia_entrenamiento.csv
+│           │   └── resumen.txt
+│           ├── qr_hebb/              # 2.1 preliminar (archivada)
+│           ├── qr_pseudoinversa/     # 2.1 preliminar (archivada)
+│           ├── analisis_qr/          # 2.1 preliminar (archivada)
+│           └── qr_37x37/             # 2.1 definitiva
+│               ├── hebb/
+│               ├── pseudoinversa/
+│               ├── comparacion_entrenamiento/
+│               ├── ruido/
+│               │   ├── aleatorio/
+│               │   ├── esquina/
+│               │   ├── finder/
+│               │   ├── rayones/
+│               │   ├── manchas/
+│               │   ├── bloques/
+│               │   ├── combinaciones/
+│               │   └── consolidado/
+│               └── ruido_quiebre/    # exploratorio, posterior a los resultados
 ├── src/
 │   ├── ej1/
 │   │   ├── eda-pca.py
@@ -102,7 +117,16 @@ sia-tp4/
 │   └── ej2/
 │       ├── hopfield.py
 │       ├── hopfield.toml
+│       ├── hopfield-qr-hebb.toml
+│       ├── hopfield-qr-pseudoinversa.toml
 │       ├── hopfield-runner.py
+│       ├── hopfield-noise.py
+│       ├── hopfield-noise.toml
+│       ├── hopfield-noise-quiebre.toml
+│       ├── hopfield-figures.py
+│       ├── hopfield-qr-analisis.py
+│       ├── ruido.py
+│       ├── lector_qr.py
 │       └── qr-to-matrix.py
 └── tests/
     ├── ej1/
@@ -113,6 +137,11 @@ sia-tp4/
     └── ej2/
         ├── test_hopfield.py
         ├── test_hopfield_runner.py
+        ├── test_hopfield_qr_analisis.py
+        ├── test_ruido.py
+        ├── test_lector_qr.py
+        ├── test_hopfield_noise.py
+        ├── test_hopfield_figures.py
         └── test_qr_to_matrix.py
 ```
 
@@ -134,7 +163,6 @@ sia-tp4/
   - `docs/structure.md`: este archivo.
   - `docs/sweep.md`: análisis del barrido de Kohonen (empates de TE, régimen
     de capacidad, iteraciones bajas, suelo de k-means y normalización min–max).
-  - `docs/noise.md`: modelos, niveles y decisiones de ruido del ejercicio 2.1.
   - `docs/noise.md`: modelos, niveles y decisiones de ruido del ejercicio 2.1.
   - `docs/context/`: consigna, teoría y notas personales. Es la fuente de
     verdad para las reglas del trabajo.
@@ -231,6 +259,8 @@ python3 -m pytest -q tests/ej1
 
 - Python 3.11 o superior.
 - `numpy`, `pandas`, `matplotlib` para el script.
+- `opencv-python-headless` solo para leer los QR en 2.1; no es parte de
+  ningún modelo.
 - `pytest` para los tests.
 - `ruff` para lint y formato.
 - Las versiones usadas están en `requirements.txt`.
@@ -304,75 +334,124 @@ En `resultados/ej1/oja/epocas_5/` (corrida final):
 En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
 épocas, con los mismos tipos de archivo y sus configuraciones resueltas.
 
-## Ejercicio 2.1 — Recuperación de QR deteriorados (en implementación)
+## Ejercicio 2.1 — Recuperación de QR deteriorados
 
 - Plan: `docs/plan/ej2-1.md`.
 - Modelos de ruido: `docs/noise.md`.
-- Motor: `src/ej2/hopfield.py`, que se extiende con `modelo.regla_pesos`
-  (`hebb` o `personnaz`).
-- Runner: `src/ej2/hopfield-runner.py`, que se extiende con métricas de Hamming,
-  cambios, energía y monotonicidad.
-- Barrido de ruido: `src/ej2/hopfield-noise.py` (previsto).
-- Figuras: `src/ej2/hopfield-figures.py` (previsto; solo lee resultados).
-- Generadores estructurales: `src/ej2/ruido.py` (previsto).
-- Configuraciones previstas: `src/ej2/hopfield-qr-hebb.toml`,
-  `src/ej2/hopfield-qr-personnaz.toml` y `src/ej2/hopfield-noise.toml`.
 - Datos: `datos/hopfield/qr_37x37.csv`, cinco patrones de 37 × 37 con
   `N = 1369`, `1` para negro y `-1` para blanco. Es de solo lectura.
-- Tests previstos: extensión de `tests/ej2/test_hopfield.py` y
-  `tests/ej2/test_hopfield_runner.py`; nuevos `tests/ej2/test_ruido.py`,
-  `tests/ej2/test_hopfield_noise.py` y `tests/ej2/test_hopfield_figures.py`.
-- Salidas previstas:
-  - `resultados/ej2/hopfield/qr_37x37/hebb/`
-  - `resultados/ej2/hopfield/qr_37x37/personnaz/`
-  - `resultados/ej2/hopfield/qr_37x37/comparacion_entrenamiento/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/aleatorio/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/esquina/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/finder/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/rayones/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/manchas/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/bloques/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/combinaciones/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/consolidado/`
-- Estado: fase 0 completada (plan y decisiones). Las fases 1 a 10 se ejecutan
-  una por vez, con pausa después de cada una.
-- Los archivos marcados como “previsto” todavía no existen; se agregan en las
-  fases correspondientes.
+- Motor: `src/ej2/hopfield.py`, con `modelo.regla = "hebb"` o
+  `"pseudoinversa"` (CLI `--regla`). La pseudo-inversa es la regla de proyección
+  de Personnaz.
+- Configuraciones: `src/ej2/hopfield-qr-hebb.toml` y
+  `src/ej2/hopfield-qr-pseudoinversa.toml`.
+- Runner: `src/ej2/hopfield-runner.py`.
+- Barrido de ruido: `src/ej2/hopfield-noise.py` con
+  `src/ej2/hopfield-noise.toml`; generadores estructurales en `src/ej2/ruido.py`.
+- Figuras: `src/ej2/hopfield-figures.py` (solo lee resultados).
+- Tests: `tests/ej2/test_hopfield.py`, `tests/ej2/test_hopfield_runner.py`,
+  `tests/ej2/test_ruido.py`, `tests/ej2/test_hopfield_noise.py` y
+  `tests/ej2/test_hopfield_figures.py`.
+- Salidas definitivas en `resultados/ej2/hopfield/qr_37x37/`: `hebb/`,
+  `pseudoinversa/`, `comparacion_entrenamiento/` y `ruido/` con una carpeta por
+  modelo (`aleatorio/`, `esquina/`, `finder/`, `rayones/`, `manchas/`,
+  `bloques/`), `combinaciones/` y `consolidado/`.
+- Corrida preliminar, archivada y sin regenerar:
+  `resultados/ej2/hopfield/qr_hebb/`, `qr_pseudoinversa/` y `analisis_qr/`.
+  Se generó con los deterioros preliminares del runner
+  (`--deterioro {ruido, esquina, manchas}`) y se analiza con
+  `src/ej2/hopfield-qr-analisis.py` (test:
+  `tests/ej2/test_hopfield_qr_analisis.py`).
+- Barrido exploratorio del quiebre, posterior a los resultados:
+  `src/ej2/hopfield-noise-quiebre.toml`, con salida en
+  `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/`.
+- Lectura con un lector de QR: `src/ej2/lector_qr.py` (OpenCV, solo para
+  decodificar; test: `tests/ej2/test_lector_qr.py`) y
+  `hopfield-noise.py --legibilidad`.
+- Estado: implementado y ejecutado (fases 1 a 10, barrido exploratorio y
+  lectura). Los resultados numéricos están en `docs/decisiones.md`.
 
-## Ejercicio 2.1 — Recuperación de QR deteriorados (en implementación)
+### Ejecución
 
-- Plan: `docs/plan/ej2-1.md`.
-- Modelos de ruido: `docs/noise.md`.
-- Motor: `src/ej2/hopfield.py`, que se extiende con `modelo.regla_pesos`
-  (`hebb` o `personnaz`).
-- Runner: `src/ej2/hopfield-runner.py`, que se extiende con métricas de Hamming,
-  cambios, energía y monotonicidad.
-- Barrido de ruido: `src/ej2/hopfield-noise.py` (previsto).
-- Figuras: `src/ej2/hopfield-figures.py` (previsto; solo lee resultados).
-- Generadores estructurales: `src/ej2/ruido.py` (previsto).
-- Configuraciones previstas: `src/ej2/hopfield-qr-hebb.toml`,
-  `src/ej2/hopfield-qr-personnaz.toml` y `src/ej2/hopfield-noise.toml`.
-- Datos: `datos/hopfield/qr_37x37.csv`, cinco patrones de 37 × 37 con
-  `N = 1369`, `1` para negro y `-1` para blanco. Es de solo lectura.
-- Tests previstos: extensión de `tests/ej2/test_hopfield.py` y
-  `tests/ej2/test_hopfield_runner.py`; nuevos `tests/ej2/test_ruido.py`,
-  `tests/ej2/test_hopfield_noise.py` y `tests/ej2/test_hopfield_figures.py`.
-- Salidas previstas:
-  - `resultados/ej2/hopfield/qr_37x37/hebb/`
-  - `resultados/ej2/hopfield/qr_37x37/personnaz/`
-  - `resultados/ej2/hopfield/qr_37x37/comparacion_entrenamiento/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/aleatorio/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/esquina/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/finder/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/rayones/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/manchas/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/bloques/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/combinaciones/`
-  - `resultados/ej2/hopfield/qr_37x37/ruido/consolidado/`
-- Estado: fase 0 completada (plan y decisiones). Las fases 1 a 10 se ejecutan
-  una por vez, con pausa después de cada una.
-- Los archivos marcados como “previsto” todavía no existen; se agregan en las
-  fases correspondientes.
+```bash
+# Entrenamiento de las dos redes
+python src/ej2/hopfield.py --config src/ej2/hopfield-qr-hebb.toml
+python src/ej2/hopfield.py --config src/ej2/hopfield-qr-pseudoinversa.toml
+
+# Consultas limpias (y el estado espurio de Hebb como texto)
+for regla in hebb pseudoinversa; do
+  python src/ej2/hopfield-runner.py \
+    --red "resultados/ej2/hopfield/qr_37x37/$regla" \
+    --salida "resultados/ej2/hopfield/qr_37x37/$regla/consultas/limpias"
+done
+python src/ej2/hopfield-runner.py --red resultados/ej2/hopfield/qr_37x37/hebb \
+  --salida resultados/ej2/hopfield/qr_37x37/hebb/consultas/limpias --graphic
+
+# Barrido: un modelo por invocación, la escalera paso por paso y la consolidación
+for modelo in aleatorio esquina finder rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --modelo "$modelo"
+done
+for paso in 1 2 3 4 5 6; do
+  python src/ej2/hopfield-noise.py --combinaciones --paso "$paso"
+done
+python src/ej2/hopfield-noise.py --consolidar
+
+# Figuras (solo leen resultados); --solo entrenamiento|modelos|combinaciones|global
+python src/ej2/hopfield-figures.py
+```
+
+El barrido completo tarda unos 3 minutos y las figuras, menos de 1 minuto.
+
+Barrido exploratorio y lectura con un lector de QR (después del barrido a
+priori):
+
+```bash
+Q=src/ej2/hopfield-noise-quiebre.toml
+for modelo in esquina rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --config "$Q" --modelo "$modelo"
+done
+
+# Vuelve a recuperar las mismas consultas, las lee con OpenCV y escribe
+# solo legibilidad.csv y legibilidad_resumen.csv (unos 6 minutos en total)
+for modelo in aleatorio esquina finder rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --modelo "$modelo" --legibilidad
+done
+python src/ej2/hopfield-noise.py --combinaciones --legibilidad
+for modelo in esquina rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --config "$Q" --modelo "$modelo" --legibilidad
+done
+
+python src/ej2/hopfield-noise.py --consolidar
+python src/ej2/hopfield-noise.py --config "$Q" --consolidar
+python src/ej2/hopfield-figures.py
+```
+
+### Salidas principales
+
+En `resultados/ej2/hopfield/qr_37x37/`:
+
+- `hebb/` y `pseudoinversa/`: las tablas de `hopfield.py` (incluidas
+  `capacidad_subconjuntos.csv`, `condicion.csv` y `energia_estados.csv`) y
+  `consultas/limpias/`.
+- `comparacion_entrenamiento/`: `comparacion_entrenamiento.csv` y cinco figuras.
+- `ruido/<modelo>/`: `config_usada.toml`, `consultas.csv`, `energia.csv`,
+  `metricas_por_semilla.csv`, `resumen_niveles.csv`, `comparacion_reglas.csv`,
+  `resumen_por_patron.csv`, `resumen_energia.csv`, `ejemplos.npz`,
+  `resumen.txt` y `figuras/` con nueve figuras.
+- `ruido/combinaciones/paso_<k>/`: los mismos archivos para cada paso;
+  `ruido/combinaciones/consolidado/` une los pasos y tiene cinco figuras.
+- `ruido/consolidado/`: une los seis modelos, agrega
+  `exactitud_por_intervalo.csv` y tiene doce figuras globales (incluida
+  `fig_lectura_ejemplos.png`).
+- `legibilidad.csv` y `legibilidad_resumen.csv` en cada carpeta de modelo,
+  de paso y en los consolidados; `ruido/legibilidad_patrones.csv` y
+  `ruido_quiebre/legibilidad_patrones.csv` con el texto de cada QR y del
+  estado mezcla.
+- `ruido_quiebre/<modelo>/`: los mismos archivos que `ruido/<modelo>/`;
+  `ruido_quiebre/consolidado/` agrega `exactitud_por_esquina.csv`,
+  `exactitud_por_margen.csv` y tres figuras
+  (`fig_quiebre_exactitud_vs_afectada.png`, `fig_quiebre_zonas.png` y
+  `fig_legibilidad.png`).
 
 ## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
 
@@ -444,6 +523,5 @@ Los resultados numéricos y la interpretación técnica están en
 | 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
 | 1 | 3. Índice de Oja | `src/ej1/oja.py` | Implementado |
 | 1 | 4. Decisión para las campañas | — | Pendiente |
-| 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` (extensión) + `src/ej2/hopfield-noise.py` (previsto) | En implementación (plan en `docs/plan/ej2-1.md`) |
-| 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` (extensión) + `src/ej2/hopfield-noise.py` (previsto) | En implementación (plan en `docs/plan/ej2-1.md`) |
+| 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` + `src/ej2/hopfield-noise.py` + `src/ej2/hopfield-figures.py` | Implementado |
 | 2 | 2. Recomendación (Hopfield 5×5) | `src/ej2/hopfield.py` + `src/ej2/hopfield-runner.py` | Implementado |

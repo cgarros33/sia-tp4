@@ -1,0 +1,23 @@
+[redes]
+hebb = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\hebb"
+pseudoinversa = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\pseudoinversa"
+
+[barrido]
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\ruido_quiebre"
+
+[corrida]
+modelo = "esquina"
+etiquetas = ["25", "27", "29", "31", "33", "35", "37"]
+componentes = ["esquina"]
+
+[niveles]
+25 = [25]
+27 = [27]
+29 = [29]
+31 = [31]
+33 = [33]
+35 = [35]
+37 = [37]

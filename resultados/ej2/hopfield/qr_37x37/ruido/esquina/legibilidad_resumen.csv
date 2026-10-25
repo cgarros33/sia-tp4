@@ -1,0 +1,13 @@
+modelo,orden_nivel,nivel,regla,legible_inicial_media,legible_inicial_desvio,lee_origen_inicial_media,lee_origen_inicial_desvio,legible_final_media,legible_final_desvio,lee_origen_final_media,lee_origen_final_desvio,semillas,consultas
+esquina,0,7,hebb,0.32,0.0,0.32,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,0,7,pseudoinversa,0.32,0.0,0.32,0.0,1.0,0.0,1.0,0.0,3,75
+esquina,1,9,hebb,0.32,0.0,0.32,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,1,9,pseudoinversa,0.32,0.0,0.32,0.0,1.0,0.0,1.0,0.0,3,75
+esquina,2,11,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,2,11,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+esquina,3,15,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,3,15,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+esquina,4,19,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,4,19,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+esquina,5,23,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+esquina,5,23,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75

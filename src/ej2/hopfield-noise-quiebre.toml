@@ -1,0 +1,27 @@
+# Barrido exploratorio del ejercicio 2.1, definido DESPUÉS de ver los resultados
+# del barrido a priori (hopfield-noise.toml): con esos niveles el daño real no
+# pasa de ~20% y la pseudo-inversa recupera todo. El objetivo es encontrar el
+# punto de quiebre de los modelos estructurales, no mejorar la exactitud. No
+# reemplaza ni modifica el barrido a priori. Ver docs/noise.md, sección 12.
+
+[redes]
+hebb = "resultados/ej2/hopfield/qr_37x37/hebb"
+pseudoinversa = "resultados/ej2/hopfield/qr_37x37/pseudoinversa"
+
+[barrido]
+# Mismas semillas, repeticiones y patrón de ejemplo que el barrido a priori; los
+# flujos aleatorios dependen solo de la semilla y del modelo.
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "resultados/ej2/hopfield/qr_37x37/ruido_quiebre"
+
+[niveles]
+# Lado del cuadrado borrado en una esquina (37 borra la imagen entera).
+esquina = [25, 27, 29, 31, 33, 35, 37]
+# Cantidad de líneas completas.
+rayones = [16, 24, 32, 48]
+# [cantidad, radio] de los discos.
+manchas = [[1, 12], [1, 15], [1, 18], [1, 21]]
+# Fracción de los 36 bloques completos de 6 × 6.
+bloques = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]

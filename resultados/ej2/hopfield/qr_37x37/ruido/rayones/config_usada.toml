@@ -1,0 +1,21 @@
+[redes]
+hebb = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\hebb"
+pseudoinversa = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\pseudoinversa"
+
+[barrido]
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\ruido"
+
+[corrida]
+modelo = "rayones"
+etiquetas = ["1", "2", "4", "8", "12"]
+componentes = ["rayones"]
+
+[niveles]
+1 = [1]
+2 = [2]
+4 = [4]
+8 = [8]
+12 = [12]

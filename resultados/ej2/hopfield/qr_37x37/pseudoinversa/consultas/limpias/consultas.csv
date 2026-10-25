@@ -1,0 +1,6 @@
+consulta,nombre_origen,indice_patron,repeticion,deterioro,ruido,semilla,hamming_inicial,tipo_resultado,nombre_final,distancia_hamming,nombre_mas_cercano,barridos,actualizaciones,energia_inicial,energia_final,convergio,ciclo,motivo,hamming_final_origen,hamming_final_normalizado,fraccion_afectada,cambios_totales,delta_energia,delta_energia_por_neurona,monotona
+beverages_menu_qr,beverages_menu_qr,0,0,ruido,0.0,0,0,almacenado_correcto,beverages_menu_qr,0,beverages_menu_qr,1,1369,-681.9999999999982,-681.9999999999982,True,False,estable,0,0.0,0.0,0,0.0,0.0,True
+dessert_menu_qr,dessert_menu_qr,1,0,ruido,0.0,0,0,almacenado_correcto,dessert_menu_qr,0,dessert_menu_qr,1,1369,-681.9999999999986,-681.9999999999986,True,False,estable,0,0.0,0.0,0,0.0,0.0,True
+food_menu_qr,food_menu_qr,2,0,ruido,0.0,0,0,almacenado_correcto,food_menu_qr,0,food_menu_qr,1,1369,-681.9999999999983,-681.9999999999983,True,False,estable,0,0.0,0.0,0,0.0,0.0,True
+specials_menu_qr,specials_menu_qr,3,0,ruido,0.0,0,0,almacenado_correcto,specials_menu_qr,0,specials_menu_qr,1,1369,-681.9999999999986,-681.9999999999986,True,False,estable,0,0.0,0.0,0,0.0,0.0,True
+wine_menu_qr,wine_menu_qr,4,0,ruido,0.0,0,0,almacenado_correcto,wine_menu_qr,0,wine_menu_qr,1,1369,-681.9999999999987,-681.9999999999987,True,False,estable,0,0.0,0.0,0,0.0,0.0,True

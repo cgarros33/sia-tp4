@@ -1,0 +1,6 @@
+nombre,beverages_menu_qr,dessert_menu_qr,food_menu_qr,specials_menu_qr,wine_menu_qr
+beverages_menu_qr,0,166,274,278,290
+dessert_menu_qr,166,0,278,264,290
+food_menu_qr,274,278,0,160,96
+specials_menu_qr,278,264,160,0,162
+wine_menu_qr,290,290,96,162,0
