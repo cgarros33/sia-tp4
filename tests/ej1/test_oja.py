@@ -670,4 +670,4 @@ def test_integracion_smoke(modulo: ModuleType, tmp_path: Path) -> None:
     assert config_guardada["modelo"]["epocas"] == 5
     assert config_guardada["reproducibilidad"]["semillas"] == [0]
 
-    assert "Oja" in (tmp_path / "resumen.txt").read_text()
+    assert "Oja" in (tmp_path / "resumen.txt").read_text(encoding="utf-8")

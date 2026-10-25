@@ -543,9 +543,8 @@ def test_resolver_config_precedencia(
     assert resuelta["modelo"]["orden"] == "aleatorio"
     assert resuelta["modelo"]["semilla"] == 3
     assert resuelta["modelo"]["max_barridos"] == 10
-    assert resuelta["salida"]["directorio"].endswith(
-        "resultados/ej2/hopfield/letras_5x5"
-    )
+    directorio = Path(resuelta["salida"]["directorio"]).as_posix()
+    assert directorio.endswith("resultados/ej2/hopfield/letras_5x5")
 
 
 def test_analizar_red(modulo: ModuleType) -> None:
