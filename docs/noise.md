@@ -563,3 +563,39 @@ solo se resuelven cuestiones de presentación:
 
 Si aparece una decisión que cambie los modelos, los niveles o la métrica
 principal, se para y se consulta antes de continuar.
+
+## 12. Barrido exploratorio del quiebre (posterior a los resultados)
+
+Este barrido se definió **después de ver los resultados** del barrido a priori.
+Con los niveles de las secciones 4 y 5, el daño real de los modelos
+estructurales no pasa de ~20% y la pseudo-inversa recupera todas las consultas,
+así que no se ve dónde falla. El objetivo es **encontrar el punto de quiebre**,
+no mejorar la exactitud. No reemplaza ni modifica el barrido a priori: los
+niveles, las corridas y las conclusiones de las secciones anteriores siguen
+siendo los de referencia.
+
+- Configuración: `src/ej2/hopfield-noise-quiebre.toml`.
+- Salida: `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/<modelo>/` y su
+  `consolidado/`.
+- Mismas redes, semillas `[0, 1, 2]`, 5 repeticiones, 5 patrones, flujos
+  aleatorios y definiciones de los generadores que el barrido a priori; cada
+  consulta se recupera con las dos reglas.
+
+| Modelo | Niveles exploratorios |
+|---|---|
+| `esquina` | `L = 25, 27, 29, 31, 33, 35, 37` (`L = 37` borra la imagen entera) |
+| `bloques` | 50%, 60%, 70%, 80%, 90% y 100% de los 36 bloques (18 a 36 bloques) |
+| `manchas` | un disco de radio 12, 15, 18 y 21 |
+| `rayones` | 16, 24, 32 y 48 líneas |
+
+Como los flujos solo dependen de la semilla y del modelo, cada consulta usa la
+misma esquina, los mismos centros y las mismas líneas que en el barrido a
+priori; solo cambia el tamaño del daño.
+
+Para explicar las fallas, cada consulta registra el QR almacenado más cercano a
+la consulta dañada (`nombre_inicial_mas_cercano`) y el margen
+`margen_inicial = d(otro QR más cercano) − d(origen)`. Un margen negativo
+significa que el daño dejó la consulta más cerca de otro QR que del suyo.
+
+Los resultados están en `docs/decisiones.md`, subsección «Barrido exploratorio
+del quiebre».

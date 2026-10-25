@@ -1268,6 +1268,147 @@ Todas las figuras se guardan y se regeneran desde los CSV con
   `consultas/limpias/` guarda estados completos (5 filas por red); el resto,
   solo las consultas de ejemplo en `ejemplos.npz`.
 
+### Barrido exploratorio del quiebre (posterior a los resultados)
+
+- Se definió **después de ver los resultados** del barrido a priori, para
+  encontrar dónde falla la pseudo-inversa ante daño estructural, no para mejorar
+  la exactitud. No modifica los niveles ni las corridas a priori. Definición en
+  `docs/noise.md`, sección 12; configuración en
+  `src/ej2/hopfield-noise-quiebre.toml`; salida en
+  `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/` (93 s).
+- Mismas redes, semillas, repeticiones y flujos: cada consulta usa la misma
+  esquina, los mismos centros y las mismas líneas que en el barrido a priori.
+- Pseudo-inversa (exactitud media ± desvío sobre semillas; entre paréntesis, la
+  fracción afectada real media):
+
+  | Modelo | Niveles y exactitud |
+  |---|---|
+  | `esquina` | L = 25: 0,973 ± 0,046 (23,2%); 27: 0,947 ± 0,092 (27,2%); 29: 0,947 ± 0,092 (31,7%); 31: 0,893 ± 0,046 (36,3%); 33: 0,813 ± 0,023 (40,9%); 35: 0,800 ± 0,040 (45,9%); 37: 0 (51,9%, imagen entera en blanco) |
+  | `bloques` | 50%: 1,000 (24,0%); 60%: 1,000 (29,4%); 70%: 1,000 (33,5%); 80%: 0,933 ± 0,046 (38,8%); 90%: 0,787 ± 0,162 (42,8%); 100%: 0,400 ± 0,000 (48,1%) |
+  | `manchas` | r = 12: 1,000 (12,4%); 15: 0,987 ± 0,023 (18,3%); 18: 0,907 ± 0,061 (23,9%); 21: 0,800 ± 0,106 (29,7%) |
+  | `rayones` | 16: 1,000 (16,0%); 24: 1,000 (21,9%); 32: 1,000 (26,9%); 48: 1,000 (34,3%) |
+
+- Hebb: exactitud 0 en todos los niveles.
+- Con los rayones no se encontró quiebre: con 48 líneas (34,3% de píxeles
+  cambiados, repartidos en toda la imagen) la pseudo-inversa sigue en 1, igual
+  que con ruido aleatorio de hasta 40%.
+- Con `bloques = 100%` solo queda visible la última fila y la última columna
+  (73 píxeles): la consulta es la misma en todas las semillas, por eso el
+  desvío es 0. Se recuperan `specials` y `wine`; `beverages` y `dessert` caen en
+  `specials` y `food` en un espurio.
+- `fig_quiebre_exactitud_vs_afectada.png` muestra todos los modelos, a priori y
+  exploratorios, contra la fracción afectada real.
+
+#### Por qué la caída depende de qué zona se borra
+
+- La fracción afectada no alcanza para predecir el resultado: con esquinas de
+  `L = 31` a `35` la exactitud depende de cuál esquina se borra. Las esquinas
+  derechas dan 1,000 en todos los lados hasta `L = 35`; la inferior izquierda
+  da entre 0,67 y 0,83 desde `L = 25` y la superior izquierda cae a 0,74, 0,48
+  y 0,43 en `L = 31`, `33` y `35` (`exactitud_por_esquina.csv`).
+- Por patrón y esquina (L = 25 a 35): `dessert` falla siempre que se borra la
+  esquina inferior izquierda (0,00) y acierta 0,67 con la superior izquierda;
+  `food` acierta 0,50 con la superior izquierda; `beverages`, 0,83. Los errores
+  son siempre hacia el QR más parecido: `food → wine` (18), `dessert →
+  beverages` (18) y `dessert → specials` (6).
+- La razón es dónde están los píxeles que distinguen cada QR de su vecino más
+  parecido. `food` y `wine` difieren en solo 96 píxeles, todos en las columnas
+  0 a 18. Una esquina superior izquierda de `L = 31` deja visibles 6 de esos
+  píxeles y una inferior izquierda, 0; una esquina derecha deja 49 a 55.
+  `dessert` y `beverages` difieren en 166 píxeles; la esquina inferior izquierda
+  deja visibles 7 y las derechas, 73 a 87.
+- Lo mismo con las manchas: las 23 que fallan tienen el centro en la columna
+  10,1 en promedio, contra 19,7 de las que aciertan.
+- El margen inicial (`d(otro QR más cercano) − d(origen)` de la consulta
+  dañada) predice el resultado: de las 1404 consultas exploratorias con margen
+  positivo, la pseudo-inversa recupera el 97,0%; de las 171 con margen nulo o
+  negativo, el 1,2% (`exactitud_por_margen.csv`, `fig_quiebre_zonas.png`).
+  Borrar a blanco solo quita información: cuando lo que queda visible ya está
+  más cerca de otro QR, la red converge a ese QR.
+
+### Lectura con un lector de QR
+
+- `src/ej2/lector_qr.py` decodifica un estado como lo haría un lector: zona de
+  silencio de 4 módulos en blanco, escala ×10 con vecino más cercano y
+  `cv2.QRCodeDetector` (`opencv-python-headless==4.14.0.94`, usado solo para
+  leer, no como modelo).
+- Forma elegida, la más simple que respeta la regla 6 de `CLAUDE.md`:
+  `hopfield-noise.py --legibilidad` (con `--modelo` o `--combinaciones`)
+  regenera las mismas consultas con los mismos flujos, las recupera de nuevo,
+  verifica que coincidan con el `consultas.csv` guardado (hamming inicial, tipo
+  de resultado y barridos) y escribe solo `legibilidad.csv` y
+  `legibilidad_resumen.csv` en la carpeta del modelo; no toca ningún otro
+  archivo. `legibilidad_patrones.csv` guarda el texto de cada QR y del estado
+  mezcla. Las figuras salen de `hopfield-figures.py`, que no importa OpenCV.
+  Las corridas de lectura de los tres barridos tardaron 5,5 min.
+- Los cinco originales se leen: cada uno es una URL distinta que termina en
+  `<menu>_menu.png`. El estado mezcla de Hebb no se lee.
+- Consulta dañada: con ruido aleatorio no se lee ninguna, ni siquiera con 2% de
+  bits invertidos. Con daño estructural chico se leen algunas: esquina `L = 7`
+  y `9`, 0,32 (son exactamente las 24 de 75 que borran la esquina inferior
+  derecha, la única sin finder); un rayón, 0,467; manchas 1 × r3, 0,773 y
+  1 × r5, 0,520; bloques 5%, 0,200. En total se leen 204 de las 2700
+  consultas dañadas a priori, todas con a lo sumo 4,2% de píxeles cambiados;
+  no se lee ninguna de la escalera ni del barrido exploratorio.
+- Pseudo-inversa: toda recuperación correcta se lee como el QR de origen
+  (`lee_origen_final` = exactitud en todos los niveles de los tres barridos).
+  Cuando la red converge a otro QR, el lector lee **otro menú válido**: con ruido
+  0,45 se lee el 96,0% pero solo el 74,7% es el correcto; con `bloques = 100%`,
+  80% contra 40%; con esquina `L = 35`, 98,7% contra 80,0%. Nunca se leyó un
+  texto que no fuera de alguno de los cinco QR.
+- Hebb: ningún estado final se lee, en ningún nivel.
+- `fig_lectura_ejemplos.png` muestra, por modelo, el primer nivel en que la
+  consulta de ejemplo (`food`, semilla 0) no se lee y la recuperada sí: ruido
+  0,02, esquina 7, finder 1, rayones 2, manchas 1 × r3 y bloques 10%.
+  `fig_legibilidad.png` compara la consulta dañada, la pseudo-inversa y Hebb
+  contra la fracción afectada real, a priori y exploratorio.
+
+### Limitaciones del caso de uso
+
+1. **Correlación, no capacidad.** Con `p/N = 0,0037` Hebb falla porque el
+   69,8% de los píxeles es igual en los cinco QR y el solapamiento entre pares
+   va de 0,58 a 0,86: sostiene pares pero ninguna terna, y todas las consultas
+   caen en el estado mezcla, que ningún lector puede leer.
+2. **La pseudo-inversa no es local.** Necesita invertir `X Xᵀ` con todos los
+   patrones a la vez; agregar un sexto menú obliga a recalcular la matriz.
+3. **Identifica, no decodifica.** La red elige entre cinco QR conocidos; no
+   recupera un QR que no esté almacenado. Un vecino más cercano por Hamming
+   sobre los píxeles visibles haría lo mismo, y el margen inicial predice el
+   resultado en el 97% de los casos.
+4. **Falla con seguridad.** Cuando se equivoca, converge a otro QR válido y el
+   lector lee una URL correcta de otro menú (21,3% de las consultas con ruido
+   0,45; 40% con `bloques = 100%`). Para el comensal es peor que no leer nada.
+5. **Depende de la zona, no solo de cuánto.** Borrar la mitad izquierda, donde
+   están las diferencias entre `food` y `wine` o entre `dessert` y
+   `beverages`, hace fallar con 36% de daño; borrar la derecha no, aun con 46%.
+   El 15% de la teoría o un porcentaje de daño no alcanzan para predecirlo.
+6. **Quiebre.** Con ruido aleatorio el borde está entre 40% y 45% de bits
+   invertidos. Con daño estructural la primera caída aparece con 18%
+   (manchas de radio 15), 23% (esquinas) y 39% (bloques); los rayones no lo
+   alcanzan con 34%. Con 50% de ruido aparecen atractores negados (`−ξ`,
+   `−mezcla`).
+7. **El lector de QR es más frágil que la red, pero no es la solución.**
+   OpenCV no lee ninguna consulta con 2% de ruido aleatorio ni con un finder
+   borrado, y la red las recupera a todas; la corrección de errores propia del
+   QR no alcanza en estos casos. Pero la red solo sirve porque los cinco menús
+   están almacenados.
+8. **Modelo de daño.** Borrar a blanco solo cambia los píxeles negros (la mitad
+   de la zona, cociente 0,54) y está sesgado hacia los QR más blancos en la zona
+   borrada; no se modelaron manchas oscuras, desenfoque ni cambios de
+   iluminación.
+9. **Preprocesamiento.** Las imágenes están alineadas módulo a módulo. Una
+   foto real necesita recorte, corrección de perspectiva, binarización y
+   llevarla a la grilla de 37 × 37; la red no tolera corrimientos, rotaciones
+   ni escalas. Con más píxeles los pesos crecen como `N²` (una foto de
+   300 × 300 daría 8,1·10⁹ pesos).
+10. **Componentes comunes.** Los finders, críticos para un lector real, son
+    triviales para la red porque son iguales en los cinco QR; el daño que
+    importa es el que cae sobre las diferencias entre menús.
+11. **Alcance experimental.** Solo dinámica asincrónica en orden fijo; tres
+    semillas con 25 consultas por semilla (el desvío es 0 en casi todos los
+    niveles por saturación); la energía no es comparable entre reglas; el
+    arreglo de empates cambió los números de 2.2.
+
 ### Estado
 
 - Fase 0: completada; plan, modelos de ruido y decisiones registrados, y
@@ -1286,6 +1427,9 @@ Todas las figuras se guardan y se regeneran desde los CSV con
 - Fase 9: completada; escalera de combinaciones, consolidación y figuras.
 - Fase 10: completada; figuras de entrenamiento y globales, consolidación,
   documentación y `check-cicd.py`.
+- Posterior a los resultados: barrido exploratorio del quiebre
+  (`ruido_quiebre/`) y lectura de los estados con un lector de QR
+  (`legibilidad*.csv` y dos figuras).
 - Pendiente final: interpretación de resultados con el grupo, fuera de los
   archivos del proyecto.
 
@@ -1479,7 +1623,7 @@ Accuracy por letra:
 - `python3 check-cicd.py`: crea o reutiliza `.venv`, actualiza dependencias si
   hace falta y corre todos los chequeos. Es la forma recomendada de verificar
   que el CI va a pasar.
-- `python3 -m pytest -q`: 240 tests en verde (también en Windows, después de
+- `python3 -m pytest -q`: 249 tests en verde (también en Windows, después de
   corregir la lectura de archivos y las rutas en dos tests).
 - `ruff check .`: sin errores.
 - `ruff format --check .`: sin cambios pendientes.

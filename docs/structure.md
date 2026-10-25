@@ -93,15 +93,16 @@ sia-tp4/
 │               ├── hebb/
 │               ├── pseudoinversa/
 │               ├── comparacion_entrenamiento/
-│               └── ruido/
-│                   ├── aleatorio/
-│                   ├── esquina/
-│                   ├── finder/
-│                   ├── rayones/
-│                   ├── manchas/
-│                   ├── bloques/
-│                   ├── combinaciones/
-│                   └── consolidado/
+│               ├── ruido/
+│               │   ├── aleatorio/
+│               │   ├── esquina/
+│               │   ├── finder/
+│               │   ├── rayones/
+│               │   ├── manchas/
+│               │   ├── bloques/
+│               │   ├── combinaciones/
+│               │   └── consolidado/
+│               └── ruido_quiebre/    # exploratorio, posterior a los resultados
 ├── src/
 │   ├── ej1/
 │   │   ├── eda-pca.py
@@ -121,9 +122,11 @@ sia-tp4/
 │       ├── hopfield-runner.py
 │       ├── hopfield-noise.py
 │       ├── hopfield-noise.toml
+│       ├── hopfield-noise-quiebre.toml
 │       ├── hopfield-figures.py
 │       ├── hopfield-qr-analisis.py
 │       ├── ruido.py
+│       ├── lector_qr.py
 │       └── qr-to-matrix.py
 └── tests/
     ├── ej1/
@@ -136,6 +139,7 @@ sia-tp4/
         ├── test_hopfield_runner.py
         ├── test_hopfield_qr_analisis.py
         ├── test_ruido.py
+        ├── test_lector_qr.py
         ├── test_hopfield_noise.py
         ├── test_hopfield_figures.py
         └── test_qr_to_matrix.py
@@ -255,6 +259,8 @@ python3 -m pytest -q tests/ej1
 
 - Python 3.11 o superior.
 - `numpy`, `pandas`, `matplotlib` para el script.
+- `opencv-python-headless` solo para leer los QR en 2.1; no es parte de
+  ningún modelo.
 - `pytest` para los tests.
 - `ruff` para lint y formato.
 - Las versiones usadas están en `requirements.txt`.
@@ -356,8 +362,14 @@ En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
   (`--deterioro {ruido, esquina, manchas}`) y se analiza con
   `src/ej2/hopfield-qr-analisis.py` (test:
   `tests/ej2/test_hopfield_qr_analisis.py`).
-- Estado: implementado y ejecutado (fases 1 a 10). Los resultados numéricos
-  están en `docs/decisiones.md`.
+- Barrido exploratorio del quiebre, posterior a los resultados:
+  `src/ej2/hopfield-noise-quiebre.toml`, con salida en
+  `resultados/ej2/hopfield/qr_37x37/ruido_quiebre/`.
+- Lectura con un lector de QR: `src/ej2/lector_qr.py` (OpenCV, solo para
+  decodificar; test: `tests/ej2/test_lector_qr.py`) y
+  `hopfield-noise.py --legibilidad`.
+- Estado: implementado y ejecutado (fases 1 a 10, barrido exploratorio y
+  lectura). Los resultados numéricos están en `docs/decisiones.md`.
 
 ### Ejecución
 
@@ -390,6 +402,30 @@ python src/ej2/hopfield-figures.py
 
 El barrido completo tarda unos 3 minutos y las figuras, menos de 1 minuto.
 
+Barrido exploratorio y lectura con un lector de QR (después del barrido a
+priori):
+
+```bash
+Q=src/ej2/hopfield-noise-quiebre.toml
+for modelo in esquina rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --config "$Q" --modelo "$modelo"
+done
+
+# Vuelve a recuperar las mismas consultas, las lee con OpenCV y escribe
+# solo legibilidad.csv y legibilidad_resumen.csv (unos 6 minutos en total)
+for modelo in aleatorio esquina finder rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --modelo "$modelo" --legibilidad
+done
+python src/ej2/hopfield-noise.py --combinaciones --legibilidad
+for modelo in esquina rayones manchas bloques; do
+  python src/ej2/hopfield-noise.py --config "$Q" --modelo "$modelo" --legibilidad
+done
+
+python src/ej2/hopfield-noise.py --consolidar
+python src/ej2/hopfield-noise.py --config "$Q" --consolidar
+python src/ej2/hopfield-figures.py
+```
+
 ### Salidas principales
 
 En `resultados/ej2/hopfield/qr_37x37/`:
@@ -405,7 +441,17 @@ En `resultados/ej2/hopfield/qr_37x37/`:
 - `ruido/combinaciones/paso_<k>/`: los mismos archivos para cada paso;
   `ruido/combinaciones/consolidado/` une los pasos y tiene cinco figuras.
 - `ruido/consolidado/`: une los seis modelos, agrega
-  `exactitud_por_intervalo.csv` y tiene once figuras globales.
+  `exactitud_por_intervalo.csv` y tiene doce figuras globales (incluida
+  `fig_lectura_ejemplos.png`).
+- `legibilidad.csv` y `legibilidad_resumen.csv` en cada carpeta de modelo,
+  de paso y en los consolidados; `ruido/legibilidad_patrones.csv` y
+  `ruido_quiebre/legibilidad_patrones.csv` con el texto de cada QR y del
+  estado mezcla.
+- `ruido_quiebre/<modelo>/`: los mismos archivos que `ruido/<modelo>/`;
+  `ruido_quiebre/consolidado/` agrega `exactitud_por_esquina.csv`,
+  `exactitud_por_margen.csv` y tres figuras
+  (`fig_quiebre_exactitud_vs_afectada.png`, `fig_quiebre_zonas.png` y
+  `fig_legibilidad.png`).
 
 ## Ejercicio 2.2 — Recomendación (Hopfield de 5 × 5)
 
