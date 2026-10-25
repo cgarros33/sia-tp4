@@ -89,8 +89,27 @@ def raiz(tmp_path_factory: pytest.TempPathFactory) -> Path:
         "esquina = 3",
     ]
     config.write_text("\n".join(lineas) + "\n", encoding="utf-8")
-    for accion in (["--modelo", "aleatorio"], ["--combinaciones"], ["--consolidar"]):
+    for accion in (
+        ["--modelo", "aleatorio"],
+        ["--modelo", "aleatorio", "--legibilidad"],
+        ["--combinaciones"],
+        ["--consolidar"],
+    ):
         assert noise.main(["--config", str(config), *accion]) == 0
+
+    # Barrido exploratorio: esquinas grandes, sin escalera.
+    quiebre = base / "noise_quiebre.toml"
+    texto = config.read_text(encoding="utf-8").split("[niveles]")[0]
+    texto = (
+        texto.replace("ruido", "ruido_quiebre") + "[niveles]\nesquina = [8, 10, 12]\n"
+    )
+    quiebre.write_text(texto, encoding="utf-8")
+    for accion in (
+        ["--modelo", "esquina"],
+        ["--modelo", "esquina", "--legibilidad"],
+        ["--consolidar"],
+    ):
+        assert noise.main(["--config", str(quiebre), *accion]) == 0
     return base
 
 
@@ -176,6 +195,7 @@ FIGURAS_GLOBALES = (
     "fig_basin_hamming.png",
     "fig_trayectorias_energia_ejemplo.png",
     "fig_afectacion_real_global.png",
+    "fig_lectura_ejemplos.png",
 )
 
 
@@ -206,3 +226,33 @@ def test_figuras_globales(modulo: ModuleType, raiz: Path) -> None:
     """Las figuras globales se generan desde el consolidado."""
     carpeta = raiz / "ruido" / "consolidado" / "figuras"
     _regenerar_igual(modulo, raiz, "global", carpeta, FIGURAS_GLOBALES)
+
+
+FIGURAS_QUIEBRE = (
+    "fig_quiebre_exactitud_vs_afectada.png",
+    "fig_quiebre_zonas.png",
+    "fig_legibilidad.png",
+)
+
+
+def test_figuras_quiebre(modulo: ModuleType, raiz: Path) -> None:
+    """El barrido exploratorio tiene sus figuras por modelo, las comparativas y tablas."""
+    import pandas as pd
+
+    quiebre = raiz / "ruido_quiebre"
+    consolidado = quiebre / "consolidado"
+    _regenerar_igual(modulo, raiz, "quiebre", consolidado / "figuras", FIGURAS_QUIEBRE)
+    for nombre in FIGURAS_MODELO:
+        assert (quiebre / "esquina" / "figuras" / nombre).exists(), nombre
+
+    por_esquina = pd.read_csv(
+        consolidado / "exactitud_por_esquina.csv", dtype={"nivel": str}
+    )
+    assert set(por_esquina["nivel"]) == {"8", "10", "12"}
+    assert por_esquina["exactitud"].between(0, 1).all()
+    por_margen = pd.read_csv(consolidado / "exactitud_por_margen.csv")
+    assert {"regla", "margen_positivo", "consultas", "exactitud"} <= set(
+        por_margen.columns
+    )
+    consultas = pd.read_csv(consolidado / "consultas.csv")
+    assert por_margen["consultas"].sum() == len(consultas)

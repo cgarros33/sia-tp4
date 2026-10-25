@@ -377,3 +377,117 @@ def test_escalera(modulo: ModuleType, entorno: dict[str, Path]) -> None:
     # La fracción dañada crece con cada componente.
     zona = consolidado.groupby("orden_nivel")["fraccion_nominal_media"].first()
     assert zona.is_monotonic_increasing
+
+
+def test_margen_inicial(corrida_aleatorio: Path) -> None:
+    """El margen inicial compara la distancia al origen con la del otro QR más cercano."""
+    consultas = pd.read_csv(corrida_aleatorio / "consultas.csv")
+    assert {"nombre_inicial_mas_cercano", "margen_inicial"} <= set(consultas.columns)
+    # Con poco ruido la consulta sigue más cerca de su origen.
+    bajas = consultas[consultas["nivel"] == 0.1]
+    assert (bajas["margen_inicial"] > 0).all()
+    assert (bajas["nombre_inicial_mas_cercano"] == bajas["nombre_origen"]).all()
+    # El margen es una propiedad de la consulta: es el mismo para las dos reglas.
+    por_regla = consultas.pivot(
+        index=["nivel", "semilla", "consulta"], columns="regla", values="margen_inicial"
+    )
+    assert (por_regla["hebb"] == por_regla["pseudoinversa"]).all()
+
+
+def test_config_sin_combinaciones(modulo: ModuleType, entorno: dict[str, Path]) -> None:
+    """Un barrido sin [combinaciones] corre sus modelos y rechaza los que no tiene."""
+    texto = entorno["config"].read_text(encoding="utf-8")
+    sin_combinaciones = texto.split("[combinaciones]")[0]
+    sin_combinaciones = sin_combinaciones.replace("aleatorio = [0.1, 0.3]\n", "")
+    config = entorno["base"] / "noise_exploratorio.toml"
+    config.write_text(sin_combinaciones, encoding="utf-8")
+    salida = entorno["base"] / "ruido_exploratorio"
+    argumentos = ["--config", str(config), "--salida", str(salida)]
+
+    assert modulo.main([*argumentos, "--modelo", "esquina"]) == 0
+    assert (salida / "esquina" / "consultas.csv").exists()
+    with pytest.raises(SystemExit):
+        modulo.main([*argumentos, "--modelo", "aleatorio"])
+    with pytest.raises(SystemExit):
+        modulo.main([*argumentos, "--combinaciones"])
+
+
+def test_legibilidad_no_modifica_el_barrido(
+    modulo: ModuleType, entorno: dict[str, Path], corrida_aleatorio: Path
+) -> None:
+    """--legibilidad solo agrega sus tablas y no toca las del barrido."""
+    antes = {p.name: p.read_bytes() for p in corrida_aleatorio.iterdir() if p.is_file()}
+    argumentos = ["--config", str(entorno["config"]), "--modelo", "aleatorio"]
+    assert modulo.main([*argumentos, "--legibilidad"]) == 0
+    for nombre, contenido in antes.items():
+        assert (corrida_aleatorio / nombre).read_bytes() == contenido, nombre
+
+    tabla = pd.read_csv(corrida_aleatorio / "legibilidad.csv", keep_default_na=False)
+    consultas = pd.read_csv(corrida_aleatorio / "consultas.csv")
+    assert len(tabla) == len(consultas)
+    assert {
+        "lectura_inicial",
+        "lectura_final",
+        "legible_inicial",
+        "legible_final",
+        "lee_origen_final",
+    } <= set(tabla.columns)
+    # Un patrón al azar de 12 × 12 no es un QR: nada se lee.
+    assert not tabla["legible_inicial"].any()
+    assert not tabla["legible_final"].any()
+    resumen = pd.read_csv(corrida_aleatorio / "legibilidad_resumen.csv")
+    assert len(resumen) == 2 * 2
+    assert (entorno["salida"] / "legibilidad_patrones.csv").exists()
+
+
+def test_legibilidad_inconsistente(
+    modulo: ModuleType, entorno: dict[str, Path], corrida_aleatorio: Path
+) -> None:
+    """Si las consultas regeneradas no coinciden con las guardadas, falla."""
+    texto = entorno["config"].read_text(encoding="utf-8")
+    otra = entorno["base"] / "noise_otra.toml"
+    otra.write_text(
+        texto.replace("repeticiones = 2", "repeticiones = 1"), encoding="utf-8"
+    )
+    with pytest.raises(ValueError):
+        modulo.main(["--config", str(otra), "--modelo", "aleatorio", "--legibilidad"])
+
+
+def test_legibilidad_qr_reales(modulo: ModuleType, tmp_path: Path) -> None:
+    """Con los QR reales: los originales se leen y la mezcla de Hebb no."""
+    motor = _cargar(RUTA_MOTOR, "hopfield_motor_test_legibilidad")
+    datos = RAIZ / "datos" / "hopfield" / "qr_37x37.csv"
+    redes = {}
+    for regla in REGLAS:
+        redes[regla] = tmp_path / regla
+        argumentos = ["--datos", str(datos), "--regla", regla]
+        assert motor.main([*argumentos, "--salida", str(redes[regla])]) == 0
+    config = _escribir_config(
+        tmp_path / "noise.toml", redes, tmp_path / "ruido", semillas=[0], repeticiones=1
+    )
+    texto = config.read_text(encoding="utf-8")
+    config.write_text(
+        texto.replace(
+            'patron_ejemplo = "b"', 'patron_ejemplo = "food_menu_qr"'
+        ).replace("aleatorio = [0.1, 0.3]", "aleatorio = [0.05]"),
+        encoding="utf-8",
+    )
+    argumentos = ["--config", str(config), "--modelo", "aleatorio"]
+    assert modulo.main(argumentos) == 0
+    assert modulo.main([*argumentos, "--legibilidad"]) == 0
+
+    patrones = pd.read_csv(
+        tmp_path / "ruido" / "legibilidad_patrones.csv", keep_default_na=False
+    )
+    originales = patrones[patrones["estado"] != "mezcla"]
+    assert originales["legible"].all()
+    assert originales["texto"].str.startswith("https://").all()
+    assert not patrones.loc[patrones["estado"] == "mezcla", "legible"].item()
+
+    tabla = pd.read_csv(
+        tmp_path / "ruido" / "aleatorio" / "legibilidad.csv", keep_default_na=False
+    )
+    pseudo = tabla[tabla["regla"] == "pseudoinversa"]
+    hebb = tabla[tabla["regla"] == "hebb"]
+    assert pseudo["lee_origen_final"].all()
+    assert not hebb["legible_final"].any()

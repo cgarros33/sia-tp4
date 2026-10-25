@@ -24,7 +24,7 @@ import importlib.util
 import json
 import sys
 import tomllib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -188,6 +188,21 @@ def generar_consulta(
     return estado, parametros, int(zona.sum())
 
 
+def margen_inicial(estado: np.ndarray, indice_origen: int, red: Any) -> dict:
+    """QR almacenado más cercano a la consulta y margen frente al origen.
+
+    El margen es la distancia de Hamming al otro QR más cercano menos la
+    distancia al origen: si es negativo, el daño dejó la consulta más cerca de
+    otro QR que del suyo.
+    """
+    distancias = motor.calcular_distancias_hamming(estado, red.patrones)
+    otras = np.delete(distancias, indice_origen)
+    return {
+        "nombre_inicial_mas_cercano": red.nombres[int(np.argmin(distancias))],
+        "margen_inicial": int(otras.min() - distancias[indice_origen]),
+    }
+
+
 def ejecutar(
     redes: dict[str, Any],
     dinamicas: dict[str, dict],
@@ -196,8 +211,14 @@ def ejecutar(
     semillas: Sequence[int],
     repeticiones: int,
     patron_ejemplo: str,
+    lector: Callable[[np.ndarray, int, int], str] | None = None,
 ) -> Resultados:
-    """Genera las consultas de cada nivel y las recupera con todas las redes."""
+    """Genera las consultas de cada nivel y las recupera con todas las redes.
+
+    Con ``lector``, cada consulta guarda también el texto que un lector de QR
+    obtiene de la consulta dañada (``texto_inicial``) y del estado final
+    (``texto_final``).
+    """
     primera = next(iter(redes.values()))
     filas, columnas = primera.filas, primera.columnas
     n_neuronas = primera.n_neuronas
@@ -223,6 +244,9 @@ def ejecutar(
                     )
                     if ejemplo:
                         iniciales.append(estado)
+                    lectura = {}
+                    if lector is not None:
+                        lectura["texto_inicial"] = lector(estado, filas, columnas)
                     base = {
                         "modelo": modelo,
                         "orden_nivel": nivel.orden,
@@ -235,6 +259,7 @@ def ejecutar(
                         "parametros": json.dumps(parametros),
                         "fraccion_nominal": area / n_neuronas,
                         "hamming_inicial": int(np.count_nonzero(estado != patron)),
+                        **margen_inicial(estado, indice_patron, primera),
                     }
                     for regla, red in redes.items():
                         dinamica = dinamicas[regla]
@@ -266,8 +291,13 @@ def ejecutar(
                                 "ciclo": resultado.ciclo,
                                 "motivo": resultado.motivo,
                                 **runner.metricas_consulta(resultado, patron),
+                                **lectura,
                             }
                         )
+                        if lector is not None:
+                            registros[-1]["texto_final"] = lector(
+                                resultado.estado_final, filas, columnas
+                            )
                         energias.extend(
                             {
                                 "modelo": modelo,
@@ -502,6 +532,80 @@ def guardar_resultados(
     return resumen
 
 
+COLUMNAS_LEGIBILIDAD = (
+    "legible_inicial",
+    "lee_origen_inicial",
+    "legible_final",
+    "lee_origen_final",
+)
+
+
+def lecturas_patrones(
+    red: Any, lector: Callable[[np.ndarray, int, int], str]
+) -> pd.DataFrame:
+    """Texto que se lee en cada QR almacenado y en el estado mezcla."""
+    estados = [*zip(red.nombres, red.patrones, strict=True)]
+    estados.append(("mezcla", motor.estado_mezcla(red.patrones)))
+    filas = []
+    for nombre, estado in estados:
+        texto = lector(estado, red.filas, red.columnas)
+        filas.append({"estado": nombre, "texto": texto, "legible": texto != ""})
+    return pd.DataFrame(filas)
+
+
+def tabla_legibilidad(consultas: pd.DataFrame, patrones: pd.DataFrame) -> pd.DataFrame:
+    """Qué QR almacenado se lee en la consulta dañada y en el estado final.
+
+    La lectura es el nombre del QR cuyo texto coincide, ``""`` si no se lee y
+    ``"otro"`` si se lee un texto que no es de ningún QR almacenado.
+    """
+    por_texto = {
+        fila.texto: fila.estado for fila in patrones.itertuples() if fila.texto
+    }
+
+    def nombre(texto: str) -> str:
+        return por_texto.get(texto, "otro") if texto else ""
+
+    claves = [*CLAVES_NIVEL, "semilla", "repeticion", "consulta", "nombre_origen"]
+    tabla = consultas[[*claves, "regla", "tipo_resultado"]].copy()
+    tabla["lectura_inicial"] = consultas["texto_inicial"].map(nombre)
+    tabla["lectura_final"] = consultas["texto_final"].map(nombre)
+    tabla["legible_inicial"] = tabla["lectura_inicial"] != ""
+    tabla["lee_origen_inicial"] = tabla["lectura_inicial"] == tabla["nombre_origen"]
+    tabla["legible_final"] = tabla["lectura_final"] != ""
+    tabla["lee_origen_final"] = tabla["lectura_final"] == tabla["nombre_origen"]
+    return tabla
+
+
+def resumir_legibilidad(tabla: pd.DataFrame) -> pd.DataFrame:
+    """Proporción de QR legibles por nivel y regla: media y desvío sobre semillas."""
+    por_semilla = tabla.groupby([*CLAVES_NIVEL, "regla", "semilla"], sort=True)[
+        list(COLUMNAS_LEGIBILIDAD)
+    ].mean()
+    agrupado = por_semilla.groupby(level=[*CLAVES_NIVEL, "regla"])
+    resumen = agrupado.agg(["mean", lambda serie: serie.std(ddof=1)])
+    resumen.columns = [
+        f"{metrica}_{'media' if estadistico == 'mean' else 'desvio'}"
+        for metrica, estadistico in resumen.columns
+    ]
+    resumen["semillas"] = agrupado.size()
+    resumen["consultas"] = tabla.groupby([*CLAVES_NIVEL, "regla"]).size()
+    return resumen.reset_index()
+
+
+def verificar_consistencia(guardadas: pd.DataFrame, nuevas: pd.DataFrame) -> None:
+    """Las consultas regeneradas deben ser las mismas que las del barrido guardado."""
+    claves = ["orden_nivel", "semilla", "consulta", "regla"]
+    columnas = ["hamming_inicial", "tipo_resultado", "barridos"]
+    viejas = guardadas.set_index(claves)[columnas].sort_index().astype(str)
+    recientes = nuevas.set_index(claves)[columnas].sort_index().astype(str)
+    if not (viejas.index.equals(recientes.index) and viejas.equals(recientes)):
+        raise ValueError(
+            "Las consultas regeneradas no coinciden con consultas.csv: "
+            "la configuración no es la del barrido guardado."
+        )
+
+
 def consolidar(salida: Path) -> None:
     """Une las tablas de los modelos y de los pasos de la escalera."""
     grupos = (
@@ -522,11 +626,15 @@ def consolidar(salida: Path) -> None:
         if not carpetas:
             continue
         destino.mkdir(parents=True, exist_ok=True)
-        for archivo in TABLAS_CONSOLIDADAS:
+        archivos = (*TABLAS_CONSOLIDADAS, "legibilidad.csv", "legibilidad_resumen.csv")
+        for archivo in archivos:
+            presentes = [c for c in carpetas if (c / archivo).exists()]
+            if not presentes:
+                continue
             tabla = pd.concat(
                 [
                     pd.read_csv(carpeta / archivo, dtype={"nivel": str})
-                    for carpeta in carpetas
+                    for carpeta in presentes
                 ],
                 ignore_index=True,
             ).drop_duplicates()
@@ -544,9 +652,12 @@ def cargar_config(ruta: Path) -> dict:
         raise FileNotFoundError(f"No existe la configuración: {ruta}")
     with ruta.open("rb") as archivo:
         config = tomllib.load(archivo)
-    for seccion in ("redes", "barrido", "niveles", "combinaciones"):
+    # [combinaciones] es opcional: un barrido exploratorio puede no tener escalera.
+    for seccion in ("redes", "barrido", "niveles"):
         if not isinstance(config.get(seccion), dict):
             raise ValueError(f"Falta la sección obligatoria: {seccion}.")
+    if set(config["niveles"]) - set(MODELOS):
+        raise ValueError(f"Los niveles deben ser de los modelos {MODELOS}.")
     barrido = config["barrido"]
     semillas = barrido.get("semillas")
     if (
@@ -560,7 +671,8 @@ def cargar_config(ruta: Path) -> dict:
     repeticiones = barrido.get("repeticiones")
     if not isinstance(repeticiones, int) or repeticiones < 1:
         raise ValueError("barrido.repeticiones debe ser un entero >= 1.")
-    if set(config["combinaciones"]["componentes"]) - set(MODELOS):
+    combinaciones = config.get("combinaciones", {"componentes": []})
+    if set(combinaciones["componentes"]) - set(MODELOS):
         raise ValueError(f"Los componentes deben ser de {MODELOS}.")
     return config
 
@@ -602,17 +714,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--paso", type=int, default=None, help="Paso de la escalera.")
     parser.add_argument(
+        "--legibilidad",
+        action="store_true",
+        help=(
+            "Con --modelo o --combinaciones: regenera y recupera las mismas consultas, "
+            "las lee con un lector de QR y guarda solo las tablas de legibilidad."
+        ),
+    )
+    parser.add_argument(
         "--salida", type=Path, default=None, help="Pisa barrido.salida del TOML."
     )
     argumentos = parser.parse_args(argv)
 
     config = cargar_config(motor.resolver_ruta(argumentos.config))
-    cantidad_pasos = len(config["combinaciones"]["componentes"])
+    cantidad_pasos = len(config.get("combinaciones", {}).get("componentes", []))
+    if argumentos.combinaciones and cantidad_pasos == 0:
+        parser.error("La configuración no tiene escalera de combinaciones.")
+    if argumentos.modelo is not None and argumentos.modelo not in config["niveles"]:
+        parser.error(f"La configuración no tiene niveles para {argumentos.modelo}.")
     if argumentos.paso is not None:
         if not argumentos.combinaciones:
             parser.error("--paso requiere --combinaciones.")
         if not 1 <= argumentos.paso <= cantidad_pasos:
             parser.error(f"--paso debe estar entre 1 y {cantidad_pasos}.")
+    if argumentos.legibilidad and argumentos.consolidar:
+        parser.error("--legibilidad requiere --modelo o --combinaciones.")
     salida = motor.resolver_ruta(argumentos.salida or config["barrido"]["salida"])
 
     if argumentos.consolidar:
@@ -641,6 +767,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             for paso in pasos
         ]
 
+    lector = None
+    if argumentos.legibilidad:
+        lector = _cargar_modulo("lector_qr.py", "hopfield_lector_qr").leer
+        patrones = lecturas_patrones(next(iter(redes.values())), lector)
+        salida.mkdir(parents=True, exist_ok=True)
+        patrones.to_csv(salida / "legibilidad_patrones.csv", index=False)
+
     for modelo, niveles, directorio in corridas:
         resultados = ejecutar(
             redes,
@@ -650,7 +783,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             barrido["semillas"],
             barrido["repeticiones"],
             barrido["patron_ejemplo"],
+            lector,
         )
+        if lector is not None:
+            guardadas = directorio / "consultas.csv"
+            if not guardadas.exists():
+                raise FileNotFoundError(
+                    f"Primero hay que correr el barrido: {guardadas}"
+                )
+            verificar_consistencia(
+                pd.read_csv(guardadas, dtype={"nivel": str}), resultados.consultas
+            )
+            tabla = tabla_legibilidad(resultados.consultas, patrones)
+            tabla.to_csv(directorio / "legibilidad.csv", index=False)
+            resumir_legibilidad(tabla).to_csv(
+                directorio / "legibilidad_resumen.csv", index=False
+            )
+            print(f"Legibilidad guardada en {directorio}", file=sys.stderr)
+            continue
         config_usada = {
             "redes": rutas,
             "barrido": {**barrido, "salida": str(salida)},

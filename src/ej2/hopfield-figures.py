@@ -13,6 +13,8 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import sys
 import tomllib
 from collections.abc import Sequence
@@ -1195,6 +1197,423 @@ def figuras_globales(consolidado: Path, ruido: Path) -> None:
     _fig_trayectorias(ejemplos, figuras / "fig_trayectorias_energia_ejemplo.png")
     _fig_basin(consultas, figuras / "fig_basin_hamming.png")
     _fig_afectacion_global(resumen, figuras / "fig_afectacion_real_global.png")
+    if (ruido / "legibilidad_patrones.csv").exists():
+        _fig_lectura_ejemplos(ruido, figuras / "fig_lectura_ejemplos.png")
+
+
+def _textos_leidos(ruido: Path) -> tuple[dict[str, str], str]:
+    """Texto de cada QR almacenado y el prefijo común de esos textos."""
+    patrones = pd.read_csv(ruido / "legibilidad_patrones.csv", keep_default_na=False)
+    textos = dict(zip(patrones["estado"], patrones["texto"], strict=True))
+    leidos = [t for estado, t in textos.items() if t and estado != "mezcla"]
+    prefijo = os.path.commonprefix(leidos) if len(leidos) > 1 else ""
+    return textos, prefijo
+
+
+def _fig_lectura_ejemplos(ruido: Path, ruta: Path) -> None:
+    """Consulta dañada que no se lee y estados recuperados que sí, por modelo."""
+    textos, prefijo = _textos_leidos(ruido)
+
+    def leido(lectura: str) -> str:
+        if not lectura:
+            return "no se lee"
+        texto = textos.get(lectura, lectura)
+        return "se lee: …" + texto[len(prefijo) :] if prefijo else f"se lee: {texto}"
+
+    casos = []
+    for modelo in MODELOS:
+        directorio = ruido / modelo
+        if not (directorio / "legibilidad.csv").exists():
+            continue
+        tabla = pd.read_csv(
+            directorio / "legibilidad.csv", dtype={"nivel": str}, keep_default_na=False
+        )
+        with np.load(directorio / "ejemplos.npz", allow_pickle=False) as datos:
+            ejemplos = {clave: datos[clave] for clave in datos.files}
+        patron = str(ejemplos["patron"])
+        ejemplo = tabla[
+            (tabla["semilla"] == tabla["semilla"].min())
+            & (tabla["consulta"] == f"{patron}_rep0")
+        ]
+        reglas = sorted(ejemplo["regla"].unique(), key=lambda r: r != "pseudoinversa")
+        guia = ejemplo[ejemplo["regla"] == reglas[0]].sort_values("orden_nivel")
+        # El primer nivel en que la consulta dañada no se lee y la recuperada sí;
+        # si no hay, el nivel central.
+        elegibles = guia[~guia["legible_inicial"] & guia["lee_origen_final"]]
+        orden = int(
+            (elegibles if not elegibles.empty else guia)["orden_nivel"].iloc[
+                0 if not elegibles.empty else len(guia) // 2
+            ]
+        )
+        indice = ejemplos["ordenes"].tolist().index(orden)
+        filas_caso = ejemplo[ejemplo["orden_nivel"] == orden].set_index("regla")
+        casos.append((modelo, ejemplos, indice, reglas, filas_caso))
+    if not casos:
+        return
+
+    patrones = _leer_estados(ruido.parent / casos[0][3][-1] / "patrones.csv")
+    mezcla = np.where(patrones[_pixeles(patrones)].to_numpy().sum(axis=0) >= 0, 1, -1)
+    reglas = casos[0][3]
+    fig, ejes = plt.subplots(
+        len(casos),
+        2 + len(reglas),
+        figsize=(2.9 * (2 + len(reglas)), 3.0 * len(casos)),
+        squeeze=False,
+    )
+    for fila_ejes, (modelo, ejemplos, indice, _, filas_caso) in zip(
+        ejes, casos, strict=True
+    ):
+        filas, columnas = int(ejemplos["filas"]), int(ejemplos["columnas"])
+        patron = str(ejemplos["patron"])
+        primera = filas_caso.iloc[0]
+        _imagen(fila_ejes[0], ejemplos["original"], filas, columnas)
+        fila_ejes[0].set_title(
+            f"Original\n{leido(patron if textos.get(patron) else '')}", fontsize=8
+        )
+        _imagen(fila_ejes[1], ejemplos["iniciales"][indice], filas, columnas)
+        fila_ejes[1].set_title(
+            f"{NOMBRES_MODELO[modelo]} {primera['nivel']}\n{leido(primera['lectura_inicial'])}",
+            fontsize=8,
+        )
+        for eje, regla in zip(fila_ejes[2:], reglas, strict=True):
+            final = ejemplos[f"finales_{regla}"][indice]
+            _imagen(eje, final, filas, columnas)
+            nota = " (estado mezcla)" if np.array_equal(final, mezcla) else ""
+            eje.set_title(
+                f"{NOMBRES_REGLA.get(regla, regla)}{nota}\n"
+                f"{leido(filas_caso.loc[regla, 'lectura_final'])}",
+                fontsize=8,
+            )
+    fig.suptitle(
+        "Lectura con un lector de QR (OpenCV): consulta dañada y estado recuperado"
+    )
+    if prefijo:
+        fig.text(
+            0.01,
+            0.005,
+            f"Prefijo común de las URL: {prefijo}",
+            fontsize=7,
+            color=TINTA_SECUNDARIA,
+        )
+    _guardar(fig, ruta)
+
+
+def _legibilidad_con_fraccion(consolidado: Path) -> pd.DataFrame:
+    legibilidad = leer(consolidado / "legibilidad_resumen.csv")
+    resumen = leer(consolidado / "resumen_niveles.csv")
+    claves = ["modelo", "orden_nivel", "regla"]
+    return legibilidad.merge(resumen[[*claves, "fraccion_afectada_media"]], on=claves)
+
+
+def _fig_legibilidad(consolidados: Sequence[tuple[Path, str]], ruta: Path) -> None:
+    """QR legibles contra la fracción afectada real: dañados y recuperados."""
+    tablas = [
+        (_legibilidad_con_fraccion(c), estilo)
+        for c, estilo in consolidados
+        if (c / "legibilidad_resumen.csv").exists()
+    ]
+    if not tablas:
+        return
+    reglas = sorted(
+        pd.concat([t for t, _ in tablas])["regla"].unique(),
+        key=lambda r: r != "pseudoinversa",
+    )
+    paneles = [("legible_inicial", reglas[0], "Consulta dañada: se lee")]
+    paneles += [
+        (
+            "lee_origen_final",
+            regla,
+            f"{NOMBRES_REGLA.get(regla, regla)}: se lee el QR de origen",
+        )
+        for regla in reglas
+    ]
+    fig, ejes = plt.subplots(
+        1, len(paneles), figsize=(5.6 * len(paneles), 4.4), sharey=True
+    )
+    for eje, (metrica, regla, titulo) in zip(ejes, paneles, strict=True):
+        for tabla, estilo in tablas:
+            for modelo in [m for m in MODELOS if m in set(tabla["modelo"])]:
+                datos = tabla[(tabla["modelo"] == modelo) & (tabla["regla"] == regla)]
+                datos = datos.sort_values("orden_nivel")
+                parametros = _estilo_modelo(modelo)
+                eje.errorbar(
+                    datos["fraccion_afectada_media"],
+                    datos[f"{metrica}_media"],
+                    yerr=datos[f"{metrica}_desvio"].fillna(0.0),
+                    color=parametros["color"],
+                    marker=parametros["marker"],
+                    markerfacecolor=parametros["color"] if estilo == "-" else "white",
+                    linestyle=estilo,
+                    capsize=2,
+                    markersize=5,
+                )
+        eje.set_ylim(-0.05, 1.05)
+        eje.set_xlabel("Fracción afectada real")
+        eje.set_title(titulo)
+    ejes[0].set_ylabel("Proporción de QR legibles")
+    presentes = [m for m in MODELOS if any(m in set(t["modelo"]) for t, _ in tablas)]
+    manejadores = [
+        matplotlib.lines.Line2D(
+            [],
+            [],
+            color=_estilo_modelo(m)["color"],
+            marker=_estilo_modelo(m)["marker"],
+            label=_estilo_modelo(m)["label"],
+        )
+        for m in presentes
+    ]
+    manejadores += [
+        matplotlib.lines.Line2D(
+            [], [], color=GRIS, linestyle="-", label="Niveles a priori"
+        ),
+        matplotlib.lines.Line2D(
+            [],
+            [],
+            color=GRIS,
+            linestyle="--",
+            marker="o",
+            markerfacecolor="white",
+            label="Exploratorio (posterior)",
+        ),
+    ]
+    ejes[-1].legend(handles=manejadores, fontsize=7)
+    fig.suptitle("Lectura con OpenCV: consulta dañada contra estado recuperado")
+    primero = next(
+        c for c, _ in consolidados if (c / "legibilidad_resumen.csv").exists()
+    )
+    _nota(fig, leer(primero / "resumen_niveles.csv"))
+    _guardar(fig, ruta)
+
+
+def tablas_quiebre(consultas: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Exactitud por esquina borrada y según el signo del margen inicial."""
+    datos = consultas.assign(
+        correcto=consultas["tipo_resultado"] == "almacenado_correcto"
+    )
+    esquinas = datos[datos["modelo"] == "esquina"]
+    esquinas = esquinas.assign(
+        esquina=esquinas["parametros"].map(
+            lambda texto: json.loads(texto)["esquina"]["esquina"]
+        )
+    )
+    por_esquina = (
+        esquinas.groupby(["regla", "orden_nivel", "nivel", "esquina"])
+        .agg(exactitud=("correcto", "mean"), consultas=("correcto", "size"))
+        .reset_index()
+    )
+    por_margen = (
+        datos.assign(margen_positivo=datos["margen_inicial"] > 0)
+        .groupby(["regla", "margen_positivo"])
+        .agg(
+            consultas=("correcto", "size"),
+            exactitud=("correcto", "mean"),
+            margen_medio=("margen_inicial", "mean"),
+        )
+        .reset_index()
+    )
+    return por_esquina, por_margen
+
+
+def _par_mas_confundido(
+    consultas: pd.DataFrame, patrones: pd.DataFrame
+) -> tuple[str, str]:
+    """Par origen → final más frecuente entre los errores; si no hay, el par más cercano.
+
+    Un empate en la cantidad de errores se resuelve por el par más parecido.
+    """
+    matriz = patrones[_pixeles(patrones)].to_numpy()
+    distancias = (matriz[:, None, :] != matriz[None, :, :]).sum(axis=2)
+    np.fill_diagonal(distancias, distancias.max() + 1)
+    nombres = patrones.index.tolist()
+    errores = consultas[consultas["tipo_resultado"] == "almacenado_incorrecto"]
+    if not errores.empty:
+        conteo = errores.groupby(["nombre_origen", "nombre_final"]).size()
+        candidatos = conteo[conteo == conteo.max()].index
+        par = min(
+            candidatos,
+            key=lambda p: distancias[nombres.index(p[0]), nombres.index(p[1])],
+        )
+        return str(par[0]), str(par[1])
+    i, j = np.unravel_index(np.argmin(distancias), distancias.shape)
+    return str(nombres[i]), str(nombres[j])
+
+
+def _fig_zonas(consultas, por_esquina, patrones, ruta) -> None:
+    reglas = sorted(consultas["regla"].unique())
+    regla = "pseudoinversa" if "pseudoinversa" in reglas else reglas[0]
+    fig, ejes = plt.subplots(1, 3, figsize=(17, 4.8))
+
+    datos = por_esquina[por_esquina["regla"] == regla]
+    etiquetas = _etiquetas(datos)
+    esquinas = sorted(datos["esquina"].unique())
+    matriz = (
+        datos.pivot(index="esquina", columns="nivel", values="exactitud")
+        .reindex(index=esquinas, columns=etiquetas)
+        .to_numpy()
+    )
+    ejes[0].imshow(matriz, cmap=SECUENCIAL, vmin=0, vmax=1, aspect="auto")
+    for (i, j), valor in np.ndenumerate(matriz):
+        ejes[0].text(
+            j,
+            i,
+            f"{valor:.2f}",
+            ha="center",
+            va="center",
+            fontsize=8,
+            color="white" if valor > 0.5 else "black",
+        )
+    ejes[0].set_xticks(range(len(etiquetas)), etiquetas)
+    ejes[0].set_yticks(range(len(esquinas)), [e.replace("_", " ") for e in esquinas])
+    ejes[0].set_xlabel("Lado L de la esquina borrada")
+    ejes[0].grid(visible=False)
+    ejes[0].set_title(f"{NOMBRES_REGLA.get(regla, regla)}: exactitud por esquina")
+
+    margen = consultas["margen_inicial"].clip(-60, 60)
+    intervalos = np.floor(margen / 10) * 10 + 5
+    datos_margen = consultas.assign(
+        intervalo=intervalos,
+        correcto=consultas["tipo_resultado"] == "almacenado_correcto",
+    )
+    for nombre_regla, grupo in datos_margen.groupby("regla"):
+        exactitud = grupo.groupby("intervalo")["correcto"].mean()
+        ejes[1].plot(
+            exactitud.index,
+            exactitud.to_numpy(),
+            color=COLORES_REGLA.get(nombre_regla, GRIS),
+            marker=MARCADORES_REGLA.get(nombre_regla, "o"),
+            label=NOMBRES_REGLA.get(nombre_regla, nombre_regla),
+        )
+    ejes[1].axvline(0, color=GRIS, linestyle="--", linewidth=1)
+    ejes[1].set_ylim(-0.05, 1.05)
+    ejes[1].set_xlabel("Margen inicial: d(otro QR más cercano) − d(origen), en bits")
+    ejes[1].set_ylabel("Exactitud")
+    ejes[1].set_title("Exactitud según el margen de la consulta dañada")
+    ejes[1].legend()
+
+    # El par más confundido al borrar esquinas, para leerlo junto al mapa.
+    esquina = consultas[
+        (consultas["regla"] == regla) & (consultas["modelo"] == "esquina")
+    ]
+    origen, otro = _par_mas_confundido(esquina, patrones)
+    filas, columnas = int(patrones["filas"].iloc[0]), int(patrones["columnas"].iloc[0])
+    a = patrones.loc[origen, _pixeles(patrones)].to_numpy().reshape(filas, columnas)
+    b = patrones.loc[otro, _pixeles(patrones)].to_numpy().reshape(filas, columnas)
+    imagen = np.ones((filas, columnas, 3))
+    imagen[a == 1] = (0.82, 0.82, 0.80)
+    imagen[a != b] = matplotlib.colors.to_rgb(CATEGORICOS[1])
+    ejes[2].imshow(imagen, interpolation="nearest")
+    ejes[2].set_xticks([])
+    ejes[2].set_yticks([])
+    ejes[2].grid(visible=False)
+    ejes[2].set_title(
+        f"Píxeles que distinguen {nombre_corto(origen)} de {nombre_corto(otro)}: "
+        f"{int((a != b).sum())} (naranja)",
+        fontsize=9,
+    )
+    fig.suptitle("Barrido exploratorio: la caída depende de qué zona se borra")
+    _guardar(fig, ruta)
+
+
+def _fig_quiebre_vs_afectada(a_priori, exploratorio, ruta) -> None:
+    tablas = [
+        (t, estilo)
+        for t, estilo in ((a_priori, "-"), (exploratorio, "--"))
+        if t is not None
+    ]
+    reglas = sorted(pd.concat([t for t, _ in tablas])["regla"].unique())
+    fig, ejes = plt.subplots(
+        1, len(reglas), figsize=(7 * len(reglas), 4.8), sharey=True
+    )
+    ejes = np.atleast_1d(ejes)
+    for eje, regla in zip(ejes, reglas, strict=True):
+        for tabla, estilo in tablas:
+            for modelo in [m for m in MODELOS if m in set(tabla["modelo"])]:
+                datos = tabla[
+                    (tabla["modelo"] == modelo) & (tabla["regla"] == regla)
+                ].sort_values("orden_nivel")
+                parametros = _estilo_modelo(modelo)
+                eje.errorbar(
+                    datos["fraccion_afectada_media"],
+                    datos["exactitud_media"],
+                    yerr=datos["exactitud_desvio"].fillna(0.0),
+                    color=parametros["color"],
+                    marker=parametros["marker"],
+                    markerfacecolor=parametros["color"] if estilo == "-" else "white",
+                    linestyle=estilo,
+                    capsize=2,
+                    markersize=5,
+                )
+        eje.set_ylim(-0.05, 1.05)
+        eje.set_xlabel("Fracción afectada real")
+        eje.set_title(NOMBRES_REGLA.get(regla, regla))
+    ejes[0].set_ylabel("Exactitud")
+    presentes = [m for m in MODELOS if any(m in set(t["modelo"]) for t, _ in tablas)]
+    manejadores = [
+        matplotlib.lines.Line2D(
+            [],
+            [],
+            color=_estilo_modelo(m)["color"],
+            marker=_estilo_modelo(m)["marker"],
+            label=_estilo_modelo(m)["label"],
+        )
+        for m in presentes
+    ]
+    manejadores += [
+        matplotlib.lines.Line2D(
+            [], [], color=GRIS, linestyle="-", label="Niveles a priori"
+        ),
+        matplotlib.lines.Line2D(
+            [],
+            [],
+            color=GRIS,
+            linestyle="--",
+            marker="o",
+            markerfacecolor="white",
+            label="Exploratorio (posterior)",
+        ),
+    ]
+    ejes[-1].legend(handles=manejadores, fontsize=7)
+    fig.suptitle(
+        "Exactitud contra fracción afectada real: niveles a priori y exploratorios"
+    )
+    _guardar(fig, ruta)
+
+
+def figuras_quiebre(raiz: Path) -> None:
+    """Figuras y tablas del barrido exploratorio del quiebre estructural."""
+    quiebre = raiz / "ruido_quiebre"
+    for modelo in MODELOS:
+        if (quiebre / modelo / "resumen_niveles.csv").exists():
+            figuras_modelo(quiebre / modelo, modelo)
+    consolidado = quiebre / "consolidado"
+    if not (consolidado / "resumen_niveles.csv").exists():
+        return
+    consultas = leer(consolidado / "consultas.csv")
+    por_esquina, por_margen = tablas_quiebre(consultas)
+    por_esquina.to_csv(consolidado / "exactitud_por_esquina.csv", index=False)
+    por_margen.to_csv(consolidado / "exactitud_por_margen.csv", index=False)
+    figuras = consolidado / "figuras"
+    figuras.mkdir(parents=True, exist_ok=True)
+    a_priori = raiz / "ruido" / "consolidado" / "resumen_niveles.csv"
+    _fig_quiebre_vs_afectada(
+        leer(a_priori) if a_priori.exists() else None,
+        leer(consolidado / "resumen_niveles.csv"),
+        figuras / "fig_quiebre_exactitud_vs_afectada.png",
+    )
+    _fig_legibilidad(
+        [(raiz / "ruido" / "consolidado", "-"), (consolidado, "--")],
+        figuras / "fig_legibilidad.png",
+    )
+    redes = [
+        r for r in ("hebb", "pseudoinversa") if (raiz / r / "patrones.csv").exists()
+    ]
+    if not por_esquina.empty and redes:
+        _fig_zonas(
+            consultas,
+            por_esquina,
+            _leer_estados(raiz / redes[0] / "patrones.csv"),
+            figuras / "fig_quiebre_zonas.png",
+        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -1205,7 +1624,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--raiz", type=Path, default=RUTA_RESULTADOS)
     parser.add_argument(
         "--solo",
-        choices=("entrenamiento", "modelos", "combinaciones", "global"),
+        choices=("entrenamiento", "modelos", "combinaciones", "global", "quiebre"),
         default=None,
     )
     argumentos = parser.parse_args(argv)
@@ -1236,6 +1655,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         if (consolidado / "resumen_niveles.csv").exists():
             figuras_globales(consolidado, raiz / "ruido")
             print(f"Figuras globales en {consolidado / 'figuras'}", file=sys.stderr)
+    if argumentos.solo in (None, "quiebre") and (raiz / "ruido_quiebre").exists():
+        figuras_quiebre(raiz)
+        print(
+            f"Figuras del barrido exploratorio en {raiz / 'ruido_quiebre'}",
+            file=sys.stderr,
+        )
     return 0
 
 
