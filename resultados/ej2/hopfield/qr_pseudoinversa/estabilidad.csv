@@ -1,0 +1,6 @@
+nombre,punto_fijo,convergio,ciclo,tipo_resultado,nombre_final,distancia_hamming,margen_minimo,neuronas_inestables,neuronas_empate,barridos,actualizaciones,energia_inicial,energia_final
+beverages_menu_qr,True,True,False,almacenado_correcto,beverages_menu_qr,0,0.9807687272307059,0,0,1,1369,-681.9999999999983,-681.9999999999983
+dessert_menu_qr,True,True,False,almacenado_correcto,dessert_menu_qr,0,0.9807687272307027,0,0,1,1369,-681.9999999999986,-681.9999999999986
+food_menu_qr,True,True,False,almacenado_correcto,food_menu_qr,0,0.980768727230702,0,0,1,1369,-681.9999999999984,-681.9999999999984
+specials_menu_qr,True,True,False,almacenado_correcto,specials_menu_qr,0,0.9807687272307005,0,0,1,1369,-681.9999999999985,-681.9999999999985
+wine_menu_qr,True,True,False,almacenado_correcto,wine_menu_qr,0,0.9807687272307043,0,0,1,1369,-681.9999999999987,-681.9999999999987

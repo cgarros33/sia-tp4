@@ -1,0 +1,43 @@
+# Configuración base del ejercicio 1.2 (Red de Kohonen).
+# Los valores de esta sección son los "neutros" que usa el barrido antes de
+# reemplazarlos por los valores elegidos. Las listas de candidatos viven en
+# kohonen-sweep.toml.
+
+[datos]
+ruta = "datos/creadores.csv"
+columnas_excluidas = ["price_ars", "estimated_argentina_reach",
+                      "total_engagement_per_1000", "organic_posts_pct"]
+
+[modelo]
+# Tamaño k de la grilla k x k. El barrido lo fija en 3, 4 y 5.
+# Este valor queda como fallback para corridas manuales.
+grilla = 6
+# rectangular o hexagonal.
+topologia = "rectangular"
+# euclidiana o exponencial (normalizando los vectores).
+distancia = "euclidiana"
+# uniforme o muestras.
+inicializacion = "muestras"
+# Radio inicial como fracción de k: R0 = radio_inicial_relativo * k.
+radio_inicial_relativo = 0.5
+# R_f = 1.0 según la teoría.
+radio_final = 1.0
+# constante, lineal, exponencial o inversa.
+decaimiento_radio = "lineal"
+# Tasa de aprendizaje inicial en (0, 1).
+eta_inicial = 0.5
+# Tasa final cercana a cero.
+eta_final = 0.001
+# lineal, exponencial o inversa.
+decaimiento_eta = "lineal"
+# Cantidad total de actualizaciones. Editable si la corrida resulta muy larga.
+# Es el valor neutro; el barrido prueba 5k, 10k, 15k y 25k.
+iteraciones = 10000
+
+[reproducibilidad]
+# Se usan al menos 3 semillas para reportar media ± desvío.
+semillas = [0, 1, 2]
+
+[salida]
+# Las corridas neutras manuales no deben pisar la corrida final.
+directorio = "resultados/ej1/kohonen_base"

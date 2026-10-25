@@ -1,0 +1,41 @@
+# Configuración del barrido secuencial y de los acoplamientos fuertes.
+# Si un valor elegido queda en el borde de una lista, ampliar la lista y
+# volver a correr ese paso. No hace falta modificar el código.
+
+[base]
+archivo = "src/ej1/kohonen.toml"
+
+[barrido]
+# Orden del barrido: cada paso usa el mejor valor de los pasos anteriores.
+orden = ["grilla", "topologia", "distancia", "inicializacion",
+         "radio_inicial_relativo", "decaimiento_radio",
+         "eta_inicial", "decaimiento_eta", "iteraciones"]
+semillas = [0, 1, 2]
+# Para grilla se usa el menor k dentro del 5% del QE mínimo.
+criterio_grilla = "codo"
+tolerancia_codo = 0.05
+
+[valores]
+grilla = [6, 7, 8, 9, 10, 11, 12, 13, 14]
+topologia = ["rectangular", "hexagonal"]
+distancia = ["euclidiana", "exponencial"]
+inicializacion = ["uniforme", "muestras"]
+radio_inicial_relativo = [0.3, 0.4, 0.5, 0.75, 1.0, 1.5]
+decaimiento_radio = ["constante", "lineal", "exponencial", "inversa"]
+eta_inicial = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9]
+decaimiento_eta = ["lineal", "exponencial", "inversa"]
+iteraciones = [5000, 10000, 20000, 40000, 80000]
+
+[acoplamientos]
+# Solo los acoplamientos fuertes, después del barrido secuencial.
+pares = [["eta_inicial", "decaimiento_eta"],
+         ["radio_inicial_relativo", "decaimiento_radio"]]
+adoptar_solo_si_mejora = true
+
+[figuras]
+# Se generan A y B; la opción C queda desactivada por legibilidad.
+opciones = ["a", "b"]
+
+[salida]
+directorio = "resultados/ej1/kohonen_sweep"
+directorio_final = "resultados/ej1/kohonen"

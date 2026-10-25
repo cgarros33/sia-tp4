@@ -1,0 +1,13 @@
+parametro,valor,semilla,qe,te,unidades_muertas,ocupacion
+decaimiento_radio,constante,0,2.72262428,0.14000000,1,0.96000000
+decaimiento_radio,constante,1,2.73088563,0.06000000,3,0.88000000
+decaimiento_radio,constante,2,2.70554788,0.12000000,4,0.84000000
+decaimiento_radio,lineal,0,2.40049723,0.02000000,5,0.80000000
+decaimiento_radio,lineal,1,2.48309724,0.04000000,3,0.88000000
+decaimiento_radio,lineal,2,2.48460603,0.08000000,0,1.00000000
+decaimiento_radio,exponencial,0,2.46373951,0.06000000,3,0.88000000
+decaimiento_radio,exponencial,1,2.47584867,0.02000000,3,0.88000000
+decaimiento_radio,exponencial,2,2.52644908,0.02000000,2,0.92000000
+decaimiento_radio,inversa,0,2.49804456,0.04000000,3,0.88000000
+decaimiento_radio,inversa,1,2.49244448,0.08000000,3,0.88000000
+decaimiento_radio,inversa,2,2.49158029,0.10000000,2,0.92000000

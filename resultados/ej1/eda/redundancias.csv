@@ -1,0 +1,7 @@
+variable,tipo,accion,motivo,evidencia
+price_ars,precio,excluir,Duplicado exacto de price_usd,price_ars / price_usd = 1500 en todas las filas
+estimated_argentina_reach,derivada,excluir,Se calcula a partir de average_reach y argentina_audience_pct,Diferencia máxima por redondeo: 0.50 cuentas
+total_engagement_per_1000,suma,excluir,"Es la suma de likes, comentarios, guardados y compartidos",Diferencia máxima: 1.42e-14
+organic_posts_pct,complemento,excluir,Es el complemento exacto de sponsored_posts_pct,sponsored_posts_pct + organic_posts_pct = 100 en todas las filas
+tópicos_*,grupo cerrado,conservar,Las 4 categorías de tópicos suman 100,Dependencia lineal: la matriz de correlación pierde un rango
+contenido_*,grupo cerrado,conservar,Las 4 categorías de contenido suman 100,Dependencia lineal: la matriz de correlación pierde un rango

@@ -1,0 +1,5 @@
+consulta,nombre_origen,indice_patron,repeticion,ruido,semilla,tipo_resultado,nombre_final,distancia_hamming,nombre_mas_cercano,barridos,actualizaciones,energia_inicial,energia_final,convergio,ciclo,motivo
+J,J,0,0,0.0,0,almacenado_correcto,J,0,J,1,25,-11.68,-11.68,True,False,estable
+O,O,1,0,0.0,0,almacenado_correcto,O,0,O,1,25,-12.160000000000002,-12.160000000000002,True,False,estable
+T,T,2,0,0.0,0,almacenado_correcto,T,0,T,1,25,-12.0,-12.0,True,False,estable
+A,A,3,0,0.0,0,almacenado_correcto,A,0,A,1,25,-12.8,-12.8,True,False,estable

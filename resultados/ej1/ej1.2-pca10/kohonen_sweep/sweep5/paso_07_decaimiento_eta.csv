@@ -1,0 +1,10 @@
+parametro,valor,semilla,qe,te,unidades_muertas,ocupacion
+decaimiento_eta,lineal,0,2.47553757,0.04000000,6,0.76000000
+decaimiento_eta,lineal,1,2.43325497,0.00000000,4,0.84000000
+decaimiento_eta,lineal,2,2.44369480,0.04000000,3,0.88000000
+decaimiento_eta,exponencial,0,2.53904169,0.04000000,3,0.88000000
+decaimiento_eta,exponencial,1,2.41080954,0.02000000,6,0.76000000
+decaimiento_eta,exponencial,2,2.48181749,0.04000000,5,0.80000000
+decaimiento_eta,inversa,0,2.62506039,0.04000000,3,0.88000000
+decaimiento_eta,inversa,1,2.59986356,0.12000000,2,0.92000000
+decaimiento_eta,inversa,2,2.51744332,0.08000000,6,0.76000000

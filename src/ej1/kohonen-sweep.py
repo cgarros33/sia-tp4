@@ -1,0 +1,1188 @@
+#!/usr/bin/env python3
+"""Barrido secuencial de hiperparámetros para la red de Kohonen.
+
+El script lee una configuración base y una configuración de barrido, entrena
+cada candidato con las semillas indicadas, elige el mejor valor de cada paso y
+guarda los resultados y las figuras en ``resultados/ej1/kohonen_sweep/``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import sys
+import time
+import tomllib
+from collections.abc import Callable, Sequence
+from copy import deepcopy
+from dataclasses import dataclass
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+
+RAIZ = Path(__file__).resolve().parents[2]
+RUTA_CONFIG_BARRIDO = Path(__file__).resolve().with_name("kohonen-sweep.toml")
+
+PARAMETROS_VALIDOS = (
+    "grilla",
+    "topologia",
+    "distancia",
+    "inicializacion",
+    "radio_inicial_relativo",
+    "decaimiento_radio",
+    "eta_inicial",
+    "decaimiento_eta",
+    "iteraciones",
+)
+OPCIONES_FIGURAS = ("a", "b", "c")
+OPCIONES_FIGURAS_POR_DEFECTO = ("a", "b")
+
+
+def _cargar_kohonen():
+    """Carga el motor de Kohonen desde el archivo vecino."""
+    ruta = Path(__file__).resolve().with_name("kohonen.py")
+    if not ruta.exists():
+        raise FileNotFoundError(f"No existe el motor de Kohonen: {ruta}")
+    especificacion = importlib.util.spec_from_file_location(
+        "kohonen_para_barrido",
+        ruta,
+    )
+    if especificacion is None or especificacion.loader is None:
+        raise ImportError(f"No se pudo cargar el motor de Kohonen: {ruta}")
+    modulo = importlib.util.module_from_spec(especificacion)
+    sys.modules[especificacion.name] = modulo
+    especificacion.loader.exec_module(modulo)
+    return modulo
+
+
+kohonen = _cargar_kohonen()
+
+
+@dataclass
+class ResultadoPaso:
+    """Resultado de barrer un parámetro o un par de parámetros."""
+
+    parametro: str
+    resultados: pd.DataFrame
+    resumen: pd.DataFrame
+    mejor_valor: object
+    qe_media: float
+
+
+def _barra_progreso(porcentaje: float, ancho: int = 30) -> str:
+    """Devuelve una barra ASCII para un porcentaje entre 0 y 100."""
+    porcentaje = min(max(float(porcentaje), 0.0), 100.0)
+    completos = int(round(porcentaje / 100.0 * ancho))
+    return "[" + "#" * completos + "-" * (ancho - completos) + "]"
+
+
+class ProgresoBarrido:
+    """Barra de progreso de una sola línea para el barrido."""
+
+    def __init__(self, total_pasos: int, ancho: int = 30) -> None:
+        self.total_pasos = max(1, int(total_pasos))
+        self.ancho = max(10, int(ancho))
+        self.paso_actual = 0
+        self.descripcion = ""
+        self.fraccion_paso = 0.0
+        self._longitud_maxima = 0
+
+    def iniciar_paso(self, paso: int, descripcion: str) -> None:
+        """Inicia un paso y muestra el progreso en cero."""
+        self.paso_actual = max(1, int(paso))
+        self.descripcion = descripcion
+        self.fraccion_paso = 0.0
+        self._imprimir()
+
+    def actualizar(self, fraccion: float, detalle: str = "") -> None:
+        """Actualiza la fracción completada del paso actual."""
+        self.fraccion_paso = min(max(float(fraccion), 0.0), 1.0)
+        sufijo = f" | {detalle}" if detalle else ""
+        self._imprimir(sufijo)
+
+    def finalizar(self) -> None:
+        """Cierra la barra con un salto de línea."""
+        self.fraccion_paso = 1.0
+        self._imprimir()
+        print()
+
+    def _imprimir(self, sufijo: str = "") -> None:
+        fraccion_total = (self.paso_actual - 1 + self.fraccion_paso) / self.total_pasos
+        porcentaje = 100.0 * fraccion_total
+        barra = _barra_progreso(porcentaje, self.ancho)
+        texto = f"{barra} {porcentaje:5.1f}% | {self.descripcion}{sufijo}"
+        relleno = max(0, self._longitud_maxima - len(texto))
+        print("\r" + texto + " " * relleno, end="", flush=True)
+        self._longitud_maxima = max(self._longitud_maxima, len(texto))
+
+
+def cargar_config_barrido(ruta: Path) -> dict:
+    """Lee y valida la configuración del barrido."""
+    with Path(ruta).open("rb") as archivo:
+        config = tomllib.load(archivo)
+    validar_config_barrido(config)
+    return config
+
+
+def validar_config_barrido(config: dict) -> None:
+    """Valida el orden, los valores y las secciones opcionales del barrido."""
+    if not isinstance(config, dict):
+        raise ValueError("La configuración del barrido debe ser un diccionario.")
+
+    barrido = config.get("barrido")
+    if not isinstance(barrido, dict):
+        raise ValueError("Falta la sección [barrido].")
+
+    orden = barrido.get("orden")
+    if not isinstance(orden, list) or not orden:
+        raise ValueError("barrido.orden debe ser una lista no vacía.")
+    if len(set(orden)) != len(orden):
+        raise ValueError("barrido.orden no puede tener parámetros repetidos.")
+
+    if "grilla" in orden:
+        raise ValueError(
+            "barrido.orden no puede incluir grilla; usar barrido.grillas_fijas."
+        )
+
+    for parametro in orden:
+        if parametro not in PARAMETROS_VALIDOS:
+            raise ValueError(f"Parámetro de barrido desconocido: {parametro}")
+
+    grillas_fijas = barrido.get("grillas_fijas")
+    if (
+        not isinstance(grillas_fijas, list)
+        or not grillas_fijas
+        or not all(
+            isinstance(grilla, int) and not isinstance(grilla, bool) and grilla >= 2
+            for grilla in grillas_fijas
+        )
+    ):
+        raise ValueError(
+            "barrido.grillas_fijas debe ser una lista no vacía de enteros >= 2."
+        )
+
+    semillas = barrido.get("semillas")
+    if (
+        not isinstance(semillas, list)
+        or not semillas
+        or not all(
+            isinstance(semilla, int) and not isinstance(semilla, bool)
+            for semilla in semillas
+        )
+    ):
+        raise ValueError("barrido.semillas debe ser una lista de enteros.")
+
+    valores = config.get("valores")
+    if not isinstance(valores, dict):
+        raise ValueError("Falta la sección [valores].")
+
+    for parametro in orden:
+        candidatos = valores.get(parametro)
+        if not isinstance(candidatos, list) or not candidatos:
+            raise ValueError(f"valores.{parametro} debe ser una lista no vacía.")
+
+    acoplamientos = config.get("acoplamientos", {})
+    if not isinstance(acoplamientos, dict):
+        raise ValueError("La sección [acoplamientos] debe ser una tabla.")
+    pares = acoplamientos.get("pares", [])
+    if not isinstance(pares, list):
+        raise ValueError("acoplamientos.pares debe ser una lista.")
+    for par in pares:
+        if (
+            not isinstance(par, list)
+            or len(par) != 2
+            or any(parametro not in PARAMETROS_VALIDOS for parametro in par)
+        ):
+            raise ValueError("Cada acoplamiento debe ser un par de parámetros válidos.")
+        for parametro in par:
+            if not isinstance(valores.get(parametro), list) or not valores[parametro]:
+                raise ValueError(
+                    f"Falta la lista de valores para el acoplamiento: {parametro}"
+                )
+    if not isinstance(acoplamientos.get("adoptar_solo_si_mejora", True), bool):
+        raise ValueError("acoplamientos.adoptar_solo_si_mejora debe ser booleano.")
+
+    figuras = config.get("figuras", {})
+    if not isinstance(figuras, dict):
+        raise ValueError("La sección [figuras] debe ser una tabla.")
+    opciones = figuras.get("opciones", list(OPCIONES_FIGURAS_POR_DEFECTO))
+    if (
+        not isinstance(opciones, list)
+        or not opciones
+        or any(opcion not in OPCIONES_FIGURAS for opcion in opciones)
+    ):
+        raise ValueError(
+            f"figuras.opciones debe ser una sublista de {OPCIONES_FIGURAS}."
+        )
+
+    if "base" in config:
+        base = config["base"]
+        if not isinstance(base, dict) or not isinstance(base.get("archivo"), str):
+            raise ValueError("base.archivo debe ser un texto.")
+
+    if "salida" in config:
+        salida = config["salida"]
+        if not isinstance(salida, dict):
+            raise ValueError("La sección [salida] debe ser una tabla.")
+        if not isinstance(salida.get("directorio"), str):
+            raise ValueError("salida.directorio debe ser un texto.")
+        if "directorio_final" in salida and not isinstance(
+            salida["directorio_final"], str
+        ):
+            raise ValueError("salida.directorio_final debe ser un texto.")
+        if "directorio_final_base" in salida and not isinstance(
+            salida["directorio_final_base"], str
+        ):
+            raise ValueError("salida.directorio_final_base debe ser un texto.")
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Lee los argumentos de línea de comandos del barrido."""
+    parser = argparse.ArgumentParser(
+        description="Barrido secuencial de hiperparámetros de Kohonen.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=RUTA_CONFIG_BARRIDO,
+        help="Archivo TOML de configuración del barrido.",
+    )
+    parser.add_argument(
+        "--salida",
+        type=Path,
+        default=None,
+        help="Directorio donde guardar los resultados del barrido.",
+    )
+    parser.add_argument(
+        "--semillas",
+        type=kohonen.lista_semillas,
+        default=None,
+        help="Semillas separadas por comas.",
+    )
+    return parser.parse_args(argv)
+
+
+def agregar_resultados(resultados: pd.DataFrame) -> pd.DataFrame:
+    """Agrega las métricas por valor o por par de valores."""
+    columnas_grupo = [
+        columna
+        for columna in resultados.columns
+        if columna not in {"semilla", "qe", "te", "unidades_muertas", "ocupacion"}
+    ]
+    agregado = resultados.groupby(
+        columnas_grupo,
+        dropna=False,
+        sort=False,
+    ).agg(
+        qe_media=("qe", "mean"),
+        qe_desvio=(
+            "qe",
+            lambda serie: float(np.std(serie, ddof=1)) if len(serie) > 1 else 0.0,
+        ),
+        te_media=("te", "mean"),
+        te_desvio=(
+            "te",
+            lambda serie: float(np.std(serie, ddof=1)) if len(serie) > 1 else 0.0,
+        ),
+        muertas_media=("unidades_muertas", "mean"),
+        ocupacion_media=("ocupacion", "mean"),
+        n=("qe", "size"),
+    )
+    return agregado.reset_index()
+
+
+def _valor_python(valor: object) -> object:
+    """Convierte escalares de NumPy a tipos nativos de Python."""
+    if isinstance(valor, np.generic):
+        return valor.item()
+    return valor
+
+
+def seleccionar_mejor(resumen: pd.DataFrame) -> object:
+    """Selecciona el valor con la menor QE media de un resumen."""
+    if resumen.empty:
+        raise ValueError("No hay resultados para seleccionar.")
+    if "valor" not in resumen.columns or "qe_media" not in resumen.columns:
+        raise ValueError("El resumen debe tener las columnas valor y qe_media.")
+
+    fila = resumen.loc[resumen["qe_media"].idxmin()]
+    return _valor_python(fila["valor"])
+
+
+def actualizar_config(config: dict, parametro: str, valor: object) -> dict:
+    """Devuelve una copia de la configuración con un parámetro actualizado."""
+    if parametro not in PARAMETROS_VALIDOS:
+        raise ValueError(f"Parámetro desconocido: {parametro}")
+    resultado = deepcopy(config)
+    resultado["modelo"][parametro] = valor
+    return resultado
+
+
+def _evaluar_candidato(
+    datos: np.ndarray,
+    config: dict,
+    semillas: Sequence[int],
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    progreso: ProgresoBarrido | None = None,
+    fraccion_inicio: float = 0.0,
+    fraccion_fin: float = 1.0,
+    detalle: str = "",
+) -> list[dict]:
+    """Entrena un candidato con todas las semillas y devuelve sus métricas."""
+    filas: list[dict] = []
+    total_semillas = max(1, len(semillas))
+    for indice, semilla in enumerate(semillas):
+        metricas = entrenador(datos, config["modelo"], int(semilla))
+        filas.append(
+            {
+                "semilla": int(semilla),
+                "qe": float(metricas["qe"]),
+                "te": float(metricas["te"]),
+                "unidades_muertas": int(metricas["unidades_muertas"]),
+                "ocupacion": float(metricas["ocupacion"]),
+            }
+        )
+        if progreso is not None:
+            fraccion = (
+                fraccion_inicio
+                + (fraccion_fin - fraccion_inicio) * (indice + 1) / total_semillas
+            )
+            progreso.actualizar(fraccion, detalle)
+    return filas
+
+
+def evaluar_paso(
+    parametro: str,
+    valores: Sequence[object],
+    config: dict,
+    datos: np.ndarray,
+    semillas: Sequence[int],
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    progreso: ProgresoBarrido | None = None,
+) -> ResultadoPaso:
+    """Evalúa un parámetro manteniendo el resto de la configuración fija."""
+    if parametro not in PARAMETROS_VALIDOS:
+        raise ValueError(f"Parámetro desconocido: {parametro}")
+
+    candidatos = list(dict.fromkeys(list(valores) + [config["modelo"][parametro]]))
+    total_candidatos = max(1, len(candidatos))
+    filas: list[dict] = []
+    for indice_candidato, valor in enumerate(candidatos):
+        config_candidato = actualizar_config(config, parametro, valor)
+        for fila in _evaluar_candidato(
+            datos,
+            config_candidato,
+            semillas,
+            entrenador,
+            progreso=progreso,
+            fraccion_inicio=indice_candidato / total_candidatos,
+            fraccion_fin=(indice_candidato + 1) / total_candidatos,
+            detalle=(f"candidato {indice_candidato + 1}/{total_candidatos} ({valor})"),
+        ):
+            filas.append({"parametro": parametro, "valor": valor, **fila})
+
+    resultados = pd.DataFrame(filas)
+    resumen = agregar_resultados(resultados)
+    mejor_valor = seleccionar_mejor(resumen)
+    fila_mejor = resumen.loc[resumen["valor"] == mejor_valor].iloc[0]
+
+    return ResultadoPaso(
+        parametro=parametro,
+        resultados=resultados,
+        resumen=resumen,
+        mejor_valor=mejor_valor,
+        qe_media=float(fila_mejor["qe_media"]),
+    )
+
+
+def evaluar_acoplamiento(
+    parametro_a: str,
+    valores_a: Sequence[object],
+    parametro_b: str,
+    valores_b: Sequence[object],
+    config: dict,
+    datos: np.ndarray,
+    semillas: Sequence[int],
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    progreso: ProgresoBarrido | None = None,
+) -> ResultadoPaso:
+    """Evalúa el producto cartesiano de dos parámetros acoplados."""
+    for parametro in (parametro_a, parametro_b):
+        if parametro not in PARAMETROS_VALIDOS:
+            raise ValueError(f"Parámetro desconocido: {parametro}")
+    if parametro_a == parametro_b:
+        raise ValueError("Un acoplamiento debe usar dos parámetros distintos.")
+
+    candidatos_a = list(
+        dict.fromkeys(list(valores_a) + [config["modelo"][parametro_a]])
+    )
+    candidatos_b = list(
+        dict.fromkeys(list(valores_b) + [config["modelo"][parametro_b]])
+    )
+    total_combinaciones = max(1, len(candidatos_a) * len(candidatos_b))
+
+    filas: list[dict] = []
+    indice_combinacion = 0
+    for valor_a in candidatos_a:
+        for valor_b in candidatos_b:
+            config_candidato = actualizar_config(config, parametro_a, valor_a)
+            config_candidato = actualizar_config(
+                config_candidato,
+                parametro_b,
+                valor_b,
+            )
+            for fila in _evaluar_candidato(
+                datos,
+                config_candidato,
+                semillas,
+                entrenador,
+                progreso=progreso,
+                fraccion_inicio=indice_combinacion / total_combinaciones,
+                fraccion_fin=(indice_combinacion + 1) / total_combinaciones,
+                detalle=(
+                    f"combinación {indice_combinacion + 1}/"
+                    f"{total_combinaciones} ({valor_a}, {valor_b})"
+                ),
+            ):
+                filas.append(
+                    {
+                        "parametro_a": parametro_a,
+                        "valor_a": valor_a,
+                        "parametro_b": parametro_b,
+                        "valor_b": valor_b,
+                        **fila,
+                    }
+                )
+            indice_combinacion += 1
+
+    resultados = pd.DataFrame(filas)
+    resumen = agregar_resultados(resultados)
+    fila_mejor = resumen.loc[resumen["qe_media"].idxmin()]
+    mejor_valor = (
+        _valor_python(fila_mejor["valor_a"]),
+        _valor_python(fila_mejor["valor_b"]),
+    )
+
+    return ResultadoPaso(
+        parametro=f"{parametro_a} x {parametro_b}",
+        resultados=resultados,
+        resumen=resumen,
+        mejor_valor=mejor_valor,
+        qe_media=float(fila_mejor["qe_media"]),
+    )
+
+
+def debe_adoptar(qe_nuevo: float, qe_actual: float) -> bool:
+    """Indica si un acoplamiento mejora la QE actual."""
+    return bool(qe_nuevo < qe_actual)
+
+
+def _qe_de_config(
+    config: dict,
+    datos: np.ndarray,
+    semillas: Sequence[int],
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+) -> float:
+    """Calcula la QE media de una configuración completa."""
+    filas = _evaluar_candidato(datos, config, semillas, entrenador)
+    return float(np.mean([fila["qe"] for fila in filas]))
+
+
+def _guardar_paso(
+    resultado: ResultadoPaso,
+    indice: int,
+    ruta_salida: Path,
+) -> None:
+    """Guarda los CSV crudos y agregados de un paso."""
+    nombre = f"paso_{indice:02d}_{resultado.parametro.replace(' ', '_')}"
+    resultado.resultados.to_csv(
+        ruta_salida / f"{nombre}.csv",
+        index=False,
+        float_format="%.8f",
+    )
+    resultado.resumen.to_csv(
+        ruta_salida / f"{nombre}_resumen.csv",
+        index=False,
+        float_format="%.8f",
+    )
+
+
+def _indice_valor(valores: Sequence[object], buscado: object) -> int | None:
+    """Devuelve la posición del valor buscado en una secuencia."""
+    for indice, valor in enumerate(valores):
+        if valor == buscado:
+            return indice
+        if (
+            isinstance(valor, (int, float, np.number))
+            and not isinstance(valor, bool)
+            and isinstance(buscado, (int, float, np.number))
+            and not isinstance(buscado, bool)
+            and np.isclose(float(valor), float(buscado))
+        ):
+            return indice
+    return None
+
+
+def _subrayar_etiqueta_elegida(
+    figura: Figure,
+    eje: Axes,
+    indice: int | None,
+) -> None:
+    """Subraya la etiqueta del eje x correspondiente al valor elegido."""
+    if indice is None:
+        return
+
+    figura.canvas.draw()
+    etiquetas = eje.get_xticklabels()
+    if indice < 0 or indice >= len(etiquetas):
+        return
+
+    etiqueta = etiquetas[indice]
+    renderizador = figura.canvas.get_renderer()
+    caja = etiqueta.get_window_extent(renderer=renderizador)
+    inversa = figura.transFigure.inverted()
+    x0, y0 = inversa.transform((caja.x0, caja.y0))
+    x1, _ = inversa.transform((caja.x1, caja.y0))
+
+    linea = Line2D(
+        [x0, x1],
+        [y0 - 0.006, y0 - 0.006],
+        transform=figura.transFigure,
+        color="black",
+        linewidth=1.2,
+        clip_on=False,
+    )
+    figura.add_artist(linea)
+
+
+def _graficar_paso(
+    resultado: ResultadoPaso,
+    indice: int,
+    ruta: Path,
+) -> None:
+    """Genera la figura individual de un paso (opción A)."""
+    resumen = resultado.resumen
+    valores = resumen["valor"].tolist()
+    figura, eje = plt.subplots(figsize=(9, 5))
+
+    if pd.api.types.is_numeric_dtype(resumen["valor"]):
+        eje.errorbar(
+            resumen["valor"],
+            resumen["qe_media"],
+            yerr=resumen["qe_desvio"],
+            marker="o",
+            capsize=4,
+            color="#4C72B0",
+        )
+        eje.scatter(
+            resultado.resultados["valor"],
+            resultado.resultados["qe"],
+            s=14,
+            color="#C44E52",
+            alpha=0.55,
+            label="Semillas",
+        )
+        eje.set_xticks(resumen["valor"])
+        eje.set_xticklabels([str(valor) for valor in valores])
+    else:
+        posiciones = np.arange(len(resumen))
+        eje.bar(
+            posiciones,
+            resumen["qe_media"],
+            yerr=resumen["qe_desvio"],
+            capsize=4,
+            color="#4C72B0",
+            alpha=0.9,
+        )
+        for posicion, valor in zip(posiciones, valores):
+            semillas = resultado.resultados[resultado.resultados["valor"] == valor]
+            eje.scatter(
+                np.full(len(semillas), posicion),
+                semillas["qe"],
+                s=14,
+                color="#C44E52",
+                alpha=0.55,
+                label="Semillas" if posicion == 0 else None,
+            )
+        eje.set_xticks(posiciones)
+        eje.set_xticklabels([str(valor) for valor in valores])
+
+    indice_elegido = _indice_valor(valores, resultado.mejor_valor)
+    eje.tick_params(axis="x", labelsize=8)
+    eje.set_xlabel(resultado.parametro)
+    eje.set_ylabel("QE media")
+    eje.set_title(
+        f"Paso {indice}: {resultado.parametro} — elegido {resultado.mejor_valor}",
+        fontsize=12,
+    )
+    eje.grid(alpha=0.25)
+    eje.legend(fontsize=8)
+    figura.tight_layout()
+    _subrayar_etiqueta_elegida(figura, eje, indice_elegido)
+    figura.savefig(ruta, dpi=150, bbox_inches="tight")
+    plt.close(figura)
+
+
+def _graficar_progreso(resumen_pasos: pd.DataFrame, ruta: Path) -> None:
+    """Genera el gráfico acumulado del avance del barrido."""
+    figura, eje = plt.subplots(figsize=(10, 5))
+    posiciones = np.arange(len(resumen_pasos))
+    eje.errorbar(
+        posiciones,
+        resumen_pasos["qe_media"],
+        yerr=resumen_pasos.get("qe_desvio", 0.0),
+        marker="o",
+        capsize=4,
+        color="#4C72B0",
+    )
+    eje.set_xticks(posiciones)
+    etiquetas = [
+        f"{fila.parametro}\n{fila.valor_elegido}" for fila in resumen_pasos.itertuples()
+    ]
+    eje.set_xticklabels(etiquetas, rotation=30, ha="right", fontsize=8)
+    eje.set_ylabel("QE media")
+    eje.set_title("Progreso del barrido secuencial", fontsize=13)
+    eje.grid(alpha=0.25)
+    figura.tight_layout()
+    figura.savefig(ruta, dpi=150, bbox_inches="tight")
+    plt.close(figura)
+
+
+def _graficar_opcion_a(
+    resultados_pasos: Sequence[ResultadoPaso],
+    resumen_pasos: pd.DataFrame,
+    ruta: Path,
+) -> None:
+    """Genera la opción A: una figura por paso y el progreso."""
+    ruta.mkdir(parents=True, exist_ok=True)
+    for indice, resultado in enumerate(resultados_pasos, start=1):
+        _graficar_paso(
+            resultado,
+            indice,
+            ruta / f"fig_paso_{indice:02d}_{resultado.parametro}.png",
+        )
+    _graficar_progreso(resumen_pasos, ruta / "fig_progreso.png")
+
+
+def _graficar_opcion_b(
+    resultados_pasos: Sequence[ResultadoPaso],
+    acoplamientos: Sequence[ResultadoPaso],
+    ruta: Path,
+) -> None:
+    """Genera la opción B: dashboard compacto y legible."""
+    ruta.mkdir(parents=True, exist_ok=True)
+    cantidad = len(resultados_pasos)
+    columnas = min(3, cantidad)
+    filas = int(np.ceil(cantidad / columnas))
+    figura, ejes = plt.subplots(
+        filas,
+        columnas,
+        figsize=(5.5 * columnas, 4.0 * filas),
+        squeeze=False,
+    )
+
+    for eje, resultado in zip(ejes.flat, resultados_pasos):
+        resumen = resultado.resumen
+        posiciones = np.arange(len(resumen))
+        eje.bar(
+            posiciones,
+            resumen["qe_media"],
+            yerr=resumen["qe_desvio"],
+            capsize=3,
+            color="#4C72B0",
+            alpha=0.9,
+        )
+        eje.set_xticks(posiciones)
+        eje.set_xticklabels(
+            [str(valor) for valor in resumen["valor"]],
+            rotation=30,
+            fontsize=7,
+        )
+        eje.set_title(
+            f"{resultado.parametro}: {resultado.mejor_valor}",
+            fontsize=9,
+        )
+        eje.tick_params(axis="y", labelsize=7)
+        eje.grid(axis="y", alpha=0.2)
+
+    for eje in list(ejes.flat)[cantidad:]:
+        eje.axis("off")
+
+    figura.suptitle("Barrido secuencial de hiperparámetros", fontsize=14)
+    figura.tight_layout(rect=(0, 0, 1, 0.95))
+    figura.savefig(
+        ruta / "fig_dashboard_secuencial.png",
+        dpi=150,
+        bbox_inches="tight",
+    )
+    plt.close(figura)
+
+    if acoplamientos:
+        figura, ejes = plt.subplots(
+            1,
+            len(acoplamientos),
+            figsize=(7.0 * len(acoplamientos), 5.5),
+            squeeze=False,
+        )
+        for eje, resultado in zip(ejes.flat, acoplamientos):
+            _dibujar_heatmap_acoplamiento(eje, resultado)
+        figura.suptitle("Acoplamientos fuertes", fontsize=14)
+        figura.tight_layout(rect=(0, 0, 1, 0.94))
+        figura.savefig(
+            ruta / "fig_dashboard_acoplamientos.png",
+            dpi=150,
+            bbox_inches="tight",
+        )
+        plt.close(figura)
+
+
+def _graficar_opcion_c(
+    resultados_pasos: Sequence[ResultadoPaso],
+    resumen_pasos: pd.DataFrame,
+    ruta: Path,
+) -> None:
+    """Genera la opción C: boxplots por paso y progreso."""
+    ruta.mkdir(parents=True, exist_ok=True)
+    for indice, resultado in enumerate(resultados_pasos, start=1):
+        figura, eje = plt.subplots(figsize=(9, 5))
+        grupos = [
+            grupo["qe"].to_numpy()
+            for _, grupo in resultado.resultados.groupby("valor", sort=False)
+        ]
+        etiquetas = [
+            str(valor) for valor in resultado.resultados["valor"].drop_duplicates()
+        ]
+        eje.boxplot(grupos, tick_labels=etiquetas)
+        eje.set_xlabel(resultado.parametro)
+        eje.set_ylabel("QE por semilla")
+        eje.set_title(
+            f"Paso {indice}: {resultado.parametro} — elegido {resultado.mejor_valor}",
+            fontsize=12,
+        )
+        eje.grid(axis="y", alpha=0.25)
+        figura.tight_layout()
+        figura.savefig(
+            ruta / f"fig_boxplot_{indice:02d}_{resultado.parametro}.png",
+            dpi=150,
+            bbox_inches="tight",
+        )
+        plt.close(figura)
+    _graficar_progreso(resumen_pasos, ruta / "fig_progreso.png")
+
+
+def _dibujar_heatmap_acoplamiento(eje: plt.Axes, resultado: ResultadoPaso) -> None:
+    """Dibuja el heatmap de un acoplamiento."""
+    resumen = resultado.resumen
+    tabla = resumen.pivot(
+        index="valor_b",
+        columns="valor_a",
+        values="qe_media",
+    )
+    imagen = eje.imshow(tabla.to_numpy(), cmap="viridis", aspect="auto")
+    eje.set_xticks(np.arange(tabla.shape[1]))
+    eje.set_yticks(np.arange(tabla.shape[0]))
+    eje.set_xticklabels([str(valor) for valor in tabla.columns], rotation=30)
+    eje.set_yticklabels([str(valor) for valor in tabla.index])
+    eje.set_xlabel(resumen["parametro_a"].iloc[0])
+    eje.set_ylabel(resumen["parametro_b"].iloc[0])
+    eje.set_title(str(resultado.mejor_valor), fontsize=9)
+    for fila in range(tabla.shape[0]):
+        for columna in range(tabla.shape[1]):
+            valor = tabla.iloc[fila, columna]
+            if pd.notna(valor):
+                eje.text(
+                    columna,
+                    fila,
+                    f"{valor:.3f}",
+                    ha="center",
+                    va="center",
+                    color="white",
+                    fontsize=7,
+                )
+    return imagen
+
+
+def _graficar_acoplamiento(
+    resultado: ResultadoPaso,
+    ruta: Path,
+) -> None:
+    """Guarda el heatmap de un acoplamiento."""
+    ruta.mkdir(parents=True, exist_ok=True)
+    figura, eje = plt.subplots(figsize=(8, 6))
+    imagen = _dibujar_heatmap_acoplamiento(eje, resultado)
+    figura.colorbar(imagen, ax=eje, label="QE media")
+    figura.tight_layout()
+    figura.savefig(ruta / "fig_heatmap.png", dpi=150, bbox_inches="tight")
+    plt.close(figura)
+
+
+def _guardar_figuras(
+    resultados_pasos: Sequence[ResultadoPaso],
+    resumen_pasos: pd.DataFrame,
+    acoplamientos: Sequence[ResultadoPaso],
+    opciones: Sequence[str],
+    ruta_salida: Path,
+) -> None:
+    """Genera las opciones de visualización pedidas."""
+    if "a" in opciones:
+        _graficar_opcion_a(
+            resultados_pasos,
+            resumen_pasos,
+            ruta_salida / "figuras" / "opcion_a",
+        )
+    if "b" in opciones:
+        _graficar_opcion_b(
+            resultados_pasos,
+            acoplamientos,
+            ruta_salida / "figuras" / "opcion_b",
+        )
+    if "c" in opciones:
+        _graficar_opcion_c(
+            resultados_pasos,
+            resumen_pasos,
+            ruta_salida / "figuras" / "opcion_c",
+        )
+
+
+def ejecutar_barrido(
+    config: dict,
+    datos: np.ndarray,
+    config_barrido: dict,
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    ruta_salida: Path,
+) -> tuple[dict, pd.DataFrame]:
+    """Ejecuta el barrido secuencial y los acoplamientos fuertes."""
+    validar_config_barrido(config_barrido)
+    ruta_salida = Path(ruta_salida)
+    ruta_salida.mkdir(parents=True, exist_ok=True)
+
+    config_actual = deepcopy(config)
+    orden = config_barrido["barrido"]["orden"]
+    semillas = config_barrido["barrido"]["semillas"]
+    seccion_acoplamientos = config_barrido.get("acoplamientos", {})
+    pares = seccion_acoplamientos.get("pares", [])
+    adoptar_solo_si_mejora = bool(
+        seccion_acoplamientos.get("adoptar_solo_si_mejora", True)
+    )
+
+    progreso = ProgresoBarrido(len(orden) + len(pares))
+    resultados_pasos: list[ResultadoPaso] = []
+    filas_resumen: list[dict] = []
+
+    for indice, parametro in enumerate(orden, start=1):
+        progreso.iniciar_paso(
+            indice,
+            f"Paso {indice}/{len(orden)}: {parametro}",
+        )
+        valores = config_barrido["valores"][parametro]
+        resultado = evaluar_paso(
+            parametro,
+            valores,
+            config_actual,
+            datos,
+            semillas,
+            entrenador,
+            progreso=progreso,
+        )
+        _guardar_paso(resultado, indice, ruta_salida)
+        config_actual = actualizar_config(
+            config_actual,
+            parametro,
+            resultado.mejor_valor,
+        )
+        filas_resumen.append(
+            {
+                "paso": indice,
+                "parametro": parametro,
+                "valor_elegido": resultado.mejor_valor,
+                "qe_media": resultado.qe_media,
+                "qe_desvio": float(
+                    resultado.resumen.loc[
+                        resultado.resumen["valor"] == resultado.mejor_valor,
+                        "qe_desvio",
+                    ].iloc[0]
+                ),
+            }
+        )
+        resultados_pasos.append(resultado)
+
+    qe_actual = _qe_de_config(config_actual, datos, semillas, entrenador)
+    acoplamientos: list[ResultadoPaso] = []
+    filas_acoplamientos: list[dict] = []
+
+    for indice_par, (parametro_a, parametro_b) in enumerate(pares, start=1):
+        progreso.iniciar_paso(
+            len(orden) + indice_par,
+            (f"Acoplamiento {indice_par}/{len(pares)}: {parametro_a} x {parametro_b}"),
+        )
+        resultado = evaluar_acoplamiento(
+            parametro_a,
+            config_barrido["valores"][parametro_a],
+            parametro_b,
+            config_barrido["valores"][parametro_b],
+            config_actual,
+            datos,
+            semillas,
+            entrenador,
+            progreso=progreso,
+        )
+        carpeta = ruta_salida / "acoplamientos" / f"{parametro_a}_x_{parametro_b}"
+        carpeta.mkdir(parents=True, exist_ok=True)
+        resultado.resultados.to_csv(
+            carpeta / "resultados.csv",
+            index=False,
+            float_format="%.8f",
+        )
+        resultado.resumen.to_csv(
+            carpeta / "resumen.csv",
+            index=False,
+            float_format="%.8f",
+        )
+        _graficar_acoplamiento(resultado, carpeta)
+        acoplamientos.append(resultado)
+
+        qe_base = qe_actual
+        adoptado = False
+        if not adoptar_solo_si_mejora or debe_adoptar(resultado.qe_media, qe_actual):
+            config_actual = actualizar_config(
+                config_actual,
+                parametro_a,
+                resultado.mejor_valor[0],
+            )
+            config_actual = actualizar_config(
+                config_actual,
+                parametro_b,
+                resultado.mejor_valor[1],
+            )
+            qe_actual = resultado.qe_media
+            adoptado = True
+
+        filas_acoplamientos.append(
+            {
+                "parametro_a": parametro_a,
+                "parametro_b": parametro_b,
+                "mejor_valor_a": resultado.mejor_valor[0],
+                "mejor_valor_b": resultado.mejor_valor[1],
+                "qe_media": resultado.qe_media,
+                "qe_base": qe_base,
+                "adoptado": adoptado,
+            }
+        )
+
+    progreso.finalizar()
+
+    resumen_pasos = pd.DataFrame(filas_resumen)
+    resumen_pasos.to_csv(
+        ruta_salida / "resumen_pasos.csv",
+        index=False,
+        float_format="%.8f",
+    )
+
+    if filas_acoplamientos:
+        pd.DataFrame(filas_acoplamientos).to_csv(
+            ruta_salida / "acoplamientos" / "resumen_acoplamientos.csv",
+            index=False,
+            float_format="%.8f",
+        )
+
+    directorio_final = config_barrido.get("salida", {}).get(
+        "directorio_final",
+        config_actual["salida"]["directorio"],
+    )
+    config_actual["salida"]["directorio"] = directorio_final
+    kohonen.guardar_config(
+        config_actual,
+        ruta_salida / "config_optima.toml",
+    )
+    kohonen.guardar_config(
+        config_barrido,
+        ruta_salida / "config_barrido.toml",
+    )
+
+    opciones = config_barrido.get("figuras", {}).get(
+        "opciones",
+        list(OPCIONES_FIGURAS_POR_DEFECTO),
+    )
+    lineas_registro = [
+        "Registro del barrido — TP4, ejercicio 1.2 (Red de Kohonen)",
+        f"Orden: {orden}",
+        f"Semillas: {semillas}",
+        f"Pares de acoplamiento: {pares}",
+        f"Configuración final: {config_actual['modelo']}",
+        f"QE final: {qe_actual:.8f}",
+        "",
+        "Archivos generados:",
+        "  config_barrido.toml",
+        "  config_optima.toml",
+        "  resumen_pasos.csv",
+        "  paso_*.csv",
+        "  acoplamientos/",
+    ]
+    for opcion in opciones:
+        lineas_registro.append(f"  figuras/opcion_{opcion}/")
+    (ruta_salida / "registro.txt").write_text(
+        "\n".join(lineas_registro) + "\n",
+        encoding="utf-8",
+    )
+
+    _guardar_figuras(
+        resultados_pasos,
+        resumen_pasos,
+        acoplamientos,
+        opciones,
+        ruta_salida,
+    )
+
+    return config_actual, resumen_pasos
+
+
+def _valores_radio_validos(
+    valores: Sequence[object],
+    grilla: int,
+    radio_final: float,
+) -> list[object]:
+    """Descarta radios iniciales que quedarían por debajo de R_f para un k."""
+    return [valor for valor in valores if float(valor) * grilla >= radio_final - 1e-12]
+
+
+def ejecutar_barridos(
+    config: dict,
+    datos: np.ndarray,
+    config_barrido: dict,
+    entrenador: Callable[[np.ndarray, dict, int], dict],
+    ruta_base: Path,
+) -> dict[int, tuple[dict, pd.DataFrame]]:
+    """Ejecuta un barrido secuencial completo para cada grilla fija."""
+    validar_config_barrido(config_barrido)
+    grillas = config_barrido["barrido"]["grillas_fijas"]
+    base_final = config_barrido.get("salida", {}).get(
+        "directorio_final_base",
+        config["salida"]["directorio"],
+    )
+    directorio_base_texto = str(
+        config_barrido.get("salida", {}).get(
+            "directorio",
+            "resultados/ej1/kohonen_sweep",
+        )
+    ).rstrip("/")
+    ruta_base = Path(ruta_base)
+    resultados: dict[int, tuple[dict, pd.DataFrame]] = {}
+
+    for indice, grilla in enumerate(grillas, start=1):
+        print(
+            f"\n=== Barrido {indice}/{len(grillas)}: k={grilla} ===",
+            flush=True,
+        )
+        config_k = deepcopy(config)
+        config_k["modelo"]["grilla"] = int(grilla)
+        config_barrido_k = deepcopy(config_barrido)
+        config_barrido_k["barrido"]["grillas_fijas"] = [int(grilla)]
+        valores_k = deepcopy(config_barrido_k.get("valores", {}))
+        radios = valores_k.get("radio_inicial_relativo")
+        if isinstance(radios, list):
+            validos = _valores_radio_validos(
+                radios,
+                int(grilla),
+                float(config_k["modelo"]["radio_final"]),
+            )
+            omitidos = [radio for radio in radios if radio not in validos]
+            if omitidos:
+                print(
+                    (
+                        f"  Aviso k={grilla}: se omite "
+                        f"radio_inicial_relativo={omitidos} porque R0 < R_f."
+                    ),
+                    flush=True,
+                )
+            valores_k["radio_inicial_relativo"] = validos
+        config_barrido_k["valores"] = valores_k
+        config_barrido_k.setdefault("salida", {})
+        config_barrido_k["salida"]["directorio"] = (
+            f"{directorio_base_texto}/sweep{grilla}"
+        )
+        config_barrido_k["salida"]["directorio_final"] = f"{base_final}_k{grilla}"
+        ruta_k = ruta_base / f"sweep{grilla}"
+        resultados[int(grilla)] = ejecutar_barrido(
+            config_k,
+            datos,
+            config_barrido_k,
+            entrenador,
+            ruta_k,
+        )
+
+    return resultados
+
+
+def _entrenador_real(datos: np.ndarray, modelo: dict, semilla: int) -> dict:
+    """Adapta el motor de Kohonen a la interfaz del barrido."""
+    resultado = kohonen.entrenar_som(datos, modelo, semilla)
+    return {
+        "qe": resultado.qe,
+        "te": resultado.te,
+        "unidades_muertas": resultado.unidades_muertas,
+        "ocupacion": resultado.ocupacion,
+    }
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Punto de entrada del barrido."""
+    args = parse_args(argv)
+    config_barrido = cargar_config_barrido(args.config)
+
+    if args.salida is not None:
+        config_barrido["salida"]["directorio"] = str(args.salida)
+    if args.semillas is not None:
+        config_barrido["barrido"]["semillas"] = list(args.semillas)
+
+    base = kohonen.cargar_config(
+        kohonen.resolver_ruta(config_barrido["base"]["archivo"])
+    )
+    datos = kohonen.cargar_datos(kohonen.resolver_ruta(base["datos"]["ruta"]))
+    columnas = kohonen.columnas_entrada(
+        datos,
+        base["datos"]["columnas_excluidas"],
+    )
+    matriz = datos[columnas].to_numpy(dtype=float)
+    entrada, _, _ = kohonen.preparar_entrada(
+        matriz, base["datos"].get("estandarizar", True)
+    )
+
+    ruta_base = kohonen.resolver_ruta(config_barrido["salida"]["directorio"])
+
+    inicio = time.perf_counter()
+    resultados = ejecutar_barridos(
+        base,
+        entrada,
+        config_barrido,
+        _entrenador_real,
+        ruta_base,
+    )
+    tiempo_total = time.perf_counter() - inicio
+
+    print("=" * 78)
+    print("TP4 — Ejercicio 1.2: barrido de hiperparámetros de Kohonen")
+    print("=" * 78)
+    print(f"Resultados: {ruta_base}")
+    print(f"Tiempo total: {tiempo_total:.3f} s")
+
+    for grilla, (config_final, resumen) in resultados.items():
+        print()
+        print(f"--- k = {grilla} ---")
+        print(f"Configuración final: {config_final['modelo']}")
+        print("Resumen de pasos:")
+        print(resumen.to_string(index=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

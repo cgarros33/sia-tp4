@@ -1,0 +1,32 @@
+Resumen de ejecución — TP4, ejercicio 1.1 (EDA + PCA)
+Datos: /home/cele/Rejunte/git/facu/sia-tp4/datos/creadores.csv
+Umbral de varianza: 99.00%
+Variables en el EDA: 31
+Variables en el PCA: 27
+Rango de la matriz de correlación: 25
+Autovalores nulos: 2
+Componentes seleccionados: 18
+Varianza acumulada: 99.1060%
+
+Chequeos numéricos:
+  Residuo máximo S·v - λ·v: 4.707e-15
+  Error máximo de varianza de scores: 6.217e-15
+  Suma de ratios de varianza: 1.000000000000
+
+Archivos generados:
+  eda/descriptivos.csv
+  eda/correlaciones.csv
+  eda/correlaciones_objetivo.csv
+  eda/pares_correlacion.csv
+  eda/redundancias.csv
+  eda/outliers.csv
+  eda/fig_distribuciones.png
+  eda/fig_correlaciones.png
+  pca_0.99/autovalores.csv
+  pca_0.99/cargas.csv
+  pca_0.99/scores.csv
+  pca_0.99/pcs_vs_negocio.csv
+  pca_0.99/seleccion_componentes.csv
+  pca_0.99/fig_scree.png
+  pca_0.99/fig_cargas.png
+  pca_0.99/fig_biplot.png

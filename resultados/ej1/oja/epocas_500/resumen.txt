@@ -1,0 +1,106 @@
+Resumen de ejecución — TP4, ejercicio 1.3 (Índice de Oja)
+Datos: /home/cele/Rejunte/git/facu/sia-tp4/datos/creadores.csv
+Variables de entrada: 27
+Creadores: 50
+Regla final: exacta
+Épocas: 500
+eta inicial: 0.5
+Decaimiento de eta: inversa
+Semillas: [0, 1, 2]
+
+Referencias de 1.1:
+  cargas: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/pca_0.95/cargas.csv
+  scores: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/pca_0.95/scores.csv
+  autovalores: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/pca_0.95/autovalores.csv
+  correlaciones: /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/eda/correlaciones.csv
+
+Validaciones numéricas de las referencias:
+  v1^T C v1 = 13.4208649740
+  lambda1 = 13.4208676700
+  var(PC1) = 13.4208680017
+  media(PC1) = 0.0000000600
+
+Corridas finales:
+semilla  ratio_varianza  pearson_pc1  norma_final  divergio  convergio
+      0        1.000000     1.000000     1.000000     False       True
+      1        1.000000     1.000000     1.000000     False       True
+      2        1.000000     1.000000     1.000000     False       True
+
+Comparación con PC1:
+  Pearson índice vs PC1: 1.0000000000
+  Razón de varianza: 0.9999999797
+  Varianza del índice: 13.4208673970
+  Varianza de PC1: 13.4208680017
+  lambda1: 13.4208676700
+
+Media ± desvío de las corridas finales:
+  ratio_varianza: 1.000000 ± 0.000000
+  pearson_pc1: 1.000000 ± 0.000000
+
+Correlaciones del índice (Pearson):
+variable                        incluida_en_modelo     pearson
+followers                                     True    0.869469
+average_reach                                 True    0.908672
+average_impressions                           True    0.918112
+average_video_views                           True    0.912725
+estimated_argentina_reach                    False    0.727445
+price_usd                                     True    0.869361
+price_ars                                    False    0.869361
+likes_per_1000                                True    0.794152
+comments_per_1000                             True   -0.766975
+saves_per_1000                                True   -0.840787
+shares_per_1000                               True    0.668375
+total_engagement_per_1000                    False    0.354000
+profile_visits_per_1000                       True   -0.772786
+average_watch_time_seconds                    True   -0.729670
+argentina_audience_pct                        True   -0.112284
+non_follower_reach_pct                        True    0.742396
+sponsored_posts_pct                           True    0.056522
+organic_posts_pct                            False   -0.056522
+topic_football_pct                            True    0.241210
+topic_makeup_pct                              True    0.239463
+topic_dogs_pct                                True   -0.486051
+topic_art_pct                                 True    0.026446
+content_tutorial_pct                          True   -0.729167
+content_review_pct                            True   -0.667435
+content_entertainment_pct                     True    0.793556
+content_showcase_pct                          True   -0.366851
+monthly_posts                                 True    0.139798
+average_caption_words                         True   -0.937431
+video_posts_pct                               True    0.879608
+short_form_posts_pct                          True    0.872668
+trend_posts_pct                               True    0.900423
+
+Sensibilidad de la regla exacta:
+eta_inicial  decaimiento  ratio_media  ratio_desvio  pearson_media  pearson_desvio  divergencias  convergio
+       0.01     constante     0.960472      0.015386       0.997605        0.001219             0      False
+       0.01       inversa     0.342282      0.271538       0.926814        0.053567             0      False
+       0.01          raiz     1.000000      0.000000       1.000000        0.000000             0       True
+       0.05     constante     0.775897      0.110024       0.981409        0.011629             0      False
+       0.05       inversa     0.998729      0.001873       0.999929        0.000114             0       True
+       0.05          raiz     0.999996      0.000002       1.000000        0.000000             0       True
+        0.1     constante     0.694868      0.160195       0.970344        0.021364             0      False
+        0.1       inversa     1.000000      0.000001       1.000000        0.000000             0       True
+        0.1          raiz     0.999969      0.000015       0.999998        0.000001             0       True
+        0.2     constante     0.641195      0.180785       0.962085        0.026603             0      False
+        0.2       inversa     1.000000      0.000000       1.000000        0.000000             0       True
+        0.2          raiz     0.999757      0.000094       0.999987        0.000009             0       True
+        0.5     constante     0.592862      0.140950       0.961640        0.008602             0      False
+        0.5       inversa     1.000000      0.000000       1.000000        0.000000             0       True
+        0.5          raiz     0.996589      0.001240       0.999825        0.000101             0       True
+
+Comparación de reglas:
+Las medias excluyen las semillas que divergieron.
+regla  eta_inicial  ratio_media  pearson_media  divergencias  convergio
+exacta          0.5     1.000000       1.000000             0       True
+taylor         0.05     0.998613       0.999921             0       True
+taylor          0.5     1.000000       1.000000             2      False
+
+Configuraciones guardadas:
+  /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/oja/epocas_500/config_regla_taylor_0.05.toml
+
+Archivos generados:
+  /home/cele/Rejunte/git/facu/sia-tp4/resultados/ej1/oja/epocas_500
+
+Nota: este resumen contiene solo resultados numéricos;
+la interpretación de marketing se discute fuera de estos archivos.

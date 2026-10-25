@@ -1,0 +1,23 @@
+[datos]
+ruta = "resultados/ej1/pca_0.90/scores.csv"
+estandarizar = false
+columnas_excluidas = ["PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17", "PC18", "PC19", "PC20", "PC21", "PC22", "PC23", "PC24", "PC25"]
+
+[modelo]
+grilla = 3
+topologia = "rectangular"
+distancia = "euclidiana"
+inicializacion = "uniforme"
+radio_inicial_relativo = 0.4
+radio_final = 1.0
+decaimiento_radio = "constante"
+eta_inicial = 0.3
+eta_final = 0.001
+decaimiento_eta = "exponencial"
+iteraciones = 10000
+
+[reproducibilidad]
+semillas = [0, 1, 2]
+
+[salida]
+directorio = "resultados/ej1/ej1.2-pca10/kohonen_k3"

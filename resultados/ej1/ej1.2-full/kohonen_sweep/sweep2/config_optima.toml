@@ -1,0 +1,22 @@
+[datos]
+ruta = "datos/creadores.csv"
+columnas_excluidas = ["price_ars", "estimated_argentina_reach", "total_engagement_per_1000", "organic_posts_pct"]
+
+[modelo]
+grilla = 14
+topologia = "hexagonal"
+distancia = "euclidiana"
+inicializacion = "uniforme"
+radio_inicial_relativo = 0.3
+radio_final = 1.0
+decaimiento_radio = "inversa"
+eta_inicial = 0.9
+eta_final = 0.001
+decaimiento_eta = "lineal"
+iteraciones = 80000
+
+[reproducibilidad]
+semillas = [0, 1, 2]
+
+[salida]
+directorio = "resultados/ej1/kohonen"

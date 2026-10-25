@@ -1,0 +1,19 @@
+Perfiles de neuronas y alineación con PCs — TP4, ejercicio 1.2
+
+R² de PC ~ fila + columna sobre los pesos de las neuronas (media sobre
+semillas): cuánto de la variación de cada PC entre neuronas sigue un
+gradiente lineal a lo largo de la grilla.
+
+pc                    PC1   PC2   PC3   PC4
+corrida                                    
+completa_k3         0.990 0.677 0.603 0.941
+completa_k4         0.932 0.618 0.150 0.199
+completa_k5         0.922 0.571 0.069 0.058
+pca10_k3            0.972 0.791 0.437 0.905
+pca10_k4            0.873 0.630 0.057 0.473
+pca10_k4_euclidiana 0.958 0.422 0.413 0.185
+pca10_k5            0.944 0.509 0.264 0.266
+
+Por corrida, en su carpeta: neuronas_pcs.csv, perfil_neuronas.csv,
+perfil_neuronas_z.csv, fig_mapa_biplot.png y fig_perfil_neuronas.png
+(semilla representativa de cada corrida).

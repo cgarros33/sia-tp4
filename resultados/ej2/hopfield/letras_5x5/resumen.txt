@@ -1,0 +1,32 @@
+Red de Hopfield — Ejercicio 2.2
+Dataset: /home/cele/Rejunte/git/facu/sia-tp4/datos/hopfield/letras_5x5.csv
+Patrones: J, O, T, A
+Filas: 5
+Columnas: 5
+Neuronas: 25
+Cantidad de patrones: 4
+Modo: asincronica
+Orden: secuencial
+Semilla: 0
+Máximo de barridos: 100
+
+Capacidad:
+  carga p/N = 0.160000
+  límite teórico = 3.750000
+  excede límite = True
+
+Ortogonalidad:
+  solapamiento absoluto medio = 0.173333
+  solapamiento absoluto máximo = 0.360000
+  Hamming mínimo = 8
+  Hamming medio = 11.833333
+  pares ortogonales = 0
+
+Puntos fijos: 4 de 4
+Tipos de resultado: {'almacenado_correcto': 4}
+
+Detalle por patrón:
+  J: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-11.680000, margen_mínimo=0.400000
+  O: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-12.160000, margen_mínimo=0.400000
+  T: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-12.000000, margen_mínimo=0.320000
+  A: almacenado_correcto, punto_fijo=True, barridos=1, energía_final=-12.800000, margen_mínimo=0.160000

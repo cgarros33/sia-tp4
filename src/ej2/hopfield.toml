@@ -1,0 +1,11 @@
+[datos]
+ruta = "datos/hopfield/letras_5x5.csv"
+
+[modelo]
+modo = "asincronica"
+orden = "secuencial"
+semilla = 0
+max_barridos = 100
+
+[salida]
+directorio = ""

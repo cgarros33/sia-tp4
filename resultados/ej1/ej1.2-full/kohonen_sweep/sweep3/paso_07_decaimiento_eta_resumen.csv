@@ -1,0 +1,4 @@
+parametro,valor,qe_media,qe_desvio,te_media,te_desvio,muertas_media,ocupacion_media,n
+decaimiento_eta,lineal,3.48937218,0.00968911,0.18000000,0.00000000,0.00000000,1.00000000,3
+decaimiento_eta,exponencial,3.51261718,0.00288541,0.18000000,0.00000000,0.00000000,1.00000000,3
+decaimiento_eta,inversa,3.54272700,0.00344071,0.20000000,0.00000000,0.00000000,1.00000000,3

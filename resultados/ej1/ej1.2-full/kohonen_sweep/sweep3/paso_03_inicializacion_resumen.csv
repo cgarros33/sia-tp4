@@ -1,0 +1,3 @@
+parametro,valor,qe_media,qe_desvio,te_media,te_desvio,muertas_media,ocupacion_media,n
+inicializacion,uniforme,3.50070519,0.01908024,0.18000000,0.03464102,0.00000000,1.00000000,3
+inicializacion,muestras,3.50070519,0.01908024,0.18000000,0.03464102,0.00000000,1.00000000,3

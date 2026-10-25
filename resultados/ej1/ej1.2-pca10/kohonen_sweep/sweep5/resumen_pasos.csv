@@ -1,0 +1,9 @@
+paso,parametro,valor_elegido,qe_media,qe_desvio
+1,topologia,rectangular,2.49096967,0.04852009
+2,distancia,euclidiana,2.49096967,0.04852009
+3,inicializacion,muestras,2.49096967,0.04852009
+4,radio_inicial_relativo,0.3,2.45606683,0.04813060
+5,decaimiento_radio,lineal,2.45606683,0.04813060
+6,eta_inicial,0.3,2.45082912,0.02202563
+7,decaimiento_eta,lineal,2.45082912,0.02202563
+8,iteraciones,10000,2.45082912,0.02202563
