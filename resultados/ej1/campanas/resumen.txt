@@ -1,0 +1,50 @@
+Decisión para las campañas — TP4, ejercicio 1.4
+
+Supuestos: solo compra el público argentino (alcance útil = alcance
+argentino × % de posts del tópico); guardados + visitas = intención.
+Mapa: resultados/ej1/ej1.2-pca10/kohonen_k4_euclidiana (k=4, euclidiana, semillas [0, 1, 2], representativa 1)
+Top 5 por followers: @mateconideas, @golconmate, @brillourbano, @maquillajereal, @crearenreels (USD 22,657 = presupuesto de referencia)
+
+Correlación de followers con:
+  price_usd                  +0.82
+  argentina_audience_pct     -0.00
+  non_follower_reach_pct     +0.50
+  content_tutorial_pct       -0.60
+  saves_per_1000             -0.74
+  comments_per_1000          -0.69
+  profile_visits_per_1000    -0.63
+
+Por cliente (creadores cuyo tema principal es el del cliente):
+  Fútbol: USD por mil argentinos (mediana) chicos 95 | grandes 125; intención chicos 36 | grandes 21
+    más baratos por argentino: @golconmate (19, 77% arg.), @futbolcononda (25, 89% arg.), @tribunacreativa (38, 68% arg.)
+  Refugios: USD por mil argentinos (mediana) chicos 85 | grandes 52; intención chicos 44 | grandes 30
+    más baratos por argentino: @crearenreels (24, 89% arg.), @huellasyconsejos (29, 94% arg.), @consejoscaninos (32, 87% arg.)
+  Belleza: USD por mil argentinos (mediana) chicos 64 | grandes 58; intención chicos 29 | grandes 21
+    más baratos por argentino: @maquillajereal (27, 69% arg.), @brochasymates (43, 88% arg.), @mateconideas (50, 83% arg.)
+  Arte: USD por mil argentinos (mediana) chicos 74 | grandes 81; intención chicos 32 | grandes 29
+    más baratos por argentino: @galeriacotidiana (43, 84% arg.), @rinconcreativo (44, 51% arg.), @colorenmovimiento (53, 72% arg.)
+
+Propuesta (semilla representativa) y coincidencia con followers:
+  Fútbol    @golconmate, @futbolcononda, @tribunacreativa, @lookdecancha, @jugadayestilo (coincide 11%)
+  Refugios  @crearenreels, @guiadehuellas, @ideasconhuella, @huellasyconsejos, @huellasargentinas (coincide 11%)
+  Belleza   @reelargentino, @brochasymates, @mateconideas, @maquillajereal, @brochasycolor (coincide 25%)
+  Arte      @galeriacotidiana, @colorenmovimiento, @artequeinspira, @rinconcreativo, @pincelcotidiano (coincide 0%)
+
+Comparación (media sobre semillas):
+                     usd_por_mil_argentinos  intencion_cada_100_usd  argentinos_topico  costo_total  argentinos_mismo_presupuesto  gasto_mismo_presupuesto  afinidad_media
+cliente  estrategia                                                                                                                                                       
+futbol   followers                     86.9                    20.0          260,672.8     22,657.1                     260,672.8                 22,657.1            26.9
+         propuesta                     29.6                    75.5          375,924.0     11,126.0                     471,644.4                 22,212.2            73.0
+refugios followers                    103.7                    20.5          218,493.7     22,657.1                     218,493.7                 22,657.1            21.3
+         propuesta                     26.9                    87.6          177,888.5      4,786.2                     256,689.6                 10,767.5            65.7
+belleza  followers                     70.6                    24.8          320,859.6     22,657.1                     320,859.6                 22,657.1            42.9
+         propuesta                     40.4                    46.8          272,841.3     11,028.8                     362,977.2                 21,836.2            58.7
+arte     followers                    278.6                     6.9           81,334.9     22,657.1                      81,334.9                 22,657.1             8.8
+         propuesta                     51.4                    43.1          220,544.0     11,335.2                     266,751.3                 17,545.7            66.8
+
+Actualización mensual simulada (fracción de creadores):
+ sigma  cambia_neurona_media  cambia_region_media  cambia_neurona_desvio  cambia_region_desvio
+ 0.020                 0.009                0.007                  0.011                 0.012
+ 0.050                 0.022                0.016                  0.004                 0.005
+ 0.100                 0.057                0.034                  0.004                 0.012
+ 0.200                 0.180                0.098                  0.013                 0.024

@@ -304,6 +304,21 @@ En `resultados/ej1/oja/epocas_5/` (corrida final):
 En `resultados/ej1/oja/epocas_500/` quedó archivada la corrida anterior con 500
 épocas, con los mismos tipos de archivo y sus configuraciones resueltas.
 
+## Ejercicio 1.4 — Decisión para las campañas
+
+- Script de análisis (solo lee): `src/ej1/campanas.py`.
+- Supuestos por cliente: `src/ej1/campanas.toml`.
+- Tests: `tests/ej1/test_campanas.py`.
+- Salidas: `resultados/ej1/campanas/`.
+- Lee los datos, las cargas de `pca_0.90` y los pesos y asignaciones de
+  `ej1.2-pca10/kohonen_k4_euclidiana`.
+- Figuras: `fig_mapa_regiones`, `fig_enfoques`, `fig_followers`,
+  `fig_comparacion` y `fig_actualizacion`.
+
+```bash
+python3 src/ej1/campanas.py --config src/ej1/campanas.toml
+```
+
 ## Ejercicio 2.1 — Recuperación de QR deteriorados (en implementación)
 
 - Plan: `docs/plan/ej2-1.md`.
@@ -431,7 +446,19 @@ python src/ej2/hopfield-runner.py \
   `estados_iniciales.csv`, `estados_finales.csv` y `resumen.txt`.
 - `consultas/ruido_<nivel>_semilla_<semilla>/` para los 15 barridos de ruido,
   con los mismos archivos.
-- No se generan figuras en esta etapa.
+- Figuras para la presentación (letras y fallas de los QR):
+  `python3 src/ej2/hopfield-figuras.py`, que solo lee resultados y escribe en
+  `resultados/ej2/hopfield/figuras/`. Tests: `tests/ej2/test_hopfield_figuras.py`.
+
+## Presentación
+
+- `presentacion/guion.md`: guion diapositiva por diapositiva.
+- `presentacion/figuras/`: copias de las figuras de `resultados/`, numeradas
+  según la diapositiva en la que se usan.
+- `src/ej1/figuras-presentacion.py` rehace dos figuras para la presentación
+  (correlaciones ordenadas por PC1 y barrido de Kohonen con eje compartido) a
+  partir de los CSV guardados; escribe en `resultados/ej1/presentacion/`.
+  Tests: `tests/ej1/test_figuras_presentacion.py`.
 
 Los resultados numéricos y la interpretación técnica están en
 `docs/decisiones.md`.
@@ -443,7 +470,7 @@ Los resultados numéricos y la interpretación técnica están en
 | 1 | 1. Exploración y representación | `src/ej1/eda-pca.py` | Implementado |
 | 1 | 2. Red de Kohonen | `src/ej1/kohonen.py` + `src/ej1/kohonen-sweep.py` | Implementado |
 | 1 | 3. Índice de Oja | `src/ej1/oja.py` | Implementado |
-| 1 | 4. Decisión para las campañas | — | Pendiente |
+| 1 | 4. Decisión para las campañas | `src/ej1/campanas.py` | Implementado (supuestos a validar) |
 | 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` (extensión) + `src/ej2/hopfield-noise.py` (previsto) | En implementación (plan en `docs/plan/ej2-1.md`) |
 | 2 | 1. Recuperación de QR deteriorados | `src/ej2/hopfield.py` (extensión) + `src/ej2/hopfield-noise.py` (previsto) | En implementación (plan en `docs/plan/ej2-1.md`) |
 | 2 | 2. Recomendación (Hopfield 5×5) | `src/ej2/hopfield.py` + `src/ej2/hopfield-runner.py` | Implementado |

@@ -1,0 +1,61 @@
+# Ejercicio 1.4 — Decisión para las campañas.
+# Script de análisis: solo lee resultados de 1.1 y 1.2.
+#
+# Supuestos del grupo:
+# 1. Solo compra/adopta el público argentino. El alcance útil de un creador es
+#    estimated_argentina_reach × % de posts del tópico del cliente
+#    ("argentinos_topico"); su eficiencia es usd_por_mil_argentinos.
+# 2. Quien busca belleza busca tutoriales y opiniones (reseñas, comentarios).
+# 3. Guardados + visitas al perfil indican intención de compra ("intencion").
+
+[entradas]
+datos = "datos/creadores.csv"
+corrida = "resultados/ej1/ej1.2-pca10/kohonen_k4_euclidiana"
+cargas = "resultados/ej1/pca_0.90/cargas.csv"
+
+[seleccion]
+creadores_por_campana = 5
+
+# Candidatos de cada cliente: creadores de la región del mapa cuyo tópico
+# dominante es el del cliente, más los creadores cuyo propio tópico principal
+# es ese (así no se pierden los grandes que el mapa ubica con los generalistas).
+# Dentro de los candidatos se ordena por el promedio ponderado de z-scores de
+# "metricas"; un peso negativo penaliza la métrica. Además de las columnas de
+# los datos se pueden usar argentinos_topico, usd_por_mil_argentinos e intencion.
+
+[clientes.futbol]
+nombre = "Fútbol"
+topico = "topic_football_pct"
+# Masivo con audiencia argentina alta: los que llegan a más argentinos
+# interesados en fútbol por cada dólar.
+metricas = { usd_por_mil_argentinos = -1.0 }
+
+[clientes.refugios]
+nombre = "Refugios"
+topico = "topic_dogs_pct"
+# Descubrimiento (gente nueva) y, en segundo lugar, consultas: comentarios y
+# visitas al perfil.
+metricas = { topic_dogs_pct = 1.0, argentina_audience_pct = 1.0, non_follower_reach_pct = 1.0, comments_per_1000 = 0.5, profile_visits_per_1000 = 0.5 }
+
+[clientes.belleza]
+nombre = "Belleza"
+topico = "topic_makeup_pct"
+# Profundidad (tutoriales, reseñas, guardados, comentarios) con público
+# argentino, mezclada con alcance argentino.
+metricas = { argentinos_topico = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0, content_review_pct = 0.5, saves_per_1000 = 0.5, comments_per_1000 = 0.5 }
+
+[clientes.arte]
+nombre = "Arte"
+topico = "topic_art_pct"
+# Mezcla: grandes con público argentino y educativos con público argentino
+# (lo educativo cuesta lo mismo o menos por argentino y le queda bien al
+# producto).
+metricas = { argentinos_topico = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0 }
+
+# Simulación de la actualización mensual: cada variable se multiplica por
+# (1 + sigma·ε), ε ~ N(0, 1), y se recalcula la neurona ganadora con los pesos
+# guardados (sin reentrenar).
+[actualizacion]
+sigmas = [0.02, 0.05, 0.10, 0.20]
+repeticiones = 20
+semilla = 0
