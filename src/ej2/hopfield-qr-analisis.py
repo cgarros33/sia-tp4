@@ -23,6 +23,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
@@ -44,6 +45,8 @@ NOMBRES_REGLA = {"hebb": "Hebb", "pseudoinversa": "Pseudo-inversa"}
 COLORES_REGLA = {"hebb": "#C44E52", "pseudoinversa": "#4C72B0"}
 PATRON_CARPETA = re.compile(r"^(ruido|esquina|manchas)_([0-9.]+)_semilla_(\d+)$")
 PATRON_DETALLE = re.compile(r"^detalle_(ruido|esquina|manchas)_([0-9.]+)$")
+CASOS_ENERGIA = (("esquina", 0.25), ("manchas", 0.25), ("ruido", 0.4))
+COLORES_CASO = {"esquina": "#DD8452", "manchas": "#55A868", "ruido": "#8172B3"}
 TASAS = ("correcto", "incorrecto", "espurio", "otro")
 
 
@@ -228,11 +231,18 @@ def _figura_correlacion(red: dict, solapamiento: np.ndarray, ruta: Path) -> None
 
 
 def _figura_por_nivel(
-    resumen: pd.DataFrame, metricas: Sequence[tuple[str, str]], ylabel: str, ruta
+    resumen: pd.DataFrame,
+    metricas: Sequence[tuple[str, str]],
+    ylabel: str,
+    ruta,
+    reglas: Sequence[str] | None = None,
+    piso: float | None = None,
 ) -> None:
     fig, ejes = plt.subplots(1, len(DETERIOROS), figsize=(15, 4.5), sharey=True)
     for eje, deterioro in zip(ejes, DETERIOROS, strict=True):
         datos = resumen[resumen["deterioro"] == deterioro]
+        if reglas is not None:
+            datos = datos[datos["regla"].isin(reglas)]
         for regla, grupo in datos.groupby("regla"):
             for metrica, estilo in metricas:
                 eje.errorbar(
@@ -242,16 +252,42 @@ def _figura_por_nivel(
                     color=COLORES_REGLA.get(regla, "0.3"),
                     linestyle=estilo,
                     marker="o",
-                    markersize=4,
-                    capsize=3,
-                    label=f"{NOMBRES_REGLA.get(regla, regla)} — {metrica}",
+                    linewidth=2,
+                    markersize=6,
+                    capsize=4,
+                    label=NOMBRES_REGLA.get(regla, regla)
+                    if len(metricas) == 1
+                    else f"{NOMBRES_REGLA.get(regla, regla)} — {metrica}",
                 )
-        eje.set_title(NOMBRES_DETERIORO[deterioro])
-        eje.set_xlabel("Nivel (fracción de píxeles afectados)")
+        eje.set_title(NOMBRES_DETERIORO[deterioro], fontsize=16)
+        eje.set_xlabel("Nivel (fracción de píxeles afectados)", fontsize=13)
+        eje.tick_params(labelsize=12)
         eje.grid(alpha=0.3)
-    ejes[0].set_ylabel(ylabel)
-    ejes[-1].legend(fontsize=8)
-    fig.suptitle("Media ± desvío sobre 3 semillas (5 QR × 5 repeticiones)", fontsize=9)
+        if piso is not None:
+            eje.axhline(piso, color="black", ls=":", lw=1.5)
+            eje.set_ylim(piso - 0.15, 3.0)
+    if piso is not None:
+        ejes[0].annotate(
+            "mínimo posible: 2 barridos",
+            (0.05, piso),
+            xytext=(0, -16),
+            textcoords="offset points",
+            fontsize=11,
+        )
+    ejes[0].set_ylabel(ylabel, fontsize=13)
+    contenedores, etiquetas = ejes[-1].get_legend_handles_labels()
+    lineas = [
+        Line2D(
+            [],
+            [],
+            color=c[0].get_color(),
+            linestyle=c[0].get_linestyle(),
+            linewidth=2.5,
+        )
+        for c in contenedores
+    ]
+    ejes[-1].legend(lineas, etiquetas, fontsize=11, handlelength=3.5)
+    fig.suptitle("Media ± desvío sobre 3 semillas (5 QR × 5 repeticiones)", fontsize=13)
     fig.tight_layout()
     fig.savefig(ruta, dpi=150)
     plt.close(fig)
@@ -268,83 +304,75 @@ def _detalles(directorio: Path) -> dict[tuple[str, float], Path]:
 
 
 def _figura_energia(redes: dict[str, dict], patron: str, ruta: Path) -> None:
-    fig, ejes = plt.subplots(1, len(redes), figsize=(7 * len(redes), 4.8))
+    """Energía por paso, normalizada: 0 es la energía del QR original."""
+    fig, ejes = plt.subplots(1, len(redes), figsize=(15, 4.8), sharex=True, sharey=True)
     ejes = np.atleast_1d(ejes)
     for eje, (regla, red) in zip(ejes, redes.items(), strict=True):
         n = red["filas"] * red["columnas"]
-        for (deterioro, nivel), carpeta in red["detalles"].items():
-            energia = pd.read_csv(carpeta / "energia_actualizaciones.csv")
+        referencia = (
+            red["estabilidad"].set_index("nombre").loc[patron, "energia_inicial"]
+        )
+        for caso in CASOS_ENERGIA:
+            energia = pd.read_csv(red["detalles"][caso] / "energia_actualizaciones.csv")
             energia = energia[energia["consulta"] == patron]
+            relativa = (energia["energia"] - referencia) / abs(referencia)
             eje.plot(
                 energia["actualizacion"] / n,
-                energia["energia"],
-                label=f"{NOMBRES_DETERIORO[deterioro]} {nivel:g}",
+                relativa,
+                color=COLORES_CASO[caso[0]],
+                linewidth=2.5,
+                label=f"{NOMBRES_DETERIORO[caso[0]]} {caso[1]:g}",
             )
-        estable = red["estabilidad"].set_index("nombre").loc[patron, "energia_inicial"]
-        eje.axhline(estable, color="black", ls=":", lw=1, label=f"E({patron})")
-        eje.set_title(
-            f"{NOMBRES_REGLA.get(regla, regla)}: energía en cada actualización",
-            fontsize=10,
+        final = relativa.iloc[-1]
+        eje.axhline(0, color="black", ls=":", lw=1.5)
+        eje.annotate(
+            "energía del QR original",
+            (2.0, 0),
+            xytext=(0, 6),
+            textcoords="offset points",
+            ha="right",
+            fontsize=12,
         )
-        eje.set_xlabel("Barridos (actualizaciones / N)")
-        eje.set_ylabel("Energía H")
+        eje.annotate(
+            f"estado final: {final:+.1%} respecto del QR",
+            (2.0, final),
+            xytext=(0, -16),
+            textcoords="offset points",
+            ha="right",
+            fontsize=12,
+        )
+        eje.set_ylim(-0.15, 1.05)
+        eje.set_title(NOMBRES_REGLA.get(regla, regla), fontsize=16)
+        eje.set_xlabel("Barridos (actualizaciones / N)", fontsize=13)
+        eje.tick_params(labelsize=12)
         eje.grid(alpha=0.3)
-        eje.legend(fontsize=8)
-    fig.suptitle(f"Consulta: {patron}, semilla 0", fontsize=9)
+    ejes[0].set_ylabel("Energía relativa (H − H_QR) / |H_QR|", fontsize=13)
+    ejes[0].legend(fontsize=11, handlelength=2.5)
+    fig.suptitle(f"Consulta: {patron}, semilla 0", fontsize=13)
     fig.tight_layout()
     fig.savefig(ruta, dpi=150)
     plt.close(fig)
 
 
 def _figura_ejemplos(redes: dict[str, dict], patron: str, ruta: Path) -> None:
-    reglas = list(redes)
+    """Consultas deterioradas de cada caso, dispuestas en una fila."""
     casos = sorted(set.intersection(*(set(r["detalles"]) for r in redes.values())))
-    primera = redes[reglas[0]]
+    primera = next(iter(redes.values()))
     filas, columnas = primera["filas"], primera["columnas"]
     original = primera["patrones"][primera["nombres"].index(patron)]
 
-    fig, ejes = plt.subplots(
-        len(casos), 2 + len(reglas), figsize=(3 * (2 + len(reglas)), 3.1 * len(casos))
-    )
-    ejes = np.atleast_2d(ejes)
-    for fila_eje, caso in zip(ejes, casos, strict=True):
-        iniciales = {
-            regla: _leer_estados(
-                redes[regla]["detalles"][caso] / "estados_iniciales.csv"
-            )
-            for regla in reglas
-        }
-        inicial = iniciales[reglas[0]].loc[patron, _pixeles(iniciales[reglas[0]])]
-        for regla in reglas[1:]:
-            otra = iniciales[regla].loc[patron, _pixeles(iniciales[regla])]
-            if not np.array_equal(inicial.to_numpy(), otra.to_numpy()):
-                raise ValueError(f"Consultas distintas entre reglas en {caso}.")
-
-        _imagen(fila_eje[0], original, filas, columnas)
-        fila_eje[0].set_title("Original", fontsize=9)
-        _imagen(fila_eje[1], inicial.to_numpy(), filas, columnas)
-        cambiados = int((inicial.to_numpy() != original).sum())
-        fila_eje[1].set_title(
+    fig, ejes = plt.subplots(1, 4, figsize=(20, 5.4))
+    for eje, caso in zip(ejes, casos, strict=True):
+        iniciales = _leer_estados(primera["detalles"][caso] / "estados_iniciales.csv")
+        inicial = iniciales.loc[patron, _pixeles(iniciales)].to_numpy()
+        _imagen(eje, inicial, filas, columnas)
+        cambiados = int((inicial != original).sum())
+        eje.set_title(
             f"{NOMBRES_DETERIORO[caso[0]]} {caso[1]:g}\n({cambiados} píxeles distintos)",
-            fontsize=9,
+            fontsize=15,
         )
-        for eje, regla in zip(fila_eje[2:], reglas, strict=True):
-            carpeta = redes[regla]["detalles"][caso]
-            finales = _leer_estados(carpeta / "estados_finales.csv")
-            consulta = pd.read_csv(carpeta / "consultas.csv").set_index("consulta")
-            _imagen(
-                eje, finales.loc[patron, _pixeles(finales)].to_numpy(), filas, columnas
-            )
-            eje.set_title(
-                f"{NOMBRES_REGLA.get(regla, regla)}: "
-                f"{consulta.loc[patron, 'tipo_resultado'].replace('almacenado_', '')}\n"
-                f"(Hamming {consulta.loc[patron, 'distancia_hamming']} a "
-                f"{consulta.loc[patron, 'nombre_mas_cercano']}, "
-                f"{consulta.loc[patron, 'barridos']} barridos)",
-                fontsize=8,
-            )
-    fig.tight_layout()
-    fig.savefig(ruta, dpi=150)
+    fig.tight_layout(w_pad=2)
+    fig.savefig(ruta, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -486,12 +514,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         [("correcto", "-"), ("espurio", "--")],
         "Fracción de consultas",
         salida / "fig_recuperacion.png",
+        reglas=("pseudoinversa",),
     )
     _figura_por_nivel(
         resumen,
         [("barridos", "-")],
         "Barridos hasta estabilizar",
         salida / "fig_barridos.png",
+        piso=2,
     )
     capacidad = tabla_capacidad(redes)
     capacidad.to_csv(salida / "capacidad.csv", index=False, float_format="%.6f")
