@@ -540,7 +540,11 @@ python src/ej2/hopfield-runner.py \
   grilla de Kohonen sobre PC1-PC2 y las tres de enfoques de campaña de 1.4:
   enfoques frente al tamaño y el criterio de fútbol y de refugios, belleza y
   arte como aporte de cada familia de métricas al puntaje de `campanas.py`), más los pesos de cada campaña como barras al 100%
-  (`fig_pesos.png` y una por cliente), a partir de los CSV guardados y de
+  (`fig_pesos.png` y una por cliente) y qué compra el top 10 por followers
+  frente al resto (`fig_followers.png`), la comparación con followers
+  (`fig_comparacion.png`) y el mantenimiento: cuántos creadores cambian de
+  región sin reentrenar frente a reentrenar (`fig_mantenimiento.png`), a
+  partir de los CSV guardados y de
   `campanas.toml`; escribe en `resultados/ej1/presentacion/`.
   Tests: `tests/ej1/test_figuras_presentacion.py`.
 

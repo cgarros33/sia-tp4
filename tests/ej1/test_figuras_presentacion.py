@@ -257,6 +257,43 @@ def test_formato_porcentaje(modulo: ModuleType) -> None:
     assert modulo.formato_porcentaje(1.0) == "100%"
 
 
+def test_separar_top(modulo: ModuleType) -> None:
+    """El top por followers y el resto, sin repetir creadores."""
+    datos = pd.DataFrame({"followers": [10, 50, 30, 20], "name": list("abcd")})
+    top, resto = modulo.separar_top(datos, 2)
+    assert list(top["name"]) == ["b", "c"]
+    assert sorted(resto["name"]) == ["a", "d"]
+
+
+def test_veces_mejor(modulo: ModuleType) -> None:
+    """Cuántas veces mejor es la propuesta, según si conviene bajar o subir."""
+    assert modulo.veces_mejor(80.0, 20.0, menor_es_mejor=True) == pytest.approx(4.0)
+    assert modulo.veces_mejor(20.0, 80.0, menor_es_mejor=False) == pytest.approx(4.0)
+
+
+def test_cambio_de_region_entre_semillas(modulo: ModuleType) -> None:
+    """Parte de los creadores que caen en otra región al cambiar de semilla."""
+    datos = pd.DataFrame(
+        {
+            "creator_id": ["a", "b", "c", "d"],
+            "topic_football_pct": [90.0, 80.0, 0.0, 0.0],
+            "topic_dogs_pct": [0.0, 0.0, 90.0, 80.0],
+            "topic_makeup_pct": [10.0, 20.0, 10.0, 20.0],
+            "topic_art_pct": [0.0, 0.0, 0.0, 0.0],
+        }
+    )
+    # Semilla 0: a y b juntos (fútbol), c y d juntos (perros). Semilla 1: b cae
+    # con los de perros y su neurona sigue siendo de perros.
+    asignaciones = pd.DataFrame(
+        {
+            "semilla": [0] * 4 + [1] * 4,
+            "creator_id": list("abcd") * 2,
+            "neurona": [0, 0, 1, 1, 0, 1, 1, 1],
+        }
+    )
+    assert modulo.cambio_de_region_entre_semillas(asignaciones, datos) == [0.25]
+
+
 def test_corrida_completa(modulo: ModuleType, tmp_path: Path) -> None:
     """Con los resultados guardados genera todas las figuras."""
     assert modulo.main(["--salida", str(tmp_path)]) == 0
@@ -269,5 +306,8 @@ def test_corrida_completa(modulo: ModuleType, tmp_path: Path) -> None:
     assert (tmp_path / "fig_enfoques_resto.png").exists()
     assert (tmp_path / "fig_mapa_biplot.png").exists()
     assert (tmp_path / "fig_pesos.png").exists()
+    assert (tmp_path / "fig_followers.png").exists()
+    assert (tmp_path / "fig_comparacion.png").exists()
+    assert (tmp_path / "fig_mantenimiento.png").exists()
     for cliente in ("futbol", "refugios", "belleza", "arte"):
         assert (tmp_path / f"fig_pesos_{cliente}.png").exists()

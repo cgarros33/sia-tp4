@@ -20,6 +20,14 @@ y autovalores del PCA), el dataset y el barrido de Kohonen; no entrena nada.
   los ordena (pesos de ``campanas.toml``).
 - ``fig_pesos`` y ``fig_pesos_<cliente>``: los pesos del criterio de cada
   campaña (``campanas.toml``) como una barra al 100%, por métrica y familia.
+- ``fig_followers``: qué elige la agencia con el top 10 por followers: tamaño,
+  audiencia argentina y tema principal de cada creador.
+- ``fig_comparacion``: nuestra propuesta frente al top 5 por followers en costo
+  por argentino, intención por dólar y alcance con el mismo presupuesto
+  (``comparacion.csv`` de ``campanas.py``).
+- ``fig_mantenimiento``: % de creadores que cambian de región en un mes sin
+  reentrenar el mapa (``actualizacion.csv``) frente a reentrenarlo con los
+  mismos datos y otra semilla.
 - ``fig_mapa_biplot``: la grilla de Kohonen (pca10, k=4, euclidiana; semilla
   representativa) sobre los creadores en PC1-PC2, con cada neurona del color
   de su tópico dominante.
@@ -127,6 +135,10 @@ ESTILO_FAMILIA = {
 }
 # Candidatos que se muestran por cliente en la figura de criterios.
 FILAS_CRITERIO = 8
+# Lo que elige hoy la agencia: los 10 con más followers.
+TOP_FOLLOWERS = 10
+# Variaciones mensuales que se muestran en la figura de mantenimiento.
+SIGMAS_MANTENIMIENTO = (0.05, 0.10, 0.20)
 # Nombre corto de cada métrica para la figura de pesos.
 NOMBRES_METRICA = {
     "topic_football_pct": "Posts de fútbol",
@@ -1256,6 +1268,290 @@ def _figura_pesos(clientes: Mapping[str, dict], ruta: Path) -> None:
     plt.close(fig)
 
 
+def separar_top(
+    datos: pd.DataFrame, cantidad: int = TOP_FOLLOWERS
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Los ``cantidad`` creadores con más followers y el resto."""
+    orden = datos.sort_values("followers", ascending=False)
+    return orden.head(cantidad), orden.iloc[cantidad:]
+
+
+def _miles(valor: float) -> str:
+    return f"{valor:,.0f}".replace(",", ".")
+
+
+def _figura_followers(datos: pd.DataFrame, ruta: Path) -> None:
+    """Qué elige el top 10 por followers: tamaño, audiencia argentina y tema."""
+    top, resto = separar_top(datos)
+    dominante = datos.set_index("creator_id")[list(TOPICOS)].idxmax(axis=1)
+    fig, eje = plt.subplots(figsize=(8, 5.2), dpi=DPI)
+    # Franja de los que se eligen hoy: desde el décimo con más followers.
+    corte = top["followers"].min()
+    eje.axvspan(corte * 0.93, 1.05e6, color="#efeeea", zorder=0)
+    eje.text(
+        np.sqrt(corte * 0.93 * 1.05e6),
+        103,
+        f"Top {len(top)} por followers",
+        ha="center",
+        va="bottom",
+        fontsize=14,
+        fontweight="bold",
+        color=TINTA,
+    )
+    for topico, (nombre, color) in TOPICOS.items():
+        for grupo, elegido in [(resto, False), (top, True)]:
+            del_topico = grupo[dominante.loc[grupo["creator_id"]].to_numpy() == topico]
+            eje.scatter(
+                del_topico["followers"],
+                del_topico["argentina_audience_pct"],
+                s=150 if elegido else 55,
+                color=color,
+                alpha=1.0 if elegido else 0.45,
+                edgecolor=TINTA if elegido else "white",
+                linewidth=1.4 if elegido else 0.6,
+                zorder=4 if elegido else 3,
+            )
+    _eje_followers(eje)
+    eje.set_ylim(0, 112)
+    eje.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
+    eje.set_yticks([0, 20, 40, 60, 80, 100])
+    eje.set_ylabel("% de la audiencia en Argentina", fontsize=14)
+    eje.tick_params(labelsize=13)
+    eje.grid(color=GRILLA, lw=0.8)
+    eje.set_axisbelow(True)
+    manijas = [
+        Line2D([], [], marker="o", ls="none", ms=10, color=color, label=nombre)
+        for nombre, color in TOPICOS.values()
+    ]
+    manijas.append(
+        Line2D(
+            [],
+            [],
+            marker="o",
+            ls="none",
+            ms=12,
+            markerfacecolor="white",
+            markeredgecolor=TINTA,
+            markeredgewidth=1.4,
+            label=f"Top {len(top)} (borde negro)",
+        )
+    )
+    fig.legend(handles=manijas, loc="lower center", ncol=5, fontsize=12, frameon=False)
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    fig.savefig(ruta, dpi=DPI, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
+def veces_mejor(followers: float, propuesta: float, menor_es_mejor: bool) -> float:
+    """Cuántas veces mejor es la propuesta que elegir por followers."""
+    return followers / propuesta if menor_es_mejor else propuesta / followers
+
+
+def _figura_comparacion(clientes: Mapping[str, dict], directorio: Path, ruta: Path):
+    """Propuesta frente al top 5 por followers en las tres métricas de resultado."""
+    resumen = pd.read_csv(
+        directorio / "comparacion.csv", header=[0, 1], index_col=[0, 1]
+    )
+    presupuesto = resumen.loc[
+        (list(clientes)[0], "followers"), ("gasto_mismo_presupuesto", "media")
+    ]
+    paneles = [
+        (
+            "usd_por_mil_argentinos",
+            1,
+            "Costo por argentino",
+            "USD por mil argentinos alcanzados\nen el tópico (↓ mejor)",
+        ),
+        (
+            "intencion_cada_100_usd",
+            1,
+            "Intención por dólar",
+            "Guardados + visitas de argentinos\ncada 100 USD (↑ mejor)",
+        ),
+        (
+            "argentinos_mismo_presupuesto",
+            1000,
+            "Alcance con el mismo presupuesto",
+            f"Miles de argentinos del tópico con USD {_miles(presupuesto)}\n"
+            "(lo que cuesta hoy el top 5 por followers) (↑ mejor)",
+        ),
+    ]
+    nombres = {c: t for c, (t, _) in (CLIENTE_FUTBOL | CLIENTES_RESTO).items()}
+    claves = list(clientes)
+    x = np.arange(len(claves))
+    ancho = 0.4
+    estrategias = [
+        ("followers", "Top 5 por followers", COLOR_RESTO),
+        ("propuesta", "Nuestra propuesta (media de 3 semillas)", COLOR_ELEGIDO),
+    ]
+    fig, ejes = plt.subplots(1, len(paneles), figsize=(14, 4.8), dpi=DPI)
+    for eje, (metrica, escala, titulo, subtitulo) in zip(ejes, paneles, strict=True):
+        for corrimiento, (estrategia, nombre, color) in zip(
+            (-ancho / 2, ancho / 2), estrategias, strict=True
+        ):
+            filas = [resumen.loc[(c, estrategia), metrica] for c in claves]
+            medias = np.array([f["media"] for f in filas]) / escala
+            desvios = np.array([f["desvio"] for f in filas]) / escala
+            barras = eje.bar(
+                x + corrimiento,
+                medias,
+                ancho,
+                yerr=desvios if desvios.any() else None,
+                error_kw={"elinewidth": 1.5, "capsize": 3, "ecolor": TINTA},
+                color=color,
+                edgecolor="white",
+                linewidth=2,
+                label=nombre,
+            )
+            textos = [f"{m:.0f}" for m in medias]
+            if metrica == "argentinos_mismo_presupuesto" and estrategia == "propuesta":
+                # Marca a los clientes que no llegan a gastar el presupuesto.
+                gastos = [
+                    resumen.loc[(c, estrategia), ("gasto_mismo_presupuesto", "media")]
+                    for c in claves
+                ]
+                textos = [
+                    texto + ("*" if gasto < 0.9 * presupuesto else "")
+                    for texto, gasto in zip(textos, gastos, strict=True)
+                ]
+            eje.bar_label(
+                barras,
+                textos,
+                padding=3,
+                fontsize=13,
+                fontweight="bold" if estrategia == "propuesta" else "normal",
+                color=TINTA,
+            )
+        eje.set_xticks(x, [nombres[c] for c in claves])
+        eje.tick_params(axis="x", labelsize=12, length=0)
+        eje.tick_params(axis="y", labelsize=11.5)
+        eje.margins(y=0.16)
+        eje.grid(axis="y", color=GRILLA, lw=0.8)
+        eje.set_axisbelow(True)
+        _titulo(eje, titulo, subtitulo)
+    manijas, etiquetas = ejes[0].get_legend_handles_labels()
+    gastos = {
+        nombres[c]: resumen.loc[(c, "propuesta"), ("gasto_mismo_presupuesto", "media")]
+        for c in claves
+    }
+    poco = [
+        f"{n} {_coma(g / 1000, '.1f')} mil"
+        for n, g in gastos.items()
+        if g < 0.9 * presupuesto
+    ]
+    fig.legend(
+        manijas,
+        etiquetas,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.055),
+        ncol=2,
+        fontsize=12.5,
+        frameon=False,
+    )
+    fig.text(
+        0.5,
+        0.0,
+        f"* Gasta menos ({', '.join(poco)} de {_coma(presupuesto / 1000, '.1f')} mil USD):"
+        " no hay más candidatos.",
+        ha="center",
+        fontsize=11.5,
+        color=TINTA_SECUNDARIA,
+    )
+    fig.tight_layout(rect=(0, 0.14, 1, 1), w_pad=2.5)
+    fig.savefig(ruta, dpi=DPI, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
+def cambio_de_region_entre_semillas(
+    asignaciones: pd.DataFrame, datos: pd.DataFrame
+) -> list[float]:
+    """Parte de los creadores que cambian de región entre cada par de semillas.
+
+    La región de un creador es el tópico dominante de su neurona; comparar
+    semillas equivale a reentrenar el mapa con los mismos datos.
+    """
+    regiones = {
+        semilla: grupo.set_index("creator_id")["neurona"].map(
+            topico_por_neurona(grupo, datos)
+        )
+        for semilla, grupo in asignaciones.groupby("semilla")
+    }
+    semillas = sorted(regiones)
+    return [
+        float((regiones[a] != regiones[b].reindex(regiones[a].index)).mean())
+        for i, a in enumerate(semillas)
+        for b in semillas[i + 1 :]
+    ]
+
+
+def _figura_mantenimiento(
+    datos: pd.DataFrame, campanas: Path, directorio_mapa: Path, ruta: Path
+) -> None:
+    """Actualizar sin reentrenar frente a reentrenar con los mismos datos."""
+    mensual = pd.read_csv(campanas / "actualizacion.csv")
+    mensual = mensual[mensual["sigma"].isin(SIGMAS_MANTENIMIENTO)]
+    asignaciones = pd.read_csv(directorio_mapa / "asignaciones_semillas.csv")
+    reentrenar = 100 * np.array(cambio_de_region_entre_semillas(asignaciones, datos))
+    total = len(datos)
+
+    # Renglones de arriba hacia abajo: (texto, valor, desvío, color); sin valor
+    # es el título de un grupo.
+    filas = [("Actualizar sin reentrenar", None, None, None)]
+    for fila in mensual.itertuples():
+        filas.append(
+            (
+                f"Cada dato varía ±{100 * fila.sigma:.0f}%",
+                100 * fila.cambia_region_media,
+                100 * fila.cambia_region_desvio,
+                COLOR_ELEGIDO,
+            )
+        )
+    filas += [
+        ("Reentrenar el mapa", None, None, None),
+        ("Mismos datos, otra semilla", reentrenar.mean(), None, TINTA_SECUNDARIA),
+    ]
+    y = np.arange(len(filas))[::-1].astype(float)
+
+    fig, eje = plt.subplots(figsize=(8, 4.6), dpi=DPI)
+    for posicion, (texto, valor, desvio, color) in zip(y, filas, strict=True):
+        if valor is None:
+            continue
+        eje.barh(posicion, valor, height=0.62, color=color)
+        if desvio is not None:
+            eje.errorbar(
+                valor, posicion, xerr=desvio, color=TINTA, elinewidth=1.3, capsize=3
+            )
+            etiqueta = f"{_coma(valor, '.1f')}%"
+            fin_barra = valor + desvio
+        else:
+            etiqueta = f"{_coma(valor, '.0f')}%"
+            fin_barra = valor
+        eje.text(
+            fin_barra + 0.6,
+            posicion,
+            f"{etiqueta}  ·  ≈ {round(valor * total / 100)} de {total}",
+            va="center",
+            fontsize=13,
+            fontweight="bold",
+            color=TINTA,
+        )
+    eje.set_yticks(y, [texto for texto, *_ in filas])
+    for texto, (_, valor, *_) in zip(eje.get_yticklabels(), filas, strict=True):
+        texto.set_fontweight("bold" if valor is None else "normal")
+        texto.set_color(TINTA if valor is None else TINTA_SECUNDARIA)
+    eje.tick_params(axis="y", labelsize=13, length=0)
+    eje.tick_params(axis="x", labelsize=12)
+    eje.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0f}%"))
+    eje.set_xlim(0, reentrenar.mean() * 1.9)
+    eje.set_xlabel(f"Creadores que cambian de región (% de los {total})", fontsize=13)
+    eje.spines["left"].set_visible(False)
+    eje.grid(axis="x", color=GRILLA, lw=0.8)
+    eje.set_axisbelow(True)
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=DPI, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Punto de entrada del script."""
     args = parse_args(argv)
@@ -1297,6 +1593,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     _figura_pesos(clientes, salida / "fig_pesos.png")
     for clave, cliente in clientes.items():
         _figura_pesos({clave: cliente}, salida / f"fig_pesos_{clave}.png")
+    _figura_followers(pd.read_csv(args.datos), salida / "fig_followers.png")
+    _figura_comparacion(clientes, args.campanas, salida / "fig_comparacion.png")
+    _figura_mantenimiento(
+        pd.read_csv(args.datos),
+        args.campanas,
+        args.mapa,
+        salida / "fig_mantenimiento.png",
+    )
     _figura_mapa_biplot(
         pd.read_csv(args.scores),
         pd.read_csv(args.datos),
