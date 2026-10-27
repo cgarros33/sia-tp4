@@ -27,18 +27,18 @@ Por cliente (creadores cuyo tema principal es el del cliente):
 Propuesta (semilla representativa) y coincidencia con followers:
   Fútbol    @golconmate, @futbolcononda, @tribunacreativa, @lookdecancha, @jugadayestilo (coincide 11%)
   Refugios  @crearenreels, @guiadehuellas, @ideasconhuella, @huellasyconsejos, @huellasargentinas (coincide 11%)
-  Belleza   @reelargentino, @brochasymates, @mateconideas, @maquillajereal, @brochasycolor (coincide 25%)
-  Arte      @galeriacotidiana, @colorenmovimiento, @artequeinspira, @rinconcreativo, @pincelcotidiano (coincide 0%)
+  Belleza   @reelargentino, @brochasymates, @maquillajereal, @brochasycolor, @cosmeticaconsciente (coincide 11%)
+  Arte      @colorenmovimiento, @galeriacotidiana, @artequeinspira, @rinconcreativo, @pincelcotidiano (coincide 0%)
 
 Comparación (media sobre semillas):
                      usd_por_mil_argentinos  intencion_cada_100_usd  argentinos_topico  costo_total  argentinos_mismo_presupuesto  gasto_mismo_presupuesto  afinidad_media
 cliente  estrategia                                                                                                                                                       
 futbol   followers                     86.9                    20.0          260,672.8     22,657.1                     260,672.8                 22,657.1            26.9
-         propuesta                     29.6                    75.5          375,924.0     11,126.0                     471,644.4                 22,212.2            73.0
+         propuesta                     31.5                    71.2          381,259.8     12,041.6                     466,340.5                 22,214.1            68.8
 refugios followers                    103.7                    20.5          218,493.7     22,657.1                     218,493.7                 22,657.1            21.3
          propuesta                     26.9                    87.6          177,888.5      4,786.2                     256,689.6                 10,767.5            65.7
 belleza  followers                     70.6                    24.8          320,859.6     22,657.1                     320,859.6                 22,657.1            42.9
-         propuesta                     40.4                    46.8          272,841.3     11,028.8                     362,977.2                 21,836.2            58.7
+         propuesta                     34.7                    53.9          165,752.6      5,745.4                     373,549.9                 22,235.6            65.3
 arte     followers                    278.6                     6.9           81,334.9     22,657.1                      81,334.9                 22,657.1             8.8
          propuesta                     51.4                    43.1          220,544.0     11,335.2                     266,751.3                 17,545.7            66.8
 

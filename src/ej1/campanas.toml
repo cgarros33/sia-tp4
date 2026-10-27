@@ -22,13 +22,20 @@ creadores_por_campana = 5
 # Dentro de los candidatos se ordena por el promedio ponderado de z-scores de
 # "metricas"; un peso negativo penaliza la métrica. Además de las columnas de
 # los datos se pueden usar argentinos_topico, usd_por_mil_argentinos e intencion.
+#
+# Cada métrica pertenece a una familia con su significado intuitivo:
+# - masividad: gente alcanzada en general (average_reach);
+# - afinidad: % de posts del tópico del cliente y % de audiencia argentina;
+# - descubrimiento: % del alcance que no sigue al creador;
+# - profundidad: tutoriales, reseñas, guardados, comentarios y visitas;
+# - costo: precio por post (con peso negativo).
+# Peso 1 para lo principal y 0,5 para lo secundario.
 
 [clientes.futbol]
 nombre = "Fútbol"
 topico = "topic_football_pct"
-# Masivo con audiencia argentina alta: los que llegan a más argentinos
-# interesados en fútbol por cada dólar.
-metricas = { usd_por_mil_argentinos = -1.0 }
+# Masividad con afinidad alta (fútbol y audiencia argentina) y barato.
+metricas = { average_reach = 1.0, topic_football_pct = 1.0, argentina_audience_pct = 1.0, price_usd = -1.0 }
 
 [clientes.refugios]
 nombre = "Refugios"
@@ -40,17 +47,16 @@ metricas = { topic_dogs_pct = 1.0, argentina_audience_pct = 1.0, non_follower_re
 [clientes.belleza]
 nombre = "Belleza"
 topico = "topic_makeup_pct"
-# Profundidad (tutoriales, reseñas, guardados, comentarios) con público
-# argentino, mezclada con alcance argentino.
-metricas = { argentinos_topico = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0, content_review_pct = 0.5, saves_per_1000 = 0.5, comments_per_1000 = 0.5 }
+# Profundidad (tutoriales, reseñas, guardados, comentarios) con afinidad
+# (maquillaje y público argentino), mezclada con alcance.
+metricas = { average_reach = 1.0, topic_makeup_pct = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0, content_review_pct = 0.5, saves_per_1000 = 0.5, comments_per_1000 = 0.5 }
 
 [clientes.arte]
 nombre = "Arte"
 topico = "topic_art_pct"
-# Mezcla: grandes con público argentino y educativos con público argentino
-# (lo educativo cuesta lo mismo o menos por argentino y le queda bien al
-# producto).
-metricas = { argentinos_topico = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0 }
+# Mezcla: grandes y educativos, con afinidad (arte y público argentino). Lo
+# educativo cuesta lo mismo o menos por argentino y le queda bien al producto.
+metricas = { average_reach = 1.0, topic_art_pct = 1.0, argentina_audience_pct = 1.0, content_tutorial_pct = 1.0 }
 
 # Simulación de la actualización mensual: cada variable se multiplica por
 # (1 + sigma·ε), ε ~ N(0, 1), y se recalcula la neurona ganadora con los pesos

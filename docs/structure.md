@@ -455,9 +455,15 @@ python src/ej2/hopfield-runner.py \
 - `presentacion/guion.md`: guion diapositiva por diapositiva.
 - `presentacion/figuras/`: copias de las figuras de `resultados/`, numeradas
   según la diapositiva en la que se usan.
-- `src/ej1/figuras-presentacion.py` rehace dos figuras para la presentación
-  (correlaciones ordenadas por PC1 y barrido de Kohonen con eje compartido) a
-  partir de los CSV guardados; escribe en `resultados/ej1/presentacion/`.
+- `src/ej1/figuras-presentacion.py` rehace ocho figuras para la presentación
+  (correlaciones ordenadas por PC1, biplot PC1-PC2 con etiquetas legibles,
+  cargas de PC1-PC3 con texto grande, barrido de Kohonen con eje compartido,
+  grilla de Kohonen sobre PC1-PC2 y las tres de enfoques de campaña de 1.4:
+  enfoques frente al tamaño, costo por argentino en fútbol y el criterio de
+  refugios, belleza y arte como aporte de cada familia de métricas al puntaje
+  de `campanas.py`), más los pesos de cada campaña como barras al 100%
+  (`fig_pesos.png` y una por cliente), a partir de los CSV guardados y de
+  `campanas.toml`; escribe en `resultados/ej1/presentacion/`.
   Tests: `tests/ej1/test_figuras_presentacion.py`.
 
 Los resultados numéricos y la interpretación técnica están en

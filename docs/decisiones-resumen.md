@@ -197,10 +197,28 @@ con los generalistas, como `@crearenreels`.
 
 | Cliente | Criterio |
 |---|---|
-| Fútbol | Masivo con audiencia argentina alta: menor USD por mil argentinos |
-| Refugios | Descubrimiento + audiencia argentina, y luego comentarios y visitas |
-| Belleza | Tutoriales, reseñas, guardados y comentarios, con alcance argentino |
-| Arte | Mezcla: grandes con audiencia argentina + educativos con audiencia argentina |
+| Fútbol | Masividad con afinidad alta y barato: alcance + % de fútbol + audiencia argentina − precio |
+| Refugios | Descubrimiento + afinidad (perros y audiencia argentina), y luego comentarios y visitas |
+| Belleza | Tutoriales, reseñas, guardados y comentarios, con afinidad (maquillaje y audiencia argentina) y alcance |
+| Arte | Mezcla: alcance + tutoriales, con afinidad (arte y audiencia argentina) |
+
+**Familias de métricas** (decisión del 27/10/2026; antes belleza y arte usaban
+"argentinos alcanzados en el tópico" y fútbol el costo por mil de ellos, que
+mezclaban alcance, audiencia argentina y tópico en un solo número):
+
+| Familia | Métricas |
+|---|---|
+| Masividad | Alcance por publicación (`average_reach`) |
+| Afinidad | % de posts del tópico del cliente y % de audiencia argentina |
+| Descubrimiento | % del alcance que no sigue al creador |
+| Profundidad | Tutoriales, reseñas, guardados, comentarios y visitas |
+| Costo | Precio por post (peso negativo) |
+
+Peso 1 para lo principal y 0,5 para lo secundario (`campanas.toml`). Con el
+cambio, belleza reemplaza a `@mateconideas` por `@cosmeticaconsciente`; fútbol,
+refugios y arte eligen a los mismos 5 (fútbol, en la mayoría de las semillas).
+"Argentinos alcanzados en el tópico" y su costo siguen como métricas de
+resultado en la comparación con followers.
 
 **Figuras:**
 
@@ -232,9 +250,9 @@ con los generalistas, como `@crearenreels`.
 
 | Cliente | USD por mil argentinos | Intención cada 100 USD | Alcance con el mismo presupuesto |
 |---|---|---|---|
-| Fútbol | 87 → 30 | 20 → 75 | 261 mil → 472 mil |
+| Fútbol | 87 → 31 | 20 → 71 | 261 mil → 466 mil |
 | Refugios | 104 → 27 | 20 → 88 | 218 mil → 257 mil (gasta 10,8 mil) |
-| Belleza | 71 → 40 | 25 → 47 | 321 mil → 363 mil |
+| Belleza | 71 → 35 | 25 → 54 | 321 mil → 374 mil |
 | Arte | 279 → 51 | 7 → 43 | 81 mil → 267 mil (gasta 17,5 mil) |
 
   En refugios y arte se acaban los candidatos antes de gastar todo el
