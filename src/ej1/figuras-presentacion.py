@@ -14,11 +14,10 @@ y autovalores del PCA), el dataset y el barrido de Kohonen; no entrena nada.
   6 y 8 del barrido secuencial, con un eje compartido para comparar pasos.
 - ``fig_enfoques``: los tres enfoques de campaña frente al tamaño y a la
   audiencia argentina, con una tendencia por panel (todos los creadores).
-- ``fig_enfoques_futbol``: costo por argentino alcanzado frente a followers,
-  con los elegidos por la propuesta resaltados (salidas de ``campanas.py``).
-- ``fig_enfoques_resto``: el criterio de refugios, belleza y arte. Para los
-  mejores candidatos de cada uno, cuánto aporta cada familia de métricas al
-  puntaje con que ``campanas.py`` los ordena (pesos de ``campanas.toml``).
+- ``fig_enfoques_futbol`` y ``fig_enfoques_resto``: el criterio de fútbol y el
+  de refugios, belleza y arte. Para los mejores candidatos de cada cliente,
+  cuánto aporta cada familia de métricas al puntaje con que ``campanas.py``
+  los ordena (pesos de ``campanas.toml``).
 - ``fig_pesos`` y ``fig_pesos_<cliente>``: los pesos del criterio de cada
   campaña (``campanas.toml``) como una barra al 100%, por métrica y familia.
 - ``fig_mapa_biplot``: la grilla de Kohonen (pca10, k=4, euclidiana; semilla
@@ -85,9 +84,6 @@ GUIA_PX = 14
 HOLGURA_PX = 30
 # Pasadas de reubicación de etiquetas.
 PASADAS = 3
-# Puntos etiquetados a menos de esto (px) llevan la etiqueta del de arriba
-# arriba y la del de abajo abajo, para que no se crucen.
-CERCANIA_PX = 30
 COLOR_ELEGIDO = "#6250d6"
 COLOR_RESTO = "#8f8e88"
 # Los mismos que la figura de cargas de 1.1.
@@ -96,9 +92,8 @@ COLOR_NEGATIVA = "#C44E52"
 TINTA = "#0b0b0b"
 TINTA_SECUNDARIA = "#52514e"
 GRILLA = "#e4e3df"
-# Desde estos followers un creador cuenta como grande (figura de fútbol).
-UMBRAL_GRANDE = 150_000
-# Título y enfoque de cada cliente en la figura de los demás clientes.
+# Título y enfoque de cada cliente en las figuras de criterios.
+CLIENTE_FUTBOL = {"futbol": ("Fútbol", "Masividad + afinidad, a buen precio")}
 CLIENTES_RESTO = {
     "refugios": ("Refugios", "Descubrimiento + profundidad"),
     "belleza": ("Belleza", "Profundidad + afinidad"),
@@ -349,7 +344,6 @@ def _mejor_caja(
     pesos: np.ndarray,
     limites: np.ndarray,
     direccion: np.ndarray | None,
-    holgura: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Caja de menor costo para una etiqueta y los puntos de su línea guía."""
     ancho, alto = tamano
@@ -372,7 +366,7 @@ def _mejor_caja(
             # arriba o abajo: la distancia horizontal cuenta la mitad.
             # Además, la propia tiene que ser claramente la más cercana.
             cercania = np.maximum(
-                holgura
+                HOLGURA_PX
                 - distancia_a_caja(caja * [0.5, 1, 0.5, 1], otras_anclas * [0.5, 1]),
                 propia + 8 - distancia_a_caja(caja, otras_anclas),
             )
@@ -401,18 +395,16 @@ def ubicar_etiquetas(
     pesos: np.ndarray,
     limites: np.ndarray,
     direcciones: np.ndarray | None = None,
-    vecinos: np.ndarray | None = None,
-    holgura: float = HOLGURA_PX,
 ) -> np.ndarray:
     """Caja [x0, y0, x1, y1] de cada etiqueta.
 
     Prueba 16 direcciones a distancias crecientes del ancla y elige la posición
     de menor costo: lo que tapa de otras etiquetas, de obstáculos (con su peso)
-    y de afuera del área; quedar a menos de ``holgura`` px de otra ancla o de
-    un ``vecino`` (punto sin etiqueta), o con uno de ellos pegado al principio
-    o al final del texto, porque se leería como etiqueta ajena; que su línea
-    guía cruce etiquetas u obstáculos, o que tape otras líneas guía; la
-    distancia y, si se da, el desvío de la dirección preferida.
+    y de afuera del área; quedar a menos de ``HOLGURA_PX`` de otra ancla, o
+    con otra ancla pegada al principio o al final del texto, porque se leería
+    como etiqueta ajena; que su línea guía cruce etiquetas u obstáculos, o que
+    tape otras líneas guía; la distancia y, si se da, el desvío de la dirección
+    preferida.
 
     La primera pasada ubica en el orden dado contra las ya ubicadas; las
     siguientes reubican cada una contra todas las demás, para que el
@@ -420,7 +412,6 @@ def ubicar_etiquetas(
     """
     cantidad = len(anclas)
     indices = np.arange(cantidad)
-    vecinos = np.empty((0, 2)) if vecinos is None else vecinos
     cajas = np.zeros((cantidad, 4))
     tramos = [np.empty((0, 2))] * cantidad
     for pasada in range(PASADAS):
@@ -431,29 +422,15 @@ def ubicar_etiquetas(
             cajas[indice], tramos[indice] = _mejor_caja(
                 anclas[indice],
                 tamanos[indice],
-                np.vstack([np.delete(anclas, indice, axis=0), vecinos]),
+                np.delete(anclas, indice, axis=0),
                 cajas[otras],
                 np.vstack([np.empty((0, 2))] + [tramos[j] for j in indices[otras]]),
                 obstaculos,
                 pesos,
                 limites,
                 None if direcciones is None else direcciones[indice],
-                holgura,
             )
     return cajas
-
-
-def agrupar_cercanos(puntos: np.ndarray, distancia: float) -> list[list[int]]:
-    """Índices de los puntos encadenados a menos de ``distancia`` entre sí."""
-    cercanos = np.linalg.norm(puntos[:, None] - puntos[None], axis=2) < distancia
-    # Cada punto toma el menor grupo de sus vecinos hasta que nada cambia.
-    grupo = np.arange(len(puntos))
-    while True:
-        nuevo = np.where(cercanos, grupo[None, :], len(puntos)).min(axis=1)
-        if np.array_equal(nuevo, grupo):
-            break
-        grupo = nuevo
-    return [[int(i) for i in np.flatnonzero(grupo == g)] for g in np.unique(grupo)]
 
 
 def _cajas_alrededor(centros: np.ndarray, medio: float) -> np.ndarray:
@@ -905,152 +882,6 @@ def _figura_enfoques(creadores: pd.DataFrame, ruta: Path) -> None:
     plt.close(fig)
 
 
-def _anotar_grupos(eje, tabla: pd.DataFrame, elegido: np.ndarray) -> list:
-    """Resume en un texto a los no elegidos grandes y en otro a los chicos."""
-    resto = tabla[~elegido]
-    grandes = resto[resto["followers"] >= UMBRAL_GRANDE]
-    chicos = resto[resto["followers"] < UMBRAL_GRANDE]
-    audiencia = grandes["argentina_audience_pct"]
-    costo_chicos = chicos["usd_por_mil_argentinos"].median()
-    grupos = [
-        (
-            grandes,
-            f"Grandes con {audiencia.min():.0f}–{audiencia.max():.0f}%\n"
-            "de audiencia argentina",
-        ),
-        (chicos, f"Chicos educativos:\nmediana de {costo_chicos:.0f} USD"),
-    ]
-    return [
-        eje.annotate(
-            texto,
-            (
-                np.exp(np.log(grupo["followers"]).mean()),
-                grupo["usd_por_mil_argentinos"].max(),
-            ),
-            xytext=(0, 14),
-            textcoords="offset points",
-            ha="center",
-            va="bottom",
-            fontsize=14,
-            color=TINTA_SECUNDARIA,
-        )
-        for grupo, texto in grupos
-    ]
-
-
-def _figura_costo(
-    creadores: pd.DataFrame,
-    selecciones: pd.DataFrame,
-    clientes: Mapping[str, tuple[str, str] | None],
-    ruta: Path,
-    tamano: tuple[float, float],
-    detallar: bool = False,
-) -> None:
-    """Costo por argentino alcanzado frente a followers, un panel por cliente.
-
-    Con ``detallar`` las etiquetas llevan la audiencia argentina y se resumen
-    los grupos de no elegidos (pensado para un solo cliente).
-    """
-    fig, ejes = plt.subplots(
-        1, len(clientes), figsize=tamano, dpi=DPI, sharey=True, squeeze=False
-    )
-    paneles = []
-    for eje, (cliente, titulo) in zip(ejes[0], clientes.items(), strict=True):
-        tabla = creadores[creadores["cliente"] == cliente]
-        elegidos = elegidos_por_mayoria(selecciones, cliente)
-        elegido = tabla["name"].isin(elegidos).to_numpy()
-        for marca, color, area, leyenda in [
-            (~elegido, COLOR_RESTO, 60, "Resto de los creadores del tópico"),
-            (elegido, COLOR_ELEGIDO, 90, "Elegidos por nuestra propuesta"),
-        ]:
-            eje.scatter(
-                tabla["followers"][marca],
-                tabla["usd_por_mil_argentinos"][marca],
-                s=area,
-                color=color,
-                edgecolor="white",
-                linewidth=0.8,
-                zorder=3,
-                label=leyenda,
-            )
-        _eje_followers(eje)
-        _eje_costo(eje)
-        eje.tick_params(labelsize=13)
-        eje.grid(color=GRILLA, lw=0.8)
-        eje.set_axisbelow(True)
-        if titulo is not None:
-            _titulo(eje, *titulo)
-        resumenes = _anotar_grupos(eje, tabla, elegido) if detallar else []
-        paneles.append((eje, tabla, elegido, resumenes))
-    costos = creadores.loc[
-        creadores["cliente"].isin(list(clientes)), "usd_por_mil_argentinos"
-    ]
-    # Con ``detallar`` queda lugar arriba para el texto de los grandes.
-    ejes[0, 0].set_ylim(costos.min() / 1.3, costos.max() * (2.2 if detallar else 1.4))
-    ejes[0, 0].set_ylabel("USD por mil argentinos\nalcanzados (↓ mejor)", fontsize=14)
-    manijas, nombres = ejes[0, 0].get_legend_handles_labels()
-    fig.legend(
-        manijas[::-1],
-        nombres[::-1],
-        loc="lower center",
-        ncol=2,
-        fontsize=13,
-        frameon=False,
-    )
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-
-    estilo = {
-        "fontsize": 12.5,
-        "color": TINTA,
-        "path_effects": [patheffects.withStroke(linewidth=3, foreground="white")],
-    }
-    for eje, tabla, elegido, resumenes in paneles:
-        puntos = tabla[["followers", "usd_por_mil_argentinos"]].to_numpy()
-        puntos_px = eje.transData.transform(puntos)
-        obstaculos = np.vstack(
-            [
-                _cajas_alrededor(puntos_px, 10),
-                np.reshape(
-                    [texto.get_window_extent(renderer).extents for texto in resumenes],
-                    (-1, 4),
-                ),
-            ]
-        )
-        pesos = np.concatenate(
-            [np.full(len(puntos_px), 6.0), np.full(len(resumenes), 10.0)]
-        )
-        nombres = tabla["name"][elegido].to_numpy()
-        if detallar:
-            audiencias = tabla["argentina_audience_pct"][elegido]
-            nombres = [
-                f"{nombre} · {audiencia:.0f}% arg."
-                for nombre, audiencia in zip(nombres, audiencias, strict=True)
-            ]
-        anclas = puntos_px[elegido]
-        direcciones = np.zeros_like(anclas)
-        for grupo in agrupar_cercanos(anclas, CERCANIA_PX):
-            if len(grupo) > 1:
-                alturas = anclas[grupo, 1]
-                direcciones[grupo[np.argmax(alturas)]] = (0, 1)
-                direcciones[grupo[np.argmin(alturas)]] = (0, -1)
-        tamanos = _tamanos_texto(eje, nombres, renderer, 1, **estilo)
-        cajas = ubicar_etiquetas(
-            anclas,
-            tamanos,
-            obstaculos,
-            pesos,
-            eje.get_window_extent(renderer).extents,
-            direcciones,
-            vecinos=puntos_px[~elegido],
-            holgura=45,
-        )
-        _escribir_etiquetas(eje, nombres, puntos[elegido], anclas, cajas, 1, **estilo)
-    fig.savefig(ruta, dpi=DPI, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-
-
 def topico_por_neurona(asignaciones: pd.DataFrame, datos: pd.DataFrame) -> pd.Series:
     """Tópico de mayor promedio entre los creadores de cada neurona."""
     unidas = asignaciones[["creator_id", "neurona"]].merge(datos, on="creator_id")
@@ -1221,20 +1052,23 @@ def _figura_criterios(
     datos: pd.DataFrame,
     selecciones: pd.DataFrame,
     clientes: Mapping[str, dict],
+    titulos: Mapping[str, tuple[str, str]],
     directorio_mapa: Path,
     ruta: Path,
+    tamano: tuple[float, float],
 ) -> None:
-    """Por qué se elige a cada creador: aporte de cada familia a su puntaje."""
+    """Por qué se elige a cada creador: aporte de cada familia a su puntaje.
+
+    Un panel por cliente de ``titulos`` (título y enfoque).
+    """
     semilla = _semilla_representativa(directorio_mapa)
     asignaciones = pd.read_csv(directorio_mapa / "asignaciones_semillas.csv")
     asignaciones = asignaciones[asignaciones["semilla"] == semilla]
     por_id = datos.set_index("creator_id")
 
-    fig, ejes = plt.subplots(1, len(CLIENTES_RESTO), figsize=(13.5, 6.4), dpi=DPI)
+    fig, ejes = plt.subplots(1, len(titulos), figsize=tamano, dpi=DPI, squeeze=False)
     familias_usadas = set()
-    for eje, (clave, (titulo, subtitulo)) in zip(
-        ejes, CLIENTES_RESTO.items(), strict=True
-    ):
+    for eje, (clave, (titulo, subtitulo)) in zip(ejes[0], titulos.items(), strict=True):
         cliente = clientes[clave]
         aportes = aportes_por_familia(por_id, cliente["metricas"])
         aportes = aportes.loc[candidatos(datos, asignaciones, cliente["topico"])]
@@ -1302,10 +1136,18 @@ def _figura_criterios(
             label="Puntaje total",
         )
     )
+    columnas = 3 if len(titulos) > 1 else 2
     fig.legend(
-        handles=manijas, loc="lower center", ncol=3, fontsize=12.5, frameon=False
+        handles=manijas,
+        loc="lower center",
+        ncol=columnas,
+        fontsize=12.5,
+        frameon=False,
     )
-    fig.tight_layout(rect=(0, 0.11, 1, 1), w_pad=2)
+    # Cada renglón de la leyenda ocupa unas 0,32 pulgadas.
+    filas_leyenda = -(-len(manijas) // columnas)
+    abajo = (0.32 * filas_leyenda + 0.1) / tamano[1]
+    fig.tight_layout(rect=(0, abajo, 1, 1), w_pad=2)
     fig.savefig(ruta, dpi=DPI, bbox_inches="tight", facecolor="white")
     plt.close(fig)
 
@@ -1329,8 +1171,9 @@ def formato_porcentaje(fraccion: float) -> str:
 
 def _figura_pesos(clientes: Mapping[str, dict], ruta: Path) -> None:
     """Una barra al 100% por campaña: cuánto pesa cada métrica y cada familia."""
-    nombres = {"futbol": "Fútbol"} | {
-        clave: titulo for clave, (titulo, _) in CLIENTES_RESTO.items()
+    nombres = {
+        clave: titulo
+        for clave, (titulo, _) in (CLIENTE_FUTBOL | CLIENTES_RESTO).items()
     }
     fig, eje = plt.subplots(figsize=(13, 0.9 + 1.15 * len(clientes)), dpi=DPI)
     textos = []
@@ -1436,23 +1279,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     creadores = pd.read_csv(args.campanas / "creadores_por_cliente.csv")
     selecciones = pd.read_csv(args.campanas / "selecciones.csv")
     _figura_enfoques(creadores, salida / "fig_enfoques.png")
-    _figura_costo(
-        creadores,
-        selecciones,
-        {"futbol": None},
-        salida / "fig_enfoques_futbol.png",
-        (7.5, 5.2),
-        detallar=True,
-    )
     with args.config_campanas.open("rb") as archivo:
         clientes = tomllib.load(archivo)["clientes"]
-    _figura_criterios(
-        pd.read_csv(args.datos),
-        selecciones,
-        clientes,
-        args.mapa,
-        salida / "fig_enfoques_resto.png",
-    )
+    for titulos, nombre, tamano in [
+        (CLIENTE_FUTBOL, "fig_enfoques_futbol.png", (7.5, 6.2)),
+        (CLIENTES_RESTO, "fig_enfoques_resto.png", (13.5, 6.4)),
+    ]:
+        _figura_criterios(
+            pd.read_csv(args.datos),
+            selecciones,
+            clientes,
+            titulos,
+            args.mapa,
+            salida / nombre,
+            tamano,
+        )
     _figura_pesos(clientes, salida / "fig_pesos.png")
     for clave, cliente in clientes.items():
         _figura_pesos({clave: cliente}, salida / f"fig_pesos_{clave}.png")

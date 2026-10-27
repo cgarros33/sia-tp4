@@ -121,28 +121,6 @@ def test_pegados_al_texto(modulo: ModuleType) -> None:
     assert list(modulo.pegados_al_texto(caja, puntos)) == [True, True, False, False]
 
 
-def test_agrupar_cercanos(modulo: ModuleType) -> None:
-    """Los puntos encadenados a menos de la distancia forman un mismo grupo."""
-    puntos = np.array([[0.0, 0.0], [100.0, 0.0], [10.0, 0.0], [300.0, 0.0], [18.0, 0]])
-    assert modulo.agrupar_cercanos(puntos, 12) == [[0, 2, 4], [1], [3]]
-
-
-def test_ubicar_etiquetas_lejos_de_vecinos(modulo: ModuleType) -> None:
-    """Un punto sin etiqueta también cuenta: la etiqueta no se le arrima."""
-    ancla = np.array([[200.0, 200.0]])
-    vecino = np.array([[200.0, 190.0]])
-    cajas = modulo.ubicar_etiquetas(
-        ancla,
-        np.array([[60.0, 12.0]]),
-        obstaculos=np.empty((0, 4)),
-        pesos=np.empty(0),
-        limites=np.array([0.0, 0.0, 400.0, 400.0]),
-        vecinos=vecino,
-    )
-    distancias = modulo.distancia_a_caja(cajas[0], np.vstack([ancla, vecino]))
-    assert distancias[0] < distancias[1]
-
-
 def test_ubicar_etiquetas_sigue_direccion(modulo: ModuleType) -> None:
     """Con una dirección preferida, la etiqueta queda de ese lado del ancla."""
     cajas = modulo.ubicar_etiquetas(
