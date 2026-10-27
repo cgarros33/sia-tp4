@@ -1,0 +1,2 @@
+consultas,exactitud,tasa_incorrecto,tasa_espurio,tasa_ciclo,tasa_no_converge,barridos_media,barridos_desvio,actualizaciones_media,actualizaciones_desvio,cambios_totales_media,cambios_totales_desvio,delta_energia_por_neurona_media,delta_energia_por_neurona_desvio,hamming_final_normalizado_media,hamming_final_normalizado_desvio,proporcion_monotona
+5,1.0,0.0,0.0,0.0,0.0,1.0,0.0,1369.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0

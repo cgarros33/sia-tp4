@@ -1,0 +1,13 @@
+[datos]
+ruta = "datos/hopfield/qr_37x37.csv"
+
+[modelo]
+# Regla de proyección de Personnaz: W = Xᵀ (X Xᵀ)⁻¹ X.
+regla = "pseudoinversa"
+modo = "asincronica"
+orden = "secuencial"
+semilla = 0
+max_barridos = 100
+
+[salida]
+directorio = "resultados/ej2/hopfield/qr_37x37/pseudoinversa"

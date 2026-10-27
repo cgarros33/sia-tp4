@@ -1,0 +1,9 @@
+modelo,orden_nivel,nivel,regla,legible_inicial_media,legible_inicial_desvio,lee_origen_inicial_media,lee_origen_inicial_desvio,legible_final_media,legible_final_desvio,lee_origen_final_media,lee_origen_final_desvio,semillas,consultas
+manchas,0,1xr12,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+manchas,0,1xr12,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+manchas,1,1xr15,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+manchas,1,1xr15,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,0.9866666666666667,0.023094010767585053,3,75
+manchas,2,1xr18,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+manchas,2,1xr18,pseudoinversa,0.0,0.0,0.0,0.0,0.9466666666666667,0.06110100926607786,0.9066666666666666,0.06110100926607787,3,75
+manchas,3,1xr21,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+manchas,3,1xr21,pseudoinversa,0.0,0.0,0.0,0.0,0.88,0.0,0.7999999999999999,0.1058300524425836,3,75

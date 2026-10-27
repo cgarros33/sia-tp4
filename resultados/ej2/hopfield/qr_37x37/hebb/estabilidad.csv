@@ -1,0 +1,6 @@
+nombre,punto_fijo,convergio,ciclo,tipo_resultado,nombre_final,distancia_hamming,margen_minimo,neuronas_inestables,neuronas_empate,barridos,actualizaciones,energia_inicial,energia_final
+beverages_menu_qr,False,True,False,espurio,,71,-1.5310445580715826,225,0,2,2738,-1789.7063550036512,-2172.8794740686644
+dessert_menu_qr,False,True,False,espurio,,71,-1.545653761869975,225,0,2,2738,-1801.846603360116,-2172.8794740686644
+food_menu_qr,False,True,False,espurio,,71,-1.823228634039458,71,0,2,2738,-2077.449233016796,-2172.8794740686644
+specials_menu_qr,False,True,False,espurio,,71,-1.7414170927684556,103,0,2,2738,-1982.4660336011682,-2172.8794740686644
+wine_menu_qr,False,True,False,espurio,,71,-1.779401022644278,91,0,2,2738,-2041.5310445580706,-2172.8794740686644

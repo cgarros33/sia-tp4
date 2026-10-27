@@ -1,0 +1,13 @@
+Ruido: bloques
+Media ± desvío muestral sobre semillas.
+
+  0.05     hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.13 | H/N 0.1045 | afectada 0.0268
+  0.05     pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0268
+  0.1      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.17 | H/N 0.1045 | afectada 0.0535
+  0.1      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0535
+  0.2      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.21 | H/N 0.1045 | afectada 0.0947
+  0.2      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.0947
+  0.3      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.23 | H/N 0.1045 | afectada 0.1464
+  0.3      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.00 | H/N 0.0000 | afectada 0.1464
+  0.4      hebb           exactitud 0.000 ± 0.000 | incorrecto 0.000 | espurio 1.000 | barridos 2.24 | H/N 0.1045 | afectada 0.1880
+  0.4      pseudoinversa  exactitud 1.000 ± 0.000 | incorrecto 0.000 | espurio 0.000 | barridos 2.01 | H/N 0.0000 | afectada 0.1880

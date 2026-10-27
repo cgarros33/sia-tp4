@@ -1,0 +1,27 @@
+[redes]
+hebb = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\hebb"
+pseudoinversa = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\pseudoinversa"
+
+[barrido]
+semillas = [0, 1, 2]
+repeticiones = 5
+patron_ejemplo = "food_menu_qr"
+salida = "C:\\Proyectos_de_Programacion_ITBA\\4to\\SIA\\TP4\\sia-tp4\\resultados\\ej2\\hopfield\\qr_37x37\\ruido"
+
+[corrida]
+modelo = "aleatorio"
+etiquetas = ["0.02", "0.05", "0.1", "0.15", "0.2", "0.25", "0.3", "0.35", "0.4", "0.45", "0.5"]
+componentes = ["aleatorio"]
+
+[niveles]
+0.02 = [0.02]
+0.05 = [0.05]
+0.1 = [0.1]
+0.15 = [0.15]
+0.2 = [0.2]
+0.25 = [0.25]
+0.3 = [0.3]
+0.35 = [0.35]
+0.4 = [0.4]
+0.45 = [0.45]
+0.5 = [0.5]

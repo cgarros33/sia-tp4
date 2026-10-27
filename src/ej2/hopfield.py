@@ -33,6 +33,10 @@ RUTA_CONFIG = RAIZ / "src" / "ej2" / "hopfield.toml"
 MODOS = ("asincronica", "sincronica")
 ORDENES = ("secuencial", "aleatorio")
 REGLAS = ("hebb", "pseudoinversa")
+# Un campo local con |h| <= TOLERANCIA_EMPATE es un empate: el redondeo de punto
+# flotante deja residuos del orden de 1e-17 donde la aritmética exacta da 0, y
+# su signo depende del orden de suma (de la plataforma).
+TOLERANCIA_EMPATE = 1e-9
 
 CONFIG_POR_DEFECTO: dict = {
     "datos": {
@@ -270,9 +274,9 @@ def actualizar_neurona(campo: float, estado_actual: int) -> int:
     """Aplica la función de activación con empate conservador."""
     if estado_actual not in (-1, 1):
         raise ValueError("El estado de una neurona debe ser 1 o -1.")
-    if campo > 0.0:
+    if campo > TOLERANCIA_EMPATE:
         return 1
-    if campo < 0.0:
+    if campo < -TOLERANCIA_EMPATE:
         return -1
     return int(estado_actual)
 
@@ -353,9 +357,9 @@ def recuperar(
         else:
             campos = pesos @ estado.astype(float)
             nuevo_estado = np.where(
-                campos > 0.0,
+                campos > TOLERANCIA_EMPATE,
                 1,
-                np.where(campos < 0.0, -1, estado),
+                np.where(campos < -TOLERANCIA_EMPATE, -1, estado),
             ).astype(np.int8)
             cambios = int(np.count_nonzero(nuevo_estado != estado))
             estado = nuevo_estado
@@ -520,6 +524,28 @@ def calcular_capacidad(n_neuronas: int, n_patrones: int) -> dict[str, object]:
     }
 
 
+def calcular_condicion(patrones: np.ndarray) -> dict[str, object]:
+    """Rango y número de condición de la matriz de Gram ``X Xᵀ``.
+
+    La pseudo-inversa invierte ``X Xᵀ``: con rango completo y condición baja la
+    inversa es estable numéricamente.
+    """
+    arreglo = np.asarray(patrones, dtype=float)
+    if arreglo.ndim != 2 or arreglo.shape[0] == 0:
+        raise ValueError("Los patrones deben ser una matriz no vacía (p, N).")
+    gram = arreglo @ arreglo.T
+    return {
+        "patrones": int(arreglo.shape[0]),
+        "rango": int(np.linalg.matrix_rank(gram)),
+        "numero_condicion": float(np.linalg.cond(gram)),
+    }
+
+
+def estado_mezcla(patrones: np.ndarray) -> np.ndarray:
+    """Voto mayoritario ``sign(Σ ξᵘ)`` de los patrones; un empate vale 1."""
+    return np.where(np.asarray(patrones).sum(axis=0) >= 0, 1, -1).astype(np.int8)
+
+
 def calcular_margenes_estabilidad(
     pesos: np.ndarray,
     patron: np.ndarray,
@@ -528,6 +554,33 @@ def calcular_margenes_estabilidad(
     campos = calcular_campo_local(pesos, patron)
     vector = _validar_estado(patron, pesos.shape[0])
     return vector.astype(float) * campos
+
+
+def calcular_energia_estados(
+    pesos: np.ndarray, patrones: np.ndarray, nombres: Sequence[str]
+) -> pd.DataFrame:
+    """Energía y estabilidad de cada patrón almacenado y del estado mezcla.
+
+    Con patrones correlacionados y la regla de Hebb, el estado mezcla puede
+    tener menos energía que los patrones y atraer todas las consultas.
+    """
+    n_neuronas = pesos.shape[0]
+    estados = [*zip(nombres, patrones, strict=True)]
+    estados.append(("mezcla", estado_mezcla(patrones)))
+    filas = []
+    for nombre, estado in estados:
+        energia = calcular_energia(pesos, estado)
+        margen = float(calcular_margenes_estabilidad(pesos, estado).min())
+        filas.append(
+            {
+                "estado": nombre,
+                "energia": energia,
+                "energia_por_neurona": energia / n_neuronas,
+                "margen_minimo": margen,
+                "punto_fijo": margen >= -TOLERANCIA_EMPATE,
+            }
+        )
+    return pd.DataFrame(filas)
 
 
 def capacidad_por_subconjuntos(
@@ -549,7 +602,7 @@ def capacidad_por_subconjuntos(
                 float(calcular_margenes_estabilidad(pesos, patron).min())
                 for patron in subconjunto
             ]
-            estables = sum(margen > 0.0 for margen in margenes)
+            estables = sum(margen >= -TOLERANCIA_EMPATE for margen in margenes)
             filas.append(
                 {
                     "cantidad": cantidad,
@@ -590,7 +643,7 @@ def analizar_red(
         )
         margenes = calcular_margenes_estabilidad(pesos, patron)
         campos = calcular_campo_local(pesos, patron)
-        punto_fijo = bool(np.all(margenes >= 0.0))
+        punto_fijo = bool(np.all(margenes >= -TOLERANCIA_EMPATE))
         clasificacion = clasificar_estado(
             resultado.estado_final,
             dataset.patrones,
@@ -618,8 +671,8 @@ def analizar_red(
                 "nombre_final": nombre_final,
                 "distancia_hamming": clasificacion.distancia_minima,
                 "margen_minimo": float(margenes.min()),
-                "neuronas_inestables": int((margenes < 0.0).sum()),
-                "neuronas_empate": int((margenes == 0.0).sum()),
+                "neuronas_inestables": int((margenes < -TOLERANCIA_EMPATE).sum()),
+                "neuronas_empate": int((np.abs(margenes) <= TOLERANCIA_EMPATE).sum()),
                 "barridos": resultado.barridos,
                 "actualizaciones": resultado.actualizaciones,
                 "energia_inicial": resultado.energia_inicial,
@@ -1009,6 +1062,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     capacidad_por_subconjuntos(
         dataset.patrones, dataset.nombres, config["modelo"]["regla"]
     ).to_csv(directorio / "capacidad_subconjuntos.csv", index=False)
+    pd.DataFrame([calcular_condicion(dataset.patrones)]).to_csv(
+        directorio / "condicion.csv", index=False
+    )
+    calcular_energia_estados(pesos, dataset.patrones, dataset.nombres).to_csv(
+        directorio / "energia_estados.csv", index=False
+    )
     (directorio / "resumen.txt").write_text(
         construir_resumen(config, dataset, analisis),
         encoding="utf-8",

@@ -1,0 +1,11 @@
+modelo,regla,intervalo,exactitud_media,exactitud_desvio,consultas,orden_intervalo
+combinaciones,hebb,0%–5%,0.0,0.0,75,0
+combinaciones,hebb,5%–10%,0.0,0.0,124,1
+combinaciones,hebb,10%–15%,0.0,0.0,171,2
+combinaciones,hebb,15%–20%,0.0,0.0,78,3
+combinaciones,hebb,20%–25%,0.0,,2,4
+combinaciones,pseudoinversa,0%–5%,1.0,0.0,75,0
+combinaciones,pseudoinversa,5%–10%,1.0,0.0,124,1
+combinaciones,pseudoinversa,10%–15%,1.0,0.0,171,2
+combinaciones,pseudoinversa,15%–20%,1.0,0.0,78,3
+combinaciones,pseudoinversa,20%–25%,1.0,,2,4

@@ -1,0 +1,13 @@
+modelo,orden_nivel,nivel,regla,legible_inicial_media,legible_inicial_desvio,lee_origen_inicial_media,lee_origen_inicial_desvio,legible_final_media,legible_final_desvio,lee_origen_final_media,lee_origen_final_desvio,semillas,consultas
+combinaciones,0,paso_1,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,0,paso_1,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+combinaciones,1,paso_2,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,1,paso_2,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+combinaciones,2,paso_3,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,2,paso_3,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+combinaciones,3,paso_4,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,3,paso_4,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+combinaciones,4,paso_5,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,4,paso_5,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
+combinaciones,5,paso_6,hebb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3,75
+combinaciones,5,paso_6,pseudoinversa,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,3,75
